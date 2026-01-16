@@ -1,0 +1,14 @@
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String
+  updatedAt DateTime   @updatedAt
+  items     CartItem[]
+}
+
+model CartItem {
+  id        String @id @default(uuid())
+  cartId   String
+  productId String
+  quantity Int
+  price    Decimal
+}

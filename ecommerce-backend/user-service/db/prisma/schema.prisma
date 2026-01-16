@@ -1,0 +1,53 @@
+model Shipment {
+  id            String            @id @default(uuid())
+  orderId       String            @unique
+  status        ShipmentStatus    @default(PENDING)
+  carrier       String?
+  trackingNo    String?
+  shippedAt     DateTime?
+  deliveredAt   DateTime?
+
+  // Relations
+  address       ShippingAddress?
+  events        ShipmentEvent[]
+
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+}
+
+model ShippingAddress {
+  id           String     @id @default(uuid())
+  shipmentId   String     @unique
+  fullName     String
+  phone        String
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  state        String
+  postalCode   String
+  country      String
+
+  // Relation back
+  shipment     Shipment   @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime   @default(now())
+}
+
+model ShipmentEvent {
+  id          String         @id @default(uuid())
+  shipmentId  String
+  status      ShipmentStatus
+  message     String?
+  createdAt  DateTime       @default(now())
+
+  // Relation back
+  shipment    Shipment       @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+}
+
+enum ShipmentStatus {
+  PENDING
+  SHIPPED
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+}
