@@ -1,9 +1,10 @@
 import express from "express";
-import routes from "./routes";
+import routes from "./routes/cart-routes";
 
 const app = express();
 app.use(express.json());
-app.use("/", routes);
+
+// Mount at /cart
+app.use("/cart", routes);
 
 export default app;
-

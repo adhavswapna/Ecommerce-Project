@@ -1,13 +1,10 @@
-import "dotenv/config";
-import app from "./app";
+import dotenv from "dotenv";
+import app from "./app"; // your Express app
 
-const PORT = Number(process.env.PORT);
+dotenv.config(); // load .env
 
-app.get("/health", (_req, res) => {
-  res.json({ status: "UP", service: process.env.SERVICE_NAME });
+const port = Number(process.env.SERVICE_PORT) || 3005; // use SERVICE_PORT from .env
+
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
-
-app.listen(PORT, () => {
-  console.log(`🚀 ${process.env.SERVICE_NAME} running on ${PORT}`);
-});
-
