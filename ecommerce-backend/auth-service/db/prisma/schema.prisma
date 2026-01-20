@@ -1,0 +1,28 @@
+// schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // your PostgreSQL URL in .env
+}
+
+enum Role {
+  ADMIN
+  USER
+  VENDOR
+}
+
+model AuthUser {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // optional: relations to other services if needed
+  // orders   Order[]
+  // payments Payment[]
+}
