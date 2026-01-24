@@ -1,25 +1,74 @@
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")  // <- points to .env DATABASE_URL
+  url      = env("DATABASE_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
 }
 
+////////////////////
+/// USER
+////////////////////
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      UserRole @default(USER)
+  vendor    Vendor?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum UserRole {
+  USER
+  VENDOR
+  ADMIN
+}
+
+////////////////////
+/// VENDOR
+////////////////////
+model Vendor {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  name      String
+  isActive  Boolean  @default(false)
+  products  Product[]
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+////////////////////
+/// CATEGORY
+////////////////////
+model Category {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  products  Product[]
+  createdAt DateTime  @default(now())
+}
+
+////////////////////
+/// PRODUCT
+////////////////////
 model Product {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   vendorId    String
+  categoryId  String?
   name        String
   description String?
   price       Decimal
   stock       Int
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
+  isActive    Boolean   @default(true)
 
-model Category {
-  id   String @id @default(uuid())
-  name String @unique
+  vendor      Vendor   @relation(fields: [vendorId], references: [id])
+  category    Category?@relation(fields: [categoryId], references: [id])
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([vendorId])
+  @@index([categoryId])
 }

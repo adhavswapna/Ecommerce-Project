@@ -1,56 +1,64 @@
-import { PrismaClient, Product } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { Prisma, Product } from "@prisma/client";
+import { prisma } from "../db/prisma/prisma";
 
 /**
- * Create a new product
+ * USER – list active products
  */
-export async function createProduct(
-  name: string,
-  price: number,
-  stock: number,
-  vendorId: string
-): Promise<Product> {
-  try {
-    const product = await prisma.product.create({
-      data: {
-        name,
-        price,
-        stock,
-        vendorId,
+export const getAllProducts = async (): Promise<Product[]> => {
+  return prisma.product.findMany({
+    where: { isActive: true },
+    include: {
+      category: true,
+      vendor: {
+        select: { id: true, name: true },
       },
-    });
-    return product;
-  } catch (error) {
-    console.error("Error creating product:", error);
-    throw error;
-  }
+    },
+  });
+};
+
+/**
+ * USER – get single product
+ */
+export const getProductById = async (
+  id: string
+): Promise<Product | null> => {
+  return prisma.product.findFirst({
+    where: {
+      id,
+      isActive: true,
+    },
+    include: {
+      category: true,
+      vendor: {
+        select: { id: true, name: true },
+      },
+    },
+  });
+};
+
+interface CreateProductInput {
+  vendorId: string;
+  name: string;
+  description?: string;
+  price: string;      // Decimal as string
+  stock: number;
+  categoryId?: string;
 }
 
 /**
- * Get all products
+ * VENDOR – create product
  */
-export async function getAllProducts(): Promise<Product[]> {
-  try {
-    const products = await prisma.product.findMany();
-    return products;
-  } catch (error) {
-    console.error("Error fetching products:", error);
-    throw error;
-  }
-}
-
-/**
- * Get product by ID
- */
-export async function getProductById(id: string): Promise<Product | null> {
-  try {
-    const product = await prisma.product.findUnique({
-      where: { id },
-    });
-    return product;
-  } catch (error) {
-    console.error("Error fetching product by ID:", error);
-    throw error;
-  }
-}
+export const createProduct = async (
+  data: CreateProductInput
+): Promise<Product> => {
+  return prisma.product.create({
+    data: {
+      vendorId: data.vendorId,
+      name: data.name,
+      description: data.description,
+      price: new Prisma.Decimal(data.price),
+      stock: data.stock,
+      categoryId: data.categoryId,
+    },
+  });
+};

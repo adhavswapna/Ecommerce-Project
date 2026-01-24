@@ -1,13 +1,60 @@
 import { Request, Response } from "express";
-import { createProduct } from "../services/product-service";
+import * as productService from "../services/product-service";
 
-export async function addProduct(req: Request, res: Response) {
+/**
+ * GET /products
+ * USER – list active products
+ */
+export const getAllProducts = async (_req: Request, res: Response) => {
   try {
-    const { name, price, stock, vendorId } = req.body;
-    const product = await createProduct(name, price, stock, vendorId);
-    res.json(product);
-  } catch (err) {
-    console.error("Error creating product:", err);
-    res.status(500).json({ message: "Internal server error" });
+    const products = await productService.getAllProducts();
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch products" });
   }
-}
+};
+
+/**
+ * GET /products/:id
+ */
+export const getProductById = async (req: Request, res: Response) => {
+  try {
+    const product = await productService.getProductById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    res.json(product);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch product" });
+  }
+};
+
+/**
+ * POST /vendor/products
+ * VENDOR – create product
+ */
+export const createProduct = async (req: Request, res: Response) => {
+  try {
+    // TEMP for testing
+    // Later replace with: req.user.vendorId
+    const vendorId = "test-vendor-id";
+
+    const product = await productService.createProduct({
+      vendorId,
+      name: req.body.name,
+      description: req.body.description,
+      price: req.body.price,
+      stock: req.body.stock,
+      categoryId: req.body.categoryId,
+    });
+
+    res.status(201).json(product);
+  } catch (error: any) {
+    res.status(400).json({
+      message: "Failed to create product",
+      error: error.message,
+    });
+  }
+};

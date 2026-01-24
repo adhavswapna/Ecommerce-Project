@@ -1,8 +1,21 @@
 import { Router } from "express";
-import { addProduct } from "../controllers/product-controller";
+import {
+  getAllProducts,
+  getProductById,
+  createProduct,
+} from "../controllers/product-controller";
 
 const router = Router();
 
-router.post("/products", addProduct);
+/**
+ * USER / PUBLIC
+ */
+router.get("/products", getAllProducts);
+router.get("/products/:id", getProductById);
+
+/**
+ * VENDOR
+ */
+router.post("/vendor/products", createProduct);
 
 export default router;
