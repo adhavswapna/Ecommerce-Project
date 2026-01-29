@@ -1,10 +1,16 @@
+import express from "express";
 import dotenv from "dotenv";
-import app from "./app"; // your Express app
+import productRoutes from "./routes/product.routes";
 
-dotenv.config(); // load .env
+dotenv.config();
 
-const port = Number(process.env.SERVICE_PORT) || 3004; // use SERVICE_PORT from .env
+const app = express();
+app.use(express.json());
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+app.use(productRoutes);
+
+const PORT = process.env.PORT || 3004;
+
+app.listen(PORT, () => {
+  console.log(`🚀 Product service on ${PORT}`);
 });
