@@ -1,6 +1,6 @@
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")  // <- points to .env DATABASE_URL
+  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -21,15 +21,8 @@ model CartItem {
   quantity  Int
   price     Decimal
 
-  cart      Cart     @relation(fields: [cartId], references: [id])
-  product   Product  @relation(fields: [productId], references: [id])
+  cart Cart @relation(fields: [cartId], references: [id])
+
+  @@unique([cartId, productId]) // 🔥 prevents duplicates
 }
 
-model Product {
-  id    String   @id @default(uuid())
-  name  String
-  price Decimal
-  stock Int
-
-  cartItems CartItem[]
-}

@@ -6,7 +6,8 @@ const router = Router();
 // Add item to cart
 router.post("/add", addItem);
 
-// Get user's cart items
+// Get cart by userId
 router.get("/:userId", getCart);
 
 export default router;
+

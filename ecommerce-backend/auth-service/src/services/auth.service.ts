@@ -1,9 +1,8 @@
-import bcrypt from 'bcrypt';
-import { PrismaClient } from '@prisma/client';
+import { Role } from '@prisma/client';
+import prisma from '../../db/prisma/prisma';
 import { signToken } from '../utils/jwt';
-import { Role } from '../constants/role.enum';
-
-const prisma = new PrismaClient();
+import { hashPassword, comparePassword } from '../utils/password';
+import { publishUserCreated } from '../../kafka/auth.producer';
 
 export class AuthService {
   static async register(
@@ -11,21 +10,36 @@ export class AuthService {
     password: string,
     role: Role
   ) {
-    const hashedPassword = await bcrypt.hash(password, 10);
+    try {
+      const hashedPassword = await hashPassword(password);
 
-    const user = await prisma.authUser.create({
-      data: {
-        email,
-        password: hashedPassword,
-        role,
-      },
-    });
+      const user = await prisma.authUser.create({
+        data: {
+          email,
+          password: hashedPassword,
+          role,
+        },
+      });
 
-    // JWT stays minimal (best practice)
-    return signToken({
-      userId: user.id,
-      role: user.role,
-    });
+      // 🔥 Emit Kafka event (non-blocking)
+      await publishUserCreated({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      });
+
+      // ✅ Minimal JWT payload
+      return signToken({
+        userId: user.id,
+        role: user.role,
+      });
+    } catch (err: any) {
+      // Unique email constraint
+      if (err.code === 'P2002') {
+        throw new Error('Email already exists');
+      }
+      throw err;
+    }
   }
 
   static async login(email: string, password: string) {
@@ -37,7 +51,7 @@ export class AuthService {
       throw new Error('Invalid credentials');
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await comparePassword(password, user.password);
 
     if (!isMatch) {
       throw new Error('Invalid credentials');
@@ -62,4 +76,3 @@ export class AuthService {
     });
   }
 }
-
