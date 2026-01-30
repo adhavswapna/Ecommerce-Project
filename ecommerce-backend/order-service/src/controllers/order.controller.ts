@@ -1,6 +1,6 @@
 // filepath: src/controllers/order-controller.ts
 import { Request, Response } from "express";
-import { placeOrder, getOrders } from "../services/order-service";
+import { placeOrder, getOrders } from "../services/order.service";
 
 export async function checkout(req: Request, res: Response) {
   try {

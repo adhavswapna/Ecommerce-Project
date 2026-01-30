@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 import express from "express";
-import orderRoutes from "./routes/order-routes"; // make sure this exists
+import orderRoutes from "./routes/order.routes"; // make sure this exists
 import bodyParser from "body-parser";
 
 dotenv.config(); // load .env
