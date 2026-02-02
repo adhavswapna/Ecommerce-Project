@@ -1,13 +1,13 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+dotenv.config();
+
+
 import app from "./app";
 
-const PORT = Number(process.env.PORT);
 
-app.get("/health", (_req, res) => {
-  res.json({ status: "UP", service: process.env.SERVICE_NAME });
-});
+const PORT = process.env.PORT || 3012;
+
 
 app.listen(PORT, () => {
-  console.log(`🚀 ${process.env.SERVICE_NAME} running on ${PORT}`);
+console.log(`🔍 Search Service running on port ${PORT}`);
 });
-

@@ -1,13 +1,14 @@
-import "dotenv/config";
-import app from "./app";
+import express from "express";
+import adminRoutes from "./routes/admin.routes";
 
-const PORT = Number(process.env.PORT);
+const app = express();
+app.use(express.json());
 
-app.get("/health", (_req, res) => {
-  res.json({ status: "UP", service: process.env.SERVICE_NAME });
-});
+// Mount routes under /admin
+app.use("/admin", adminRoutes);
 
+const PORT = process.env.SERVICE_PORT || 3002;
 app.listen(PORT, () => {
-  console.log(`🚀 ${process.env.SERVICE_NAME} running on ${PORT}`);
+  console.log(`🚀 Admin service running on port ${PORT}`);
 });
 

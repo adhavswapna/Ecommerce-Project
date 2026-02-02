@@ -1,13 +1,30 @@
-user-service/
+admin-service/
 ├── src/
 │   ├── app.ts
-│   ├── server.ts
-│   ├── routes.ts
-│   ├── controller.ts
-│   ├── service.ts
-│   ├── prisma.ts
-│   └── kafka.ts
-├── prisma/schema.prisma
+│   ├── main.ts
+│   ├── config/
+│   │   └── index.ts
+│   ├── controllers/
+│   │   └── admin.controller.ts
+│   ├── services/
+│   │   └── admin.service.ts
+│   ├── routes/
+│   │   └── admin.routes.ts
+│   ├── middlewares/
+│   │   ├── error.middleware.ts
+│   │   ├── requestLogger.middleware.ts
+│   │   └── role.middleware.ts
+│   ├── kafka/
+│   │   ├── kafka-client.ts
+│   │   ├── kafka-producer.ts
+│   │   └── kafka-consumer.ts
+│   ├── redis/
+│   │   └── redis-client.ts
+│   └── prisma/
+│       ├── prisma.ts
+│       └── schema.prisma
+├── .env
 ├── package.json
-└── tsconfig.json
-
+├── tsconfig.json
+├── Dockerfile
+└── docker-compose.yml
