@@ -1,4 +1,4 @@
-import prisma from "../../db/prisma/prisma";
+import prisma from "../db/prisma/prisma";
 import { CreateInventoryDTO } from "../dtos/inventory.dto";
 
 export const createInventory = async (data: CreateInventoryDTO) => {

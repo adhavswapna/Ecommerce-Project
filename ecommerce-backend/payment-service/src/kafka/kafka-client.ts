@@ -13,9 +13,13 @@ export async function getProducer(): Promise<Producer | null> {
   if (!producer) {
     producer = kafka.producer();
     await producer.connect();
-    console.log("✅ Kafka connected");
+    console.log("✅ Payment Kafka producer connected");
   }
 
   return producer;
+}
+
+export function getKafka() {
+  return kafka;
 }
 

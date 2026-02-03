@@ -1,21 +1,12 @@
-import { Kafka, Producer } from "kafkajs";
+import { Kafka } from "kafkajs";
+import { config } from "../config/config";
 
-const kafka = new Kafka({
-  clientId: process.env.SERVICE_NAME!,
-  brokers: [process.env.KAFKA_BROKER!],
+export const kafka = new Kafka({
+  clientId: config.kafkaClientId,
+  brokers: [config.kafkaBroker]
 });
 
-let producer: Producer | null = null;
-
-export async function getProducer(): Promise<Producer | null> {
-  if (process.env.ENABLE_KAFKA !== "true") return null;
-
-  if (!producer) {
-    producer = kafka.producer();
-    await producer.connect();
-    console.log("✅ Kafka connected");
-  }
-
-  return producer;
-}
-
+export const producer = kafka.producer();
+export const consumer = kafka.consumer({
+  groupId: config.kafkaGroupId
+});

@@ -1,27 +1,44 @@
 import dotenv from "dotenv";
 import express from "express";
-import orderRoutes from "./routes/order.routes"; // make sure this exists
-import bodyParser from "body-parser";
+import orderRoutes from "./routes/order.routes";
+import { startOrderConsumer } from "./kafka/order-consumer";
+import { disconnectKafka } from "./kafka/kafka-client";
 
-dotenv.config(); // load .env
+dotenv.config();
 
 const app = express();
 
-// Middleware to parse JSON
 app.use(express.json());
-app.use(bodyParser.json());
-
-// Mount order routes with /orders prefix
 app.use("/orders", orderRoutes);
 
-// Optional: health check
-app.get("/health", (_req, res) => res.json({ status: "ok" }));
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok", service: "order-service" });
+});
 
-// Start server
-const port = Number(process.env.SERVICE_PORT) || 3006;
+const PORT = Number(process.env.SERVICE_PORT) || 3006;
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+async function startServer() {
+  await startOrderConsumer();
+
+  app.listen(PORT, () => {
+    console.log(`🚀 Order Service running on port ${PORT}`);
+    console.log(`📡 Kafka consumer connected and listening to order topics`);
+  });
+}
+
+startServer();
+
+process.on("SIGINT", async () => {
+  console.log("🛑 Shutting down order-service...");
+  await disconnectKafka();
+  process.exit(0);
+});
+
+process.on("SIGTERM", async () => {
+  console.log("🛑 Shutting down order-service...");
+  await disconnectKafka();
+  process.exit(0);
 });
 
 export default app;
+

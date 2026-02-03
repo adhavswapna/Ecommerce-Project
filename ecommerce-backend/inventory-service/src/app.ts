@@ -1,3 +1,4 @@
+// src/app.ts
 import express from "express";
 import inventoryRoutes from "./routes/inventory.routes";
 
@@ -12,3 +13,4 @@ app.get("/health", (_, res) => {
 });
 
 export default app;
+

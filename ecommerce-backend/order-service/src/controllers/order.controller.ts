@@ -1,33 +1,67 @@
-// filepath: src/controllers/order-controller.ts
 import { Request, Response } from "express";
-import { placeOrder, getOrders } from "../services/order.service";
+import { v4 as uuidv4 } from "uuid";
+import { publishOrderCreated, publishOrderUpdated } from "../kafka/order-producer";
+import { OrderCreatedEvent, OrderUpdatedEvent } from "../kafka/order-events";
 
-export async function checkout(req: Request, res: Response) {
-  try {
-    const { userId, total } = req.body;
+// In-memory orders storage (replace with DB later)
+const orders: Record<string, any> = {};
 
-    if (!userId || total === undefined) {
-      return res.status(400).json({
-        message: "userId and total are required",
-      });
-    }
+/* ================= Create Order ================= */
+export async function createOrder(req: Request, res: Response) {
+  const { userId, totalAmount } = req.body;
 
-    const order = await placeOrder(userId, Number(total));
-    return res.status(201).json(order);
-  } catch (error) {
-    console.error("Error in checkout:", error);
-    return res.status(500).json({ message: "Internal server error" });
+  if (!userId || !totalAmount) {
+    return res.status(400).json({ message: "userId and totalAmount are required" });
   }
+
+  const orderId = uuidv4();
+  const newOrder = {
+    orderId,
+    userId,
+    totalAmount,
+    status: "CREATED",
+    createdAt: new Date().toISOString(),
+  };
+
+  // Save order (replace with DB)
+  orders[orderId] = newOrder;
+
+  // Publish Kafka event
+  const event: OrderCreatedEvent = newOrder;
+  await publishOrderCreated(event);
+
+  return res.status(201).json({ message: "Order created", order: newOrder });
 }
 
-export async function listOrders(req: Request, res: Response) {
-  try {
-    const userId = req.params.userId as string;
+/* ================= Update Order ================= */
+export async function updateOrder(req: Request, res: Response) {
+  const { orderId } = req.params;
+  const { status } = req.body;
 
-    const orders = await getOrders(userId);
-    return res.status(200).json(orders);
-  } catch (error) {
-    console.error("Error listing orders:", error);
-    return res.status(500).json({ message: "Internal server error" });
+  if (!orders[orderId]) {
+    return res.status(404).json({ message: "Order not found" });
   }
+
+  if (!status || !["CONFIRMED", "CANCELLED", "SHIPPED"].includes(status)) {
+    return res.status(400).json({ message: "Invalid status" });
+  }
+
+  orders[orderId].status = status;
+  orders[orderId].updatedAt = new Date().toISOString();
+
+  // Publish Kafka event
+  const event: OrderUpdatedEvent = {
+    orderId,
+    status,
+    updatedAt: orders[orderId].updatedAt,
+  };
+  await publishOrderUpdated(event);
+
+  return res.status(200).json({ message: "Order updated", order: orders[orderId] });
 }
+
+/* ================= Get Orders ================= */
+export function getOrders(_req: Request, res: Response) {
+  return res.json(Object.values(orders));
+}
+

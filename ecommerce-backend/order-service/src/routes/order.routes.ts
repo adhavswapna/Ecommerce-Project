@@ -1,9 +1,20 @@
 import { Router } from "express";
-import { checkout, listOrders } from "../controllers/order.controller";
+import {
+  createOrder,
+  updateOrder,
+  getOrders,
+} from "../controllers/order.controller";
 
 const router = Router();
 
-router.post("/checkout", checkout);
-router.get("/:userId", listOrders);
+// Create a new order
+router.post("/", createOrder);
+
+// Update an existing order
+router.put("/:orderId", updateOrder);
+
+// Get all orders (optional)
+router.get("/", getOrders);
 
 export default router;
+

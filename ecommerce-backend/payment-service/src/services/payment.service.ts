@@ -1,4 +1,4 @@
-import prisma from "../../db/prisma/prisma";
+import prisma from "../db/prisma/prisma";
 import { PaymentStatus } from "@prisma/client";
 
 export const createPaymentService = async (

@@ -1,37 +1,57 @@
-import { Kafka } from "kafkajs";
-import { sendEmail } from "../services/email.service";
-
-const kafka = new Kafka({
-  clientId: process.env.KAFKA_CLIENT_ID!,
-  brokers: [process.env.KAFKA_BROKER!],
-});
-
-const consumer = kafka.consumer({
-  groupId: process.env.KAFKA_GROUP_ID!,
-});
+import { getKafka } from "./kafka-client";
+import { EMAIL_TOPICS } from "./email.topics";
 
 export async function startEmailConsumer() {
-  if (process.env.ENABLE_KAFKA !== "true") return;
+  if (process.env.ENABLE_KAFKA !== "true") {
+    console.log("⚠️ Kafka disabled for email-service");
+    return;
+  }
+
+  const kafka = getKafka();
+
+  const consumer = kafka.consumer({
+    groupId: process.env.KAFKA_GROUP_ID || "email-group",
+  });
 
   await consumer.connect();
+
   await consumer.subscribe({
-    topic: "email.send",
+    topic: EMAIL_TOPICS.USER_REGISTERED,
     fromBeginning: false,
   });
 
+  await consumer.subscribe({
+    topic: EMAIL_TOPICS.ORDER_CREATED,
+    fromBeginning: false,
+  });
+
+  await consumer.subscribe({
+    topic: EMAIL_TOPICS.PAYMENT_SUCCESS,
+    fromBeginning: false,
+  });
+
+  console.log("📨 Email Kafka consumer started");
+
   await consumer.run({
-    eachMessage: async ({ message }) => {
+    eachMessage: async ({ topic, message }) => {
       if (!message.value) return;
 
       const payload = JSON.parse(message.value.toString());
 
-      await sendEmail({
-        to: payload.to,
-        subject: payload.subject,
-        html: payload.html,
-      });
+      switch (topic) {
+        case EMAIL_TOPICS.USER_REGISTERED:
+          console.log("📧 Sending welcome email to:", payload.email);
+          break;
 
-      console.log("📧 Email sent to:", payload.to);
+        case EMAIL_TOPICS.ORDER_CREATED:
+          console.log("📦 Sending order confirmation for:", payload.orderId);
+          break;
+
+        case EMAIL_TOPICS.PAYMENT_SUCCESS:
+          console.log("💳 Sending payment success email for:", payload.orderId);
+          break;
+      }
     },
   });
 }
+

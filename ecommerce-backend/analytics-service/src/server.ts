@@ -1,13 +1,25 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+dotenv.config();
+
 import app from "./app";
+import { startAnalyticsConsumer } from "./kafka/analytics.consumer";
 
-const PORT = Number(process.env.PORT);
+const PORT = process.env.SERVICE_PORT || 3011;
 
-app.get("/health", (_req, res) => {
-  res.json({ status: "UP", service: process.env.SERVICE_NAME });
-});
+const startServer = async () => {
+  try {
+    console.log("🚀 Starting Analytics Service...");
 
-app.listen(PORT, () => {
-  console.log(`🚀 ${process.env.SERVICE_NAME} running on ${PORT}`);
-});
+    await startAnalyticsConsumer();
+
+    app.listen(PORT, () => {
+      console.log(`📊 Analytics Service running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error("❌ Failed to start Analytics Service", err);
+    process.exit(1);
+  }
+};
+
+startServer();
 

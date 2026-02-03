@@ -1,13 +1,15 @@
-import "dotenv/config";
-import app from "./app";
+import { app } from "./app";
+import { config } from "./config/config";
+import { producer } from "./kafka/kafka-client";
+import { startShippingConsumer } from "./kafka/shipping.consumer";
 
-const PORT = Number(process.env.PORT);
+const startServer = async () => {
+  await producer.connect();
+  await startShippingConsumer();
 
-app.get("/health", (_req, res) => {
-  res.json({ status: "UP", service: process.env.SERVICE_NAME });
-});
+  app.listen(config.port, () => {
+    console.log(`🚚 Shipping Service running on port ${config.port}`);
+  });
+};
 
-app.listen(PORT, () => {
-  console.log(`🚀 ${process.env.SERVICE_NAME} running on ${PORT}`);
-});
-
+startServer();
