@@ -1,10 +1,39 @@
 import { Request, Response } from "express";
-import * as invoiceService from "../services/invoice.service";
+import {
+  createInvoice,
+  getInvoiceById,
+  listInvoices,
+} from "../services/invoice.service";
 
-export async function createInvoice(req: Request, res: Response) {
+/**
+ * GET /api/invoices
+ */
+export async function getAllInvoices(req: Request, res: Response) {
+  const invoices = await listInvoices();
+  res.json(invoices);
+}
+
+/**
+ * GET /api/invoices/:id
+ */
+export async function getInvoice(req: Request, res: Response) {
+  const { id } = req.params;
+
+  const invoice = await getInvoiceById(id);
+  if (!invoice) {
+    return res.status(404).json({ message: "Invoice not found" });
+  }
+
+  res.json(invoice);
+}
+
+/**
+ * POST /api/invoices
+ */
+export async function createInvoiceController(req: Request, res: Response) {
   const { orderId, userId, amount } = req.body;
 
-  const invoice = await invoiceService.createInvoice({
+  const invoice = await createInvoice({
     orderId,
     userId,
     amount,
@@ -13,17 +42,3 @@ export async function createInvoice(req: Request, res: Response) {
   res.status(201).json(invoice);
 }
 
-export async function getInvoice(req: Request, res: Response) {
-  const invoice = await invoiceService.getInvoiceById(req.params.id);
-
-  if (!invoice) {
-    return res.status(404).json({ message: "Invoice not found" });
-  }
-
-  res.json(invoice);
-}
-
-export async function listInvoices(req: Request, res: Response) {
-  const invoices = await invoiceService.listInvoices();
-  res.json(invoices);
-}

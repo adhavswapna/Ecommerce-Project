@@ -10,9 +10,14 @@
   },
   "dependencies": {
     "@prisma/client": "^5.7.0",
+    "bwip-js": "^4.8.0",
     "dotenv": "^17.2.3",
     "express": "^4.18.2",
-    "kafkajs": "^2.2.4"
+    "kafkajs": "^2.2.4",
+    "minio": "^8.0.6",
+    "number-to-words": "^1.2.4",
+    "pdfkit": "^0.17.2",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "prisma": "^5.7.0",
