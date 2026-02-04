@@ -1,20 +1,28 @@
 import { Router } from "express";
-import {
-  getAllInvoices,
-  getInvoice,
-  createInvoiceController,
-} from "../controllers/invoice.controller";
+import { generateInvoicePDF } from "../pdf/invoice.pdf";
+import { uploadInvoicePDF } from "../minio/invoice-upload";
 
 const router = Router();
 
-// GET all invoices
-router.get("/", getAllInvoices);
+router.post("/invoice", async (req, res) => {
+  try {
+    const pdfBuffer = await generateInvoicePDF(req.body);
 
-// GET invoice by id
-router.get("/:id", getInvoice);
+    const fileName = `invoice-${req.body.orderId}.pdf`;
 
-// CREATE invoice
-router.post("/", createInvoiceController);
+    await uploadInvoicePDF(fileName, pdfBuffer);
+
+    res.status(201).json({
+      message: "Invoice generated & uploaded",
+      fileName,
+    });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({
+      message: err.message || "Invoice generation failed",
+    });
+  }
+});
 
 export default router;
 

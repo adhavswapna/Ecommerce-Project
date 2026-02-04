@@ -1,39 +1,22 @@
-// src/minio/minio-client.ts
-import * as Minio from "minio";
-import { config } from "../config/config";
+import { Client } from "minio";
 
-export const minioClient = new Minio.Client({
-  endPoint: config.minio.endPoint,
-  port: config.minio.port,
-  useSSL: config.minio.useSSL,
-  accessKey: config.minio.accessKey,
-  secretKey: config.minio.secretKey,
+export const minioClient = new Client({
+  endPoint: process.env.MINIO_ENDPOINT || "localhost",
+  port: Number(process.env.MINIO_PORT) || 9000,
+  useSSL: false,
+  accessKey: process.env.MINIO_ACCESS_KEY || "minioadmin",
+  secretKey: process.env.MINIO_SECRET_KEY || "minioadmin",
 });
 
+export const BUCKET_NAME = "invoices";
+
 export async function initMinio() {
-  try {
-    const exists = await minioClient.bucketExists(config.minio.bucket);
-
-    if (!exists) {
-      await minioClient.makeBucket(config.minio.bucket, "us-east-1");
-      console.log(`🪣 MinIO bucket created: ${config.minio.bucket}`);
-    } else {
-      console.log(`🪣 MinIO bucket exists: ${config.minio.bucket}`);
-    }
-
-    console.log("✅ MinIO initialized");
-  } catch (err) {
-    console.error("❌ MinIO init failed", err);
-    throw err;
+  const exists = await minioClient.bucketExists(BUCKET_NAME);
+  if (!exists) {
+    await minioClient.makeBucket(BUCKET_NAME);
+    console.log("🪣 MinIO bucket created:", BUCKET_NAME);
+  } else {
+    console.log("🪣 MinIO bucket exists:", BUCKET_NAME);
   }
-}
-
-export async function uploadPdf(key: string, buffer: Buffer) {
-  await minioClient.putObject(config.minio.bucket, key, buffer);
-  console.log(`📄 PDF uploaded → ${key}`);
-}
-
-export async function getInvoiceUrl(key: string) {
-  return minioClient.presignedGetObject(config.minio.bucket, key, 3600);
 }
 
