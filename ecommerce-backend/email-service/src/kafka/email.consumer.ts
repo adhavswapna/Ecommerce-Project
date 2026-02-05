@@ -1,5 +1,6 @@
 import { getKafka } from "./kafka-client";
 import { EMAIL_TOPICS } from "./email.topics";
+import { sendEmail } from "./sendEmail";
 
 export async function startEmailConsumer() {
   if (process.env.ENABLE_KAFKA !== "true") {
@@ -15,20 +16,9 @@ export async function startEmailConsumer() {
 
   await consumer.connect();
 
-  await consumer.subscribe({
-    topic: EMAIL_TOPICS.USER_REGISTERED,
-    fromBeginning: false,
-  });
-
-  await consumer.subscribe({
-    topic: EMAIL_TOPICS.ORDER_CREATED,
-    fromBeginning: false,
-  });
-
-  await consumer.subscribe({
-    topic: EMAIL_TOPICS.PAYMENT_SUCCESS,
-    fromBeginning: false,
-  });
+  await consumer.subscribe({ topic: EMAIL_TOPICS.USER_REGISTERED, fromBeginning: false });
+  await consumer.subscribe({ topic: EMAIL_TOPICS.ORDER_CREATED, fromBeginning: false });
+  await consumer.subscribe({ topic: EMAIL_TOPICS.PAYMENT_SUCCESS, fromBeginning: false });
 
   console.log("📨 Email Kafka consumer started");
 
@@ -41,14 +31,29 @@ export async function startEmailConsumer() {
       switch (topic) {
         case EMAIL_TOPICS.USER_REGISTERED:
           console.log("📧 Sending welcome email to:", payload.email);
+          await sendEmail(
+            payload.email,
+            "Welcome to E-Commerce!",
+            `Hi ${payload.name}, welcome to our platform! 🎉`
+          );
           break;
 
         case EMAIL_TOPICS.ORDER_CREATED:
           console.log("📦 Sending order confirmation for:", payload.orderId);
+          await sendEmail(
+            payload.email,
+            "Order Confirmation",
+            `Your order ${payload.orderId} has been received!`
+          );
           break;
 
         case EMAIL_TOPICS.PAYMENT_SUCCESS:
           console.log("💳 Sending payment success email for:", payload.orderId);
+          await sendEmail(
+            payload.email,
+            "Payment Successful",
+            `Your payment for order ${payload.orderId} was successful!`
+          );
           break;
       }
     },
