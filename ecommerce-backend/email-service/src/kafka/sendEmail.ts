@@ -1,22 +1,21 @@
-// sendEmail.ts
-import "dotenv/config"; // <-- ensures .env is loaded
+import "dotenv/config";
 import nodemailer from "nodemailer";
 
-// Create reusable transporter object
+// Create transporter
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT),
-  secure: false, // true if using 465
+  secure: false, // true if using port 465
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
 });
 
-// Function to send email
+// Send email function
 export async function sendEmail(to: string, subject: string, text: string) {
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.error("❌ SMTP credentials are missing in .env");
+    console.error("❌ SMTP credentials missing in .env");
     return;
   }
 
@@ -33,7 +32,7 @@ export async function sendEmail(to: string, subject: string, text: string) {
   }
 }
 
-// Self-test when running this file directly
+// ✅ Optional: test email if run directly
 if (require.main === module) {
   (async () => {
     await sendEmail(

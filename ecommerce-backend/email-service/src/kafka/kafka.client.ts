@@ -1,12 +1,13 @@
 import { Kafka, Producer } from "kafkajs";
 
 const kafka = new Kafka({
-  clientId: process.env.SERVICE_NAME!,
-  brokers: [process.env.KAFKA_BROKER!],
+  clientId: process.env.SERVICE_NAME || "email-service",
+  brokers: [process.env.KAFKA_BROKER || "localhost:9092"],
 });
 
 let producer: Producer | null = null;
 
+// ✅ Get Kafka producer
 export async function getProducer(): Promise<Producer | null> {
   if (process.env.ENABLE_KAFKA !== "true") return null;
 
@@ -19,6 +20,7 @@ export async function getProducer(): Promise<Producer | null> {
   return producer;
 }
 
+// ✅ Get Kafka client for consumer
 export function getKafka() {
   return kafka;
 }
