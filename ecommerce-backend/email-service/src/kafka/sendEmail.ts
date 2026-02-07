@@ -12,8 +12,8 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Send email function
-export async function sendEmail(to: string, subject: string, text: string) {
+// Send email function supporting HTML
+export async function sendEmail(to: string, subject: string, htmlContent: string) {
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.error("❌ SMTP credentials missing in .env");
     return;
@@ -24,8 +24,10 @@ export async function sendEmail(to: string, subject: string, text: string) {
       from: `"E-Commerce" <${process.env.SMTP_USER}>`,
       to,
       subject,
-      text,
+      html: htmlContent, // HTML content
+      text: htmlContent.replace(/<[^>]*>?/gm, ""), // fallback plain-text
     });
+
     console.log("✅ Email sent successfully:", info.messageId, "to", to);
   } catch (err) {
     console.error("❌ Failed to send email:", err);
@@ -38,7 +40,8 @@ if (require.main === module) {
     await sendEmail(
       process.env.SMTP_USER || "your-email@gmail.com",
       "Test Email from E-Commerce",
-      "This is a test email to verify SMTP configuration 🎉"
+      `<h1>Test Email 🎉</h1>
+       <p>This is a test email to verify SMTP configuration.</p>`
     );
   })();
 }
