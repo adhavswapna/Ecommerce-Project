@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
+import prisma from "../db/prisma/prisma";
 import { UserService } from "../services/user.service";
 import {
+  publishUserRegistered,
   publishUserVerified,
   publishUserLogin,
   publishUserProfileUpdated,
@@ -14,10 +16,10 @@ export class UserController {
   // Register user
   // ----------------------
   static register = async (req: Request, res: Response) => {
-    const { name, email, password } = req.body;
-
     try {
+      const { name, email, password } = req.body;
       const user = await UserService.register({ name, email, password });
+
       res.status(201).json(user);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -28,21 +30,26 @@ export class UserController {
   // Verify user
   // ----------------------
   static verify = async (req: Request, res: Response) => {
-    const { id } = req.params;
     const { email } = req.body;
 
-    await publishUserVerified({ id, email });
-    res.json({ message: "User verified" });
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    await publishUserVerified({ id: user.id, email: user.email });
+    res.json({ message: "User verified", id: user.id, email: user.email });
   };
 
   // ----------------------
   // User login
   // ----------------------
   static login = async (req: Request, res: Response) => {
-    const { id, email } = req.body;
+    const { email, password } = req.body;
 
-    await publishUserLogin({ id, email });
-    res.json({ message: "Login event published" });
+    const user = await UserService.verifyPassword(email, password);
+    if (!user) return res.status(400).json({ error: "Invalid email or password" });
+
+    await publishUserLogin({ id: user.id, email: user.email });
+    res.json({ message: "Login event published", user });
   };
 
   // ----------------------
@@ -52,31 +59,40 @@ export class UserController {
     const { id } = req.params;
     const { name, email } = req.body;
 
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id },
       data: { name, email },
     });
 
-    await publishUserProfileUpdated({ id, name, email });
-    res.json({ message: "Profile updated" });
+    await publishUserProfileUpdated({ id: updatedUser.id, name: updatedUser.name, email: updatedUser.email });
+    const { password, ...safeUser } = updatedUser;
+    res.json({ message: "Profile updated", user: safeUser });
   };
 
   // ----------------------
   // Password reset requested
   // ----------------------
   static passwordResetRequest = async (req: Request, res: Response) => {
-    const { id, email } = req.body;
-    await publishUserPasswordResetRequested({ id, email });
-    res.json({ message: "Password reset requested" });
+    const { email } = req.body;
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    await publishUserPasswordResetRequested({ id: user.id, email: user.email });
+    res.json({ message: "Password reset requested", id: user.id });
   };
 
   // ----------------------
   // Password reset completed
   // ----------------------
   static passwordResetComplete = async (req: Request, res: Response) => {
-    const { id, email } = req.body;
-    await publishUserPasswordResetCompleted({ id, email });
-    res.json({ message: "Password reset completed" });
+    const { email } = req.body;
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    await publishUserPasswordResetCompleted({ id: user.id, email: user.email });
+    res.json({ message: "Password reset completed", id: user.id });
   };
 
   // ----------------------
@@ -86,25 +102,8 @@ export class UserController {
     const { id } = req.params;
 
     const user = await prisma.user.delete({ where: { id } });
-    await publishUserDeleted({ id, email: user.email });
-
-    res.json({ message: "User deleted" });
-  };
-
-  // ----------------------
-  // Get current user
-  // ----------------------
-  static me = async (req: Request, res: Response) => {
-    const user = await UserService.getMe(req.user!.userId);
-    res.json(user);
-  };
-
-  // ----------------------
-  // Get user by ID
-  // ----------------------
-  static getById = async (req: Request, res: Response) => {
-    const user = await UserService.getById(req.params.id);
-    res.json(user);
+    await publishUserDeleted({ id: user.id, email: user.email });
+    res.json({ message: "User deleted", id: user.id });
   };
 }
 

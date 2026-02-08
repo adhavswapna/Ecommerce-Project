@@ -3,6 +3,12 @@ import { getKafka } from "./kafka.client";
 import { EMAIL_TOPICS } from "./email.topics";
 import { sendEmail } from "./sendEmail";
 
+// ---------------- Helper: fetch emails for inventory alerts ----------------
+function getEmailsForInventory(productId: string): string[] {
+  // In production, fetch from DB, config, or admin notification list
+  return ["swapnaadhav123@gmail.com"];
+}
+
 export async function startEmailConsumer() {
   if (process.env.ENABLE_KAFKA !== "true") {
     console.log("⚠️ Kafka disabled for email-service");
@@ -39,14 +45,23 @@ export async function startEmailConsumer() {
         return;
       }
 
-      // ---------------- Collect all emails ----------------
+      // ---------------- Collect emails ----------------
       const emails: string[] = [];
-      if (payload.email) emails.push(payload.email);           // generic
-      if (payload.userEmail) emails.push(payload.userEmail);   // customer
-      if (payload.vendorEmail) emails.push(payload.vendorEmail); // vendor
+      if (payload.email) emails.push(payload.email);
+      if (payload.userEmail) emails.push(payload.userEmail);
+      if (payload.vendorEmail) emails.push(payload.vendorEmail);
+
+      // Auto-lookup for inventory if no email found
+      if (
+        (topic === EMAIL_TOPICS.INVENTORY_LOW ||
+          topic === EMAIL_TOPICS.INVENTORY_OUT_OF_STOCK) &&
+        emails.length === 0
+      ) {
+        emails.push(...getEmailsForInventory(payload.productId));
+      }
 
       if (emails.length === 0) {
-        console.warn(`⚠️ No email found in payload for topic ${topic}`, payload);
+        console.warn(`⚠️ No email found for topic ${topic}`, payload);
         return;
       }
 
@@ -106,6 +121,14 @@ export async function startEmailConsumer() {
               );
               break;
 
+            case EMAIL_TOPICS.PAYMENT_REFUNDED:
+              await sendEmail(
+                email,
+                "Payment Refunded 💰",
+                `Your payment for order <b>${payload.orderId}</b> has been refunded.`
+              );
+              break;
+
             // ---------------- INVOICE ----------------
             case EMAIL_TOPICS.INVOICE_GENERATED:
               if (!payload.invoiceUrl) {
@@ -159,7 +182,7 @@ export async function startEmailConsumer() {
               await sendEmail(
                 email,
                 "Low Inventory Alert ⚠️",
-                `Product <b>${payload.productId}</b> is running low on stock.`
+                `Product <b>${payload.productId}</b> is running low. Current quantity: ${payload.quantity}, Threshold: ${payload.threshold}.`
               );
               break;
 
@@ -193,6 +216,14 @@ export async function startEmailConsumer() {
                 email,
                 "Order Delivered 🎉",
                 `Your order <b>${payload.orderId}</b> has been delivered successfully.`
+              );
+              break;
+
+            case EMAIL_TOPICS.SHIPPING_CANCELLED:
+              await sendEmail(
+                email,
+                "Order Cancelled ❌",
+                `Your shipment for order <b>${payload.orderId}</b> has been cancelled.`
               );
               break;
 

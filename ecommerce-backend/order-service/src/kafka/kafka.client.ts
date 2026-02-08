@@ -29,7 +29,7 @@ export async function getKafkaConsumer(): Promise<Consumer | null> {
 
   if (!consumer) {
     consumer = kafka.consumer({
-      groupId: process.env.KAFKA_GROUP_ID || "order-group",
+      groupId: process.env.KAFKA_GROUP_ID || "order-service-group",
     });
 
     await consumer.connect();

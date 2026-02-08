@@ -1,6 +1,6 @@
 import express from "express";
-import { startOrderConsumer } from "./kafka/order-consumer";
-import { disconnectKafka } from "./kafka/kafka-client";
+import { startOrderConsumer } from "./kafka/order.consumer";
+import { disconnectKafka } from "./kafka/kafka.client";
 
 const app = express();
 app.use(express.json());

@@ -1,10 +1,34 @@
+import express from "express";
 import dotenv from "dotenv";
-import app from "./app"; // your Express app
+import { getUserProducer } from "./kafka/kafka.client"; // ✅ correct import
+import { UserController } from "./controllers/user.controller";
 
-dotenv.config(); // load .env
+dotenv.config();
 
-const port = Number(process.env.SERVICE_PORT) || 300; // use SERVICE_PORT from .env
+const app = express();
+app.use(express.json());
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+// Routes
+app.post("/users/register", UserController.register);
+app.post("/users/verify/:id", UserController.verify);
+app.post("/users/login", UserController.login);
+app.put("/users/profile/:id", UserController.updateProfile);
+app.post("/users/password/reset/request", UserController.passwordResetRequest);
+app.post("/users/password/reset/complete", UserController.passwordResetComplete);
+app.delete("/users/:id", UserController.deleteUser);
+
+async function startServer() {
+  // ✅ Connect Kafka producer
+  await getUserProducer();
+
+  const port = process.env.PORT || 3002;
+  app.listen(port, () => {
+    console.log(`👤 User-service running on port ${port}`);
+  });
+}
+
+startServer().catch((err) => {
+  console.error("❌ Failed to start User Service", err);
+  process.exit(1);
 });
+

@@ -1,5 +1,9 @@
+// src/kafka/invoice.topics.ts
 export const INVOICE_TOPICS = {
-  PAYMENT_COMPLETED: "payment.completed",
+  // Incoming
+  PAYMENT_SUCCESS: "payment.success",
+
+  // Outgoing
   INVOICE_GENERATED: "invoice.generated",
-};
+} as const;
 

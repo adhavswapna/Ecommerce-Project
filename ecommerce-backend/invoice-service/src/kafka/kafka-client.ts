@@ -1,5 +1,5 @@
 // src/kafka/kafka-client.ts
-import { Kafka } from "kafkajs";
+import { Kafka, Producer, Consumer } from "kafkajs";
 import { config } from "../config/config";
 
 const kafka = new Kafka({
@@ -7,27 +7,36 @@ const kafka = new Kafka({
   brokers: [config.kafka.broker],
 });
 
-export async function getKafkaConsumer() {
+let producer: Producer | null = null;
+let consumer: Consumer | null = null;
+
+export async function getKafkaConsumer(): Promise<Consumer | null> {
   if (!config.kafka.enabled) {
     console.log("⚠️ Kafka disabled for invoice-service");
     return null;
   }
 
-  const consumer = kafka.consumer({ groupId: config.kafka.groupId });
-  await consumer.connect();
-  console.log("✅ Kafka consumer connected");
+  if (!consumer) {
+    consumer = kafka.consumer({ groupId: config.kafka.groupId });
+    await consumer.connect();
+    console.log("✅ Invoice Kafka consumer connected");
+  }
+
   return consumer;
 }
 
-export async function getKafkaProducer() {
+export async function getKafkaProducer(): Promise<Producer | null> {
   if (!config.kafka.enabled) {
     console.log("⚠️ Kafka disabled for invoice-service");
     return null;
   }
 
-  const producer = kafka.producer();
-  await producer.connect();
-  console.log("✅ Kafka producer connected");
+  if (!producer) {
+    producer = kafka.producer();
+    await producer.connect();
+    console.log("✅ Invoice Kafka producer connected");
+  }
+
   return producer;
 }
 

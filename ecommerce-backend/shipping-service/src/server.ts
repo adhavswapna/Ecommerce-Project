@@ -1,15 +1,25 @@
-import { app } from "./app";
-import { config } from "./config/config";
-import { producer } from "./kafka/kafka-client";
+import express from "express";
+import dotenv from "dotenv";
 import { startShippingConsumer } from "./kafka/shipping.consumer";
 
-const startServer = async () => {
-  await producer.connect();
-  await startShippingConsumer();
+dotenv.config();
 
-  app.listen(config.port, () => {
-    console.log(`🚚 Shipping Service running on port ${config.port}`);
-  });
-};
+const app = express();
+app.use(express.json());
+
+async function startServer() {
+  try {
+    await startShippingConsumer();
+
+    const PORT = process.env.PORT || 3009;
+    app.listen(PORT, () => {
+      console.log(`🚚 Shipping Service running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error("❌ Shipping Service failed", err);
+    process.exit(1);
+  }
+}
 
 startServer();
+

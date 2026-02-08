@@ -1,8 +1,8 @@
 import dotenv from "dotenv";
 import express from "express";
 import orderRoutes from "./routes/order.routes";
-import { startOrderConsumer } from "./kafka/order-consumer";
-import { disconnectKafka } from "./kafka/kafka-client";
+import { startOrderConsumer } from "./kafka/order.consumer";
+import { disconnectKafka } from "./kafka/kafka.client";
 
 dotenv.config();
 

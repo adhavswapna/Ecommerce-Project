@@ -1,14 +1,15 @@
 export interface OrderCreatedEvent {
   orderId: string;
   userId: string;
+  userEmail: string;
   totalAmount: number;
-  status: "CREATED";
   createdAt: string;
 }
 
-export interface OrderUpdatedEvent {
+export interface OrderCancelledEvent {
   orderId: string;
-  status: "CONFIRMED" | "CANCELLED" | "SHIPPED";
-  updatedAt: string;
+  userId: string;
+  userEmail: string;
+  cancelledAt: string;
 }
 

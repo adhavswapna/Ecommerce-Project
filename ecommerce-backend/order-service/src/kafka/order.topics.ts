@@ -1,5 +1,5 @@
 export const ORDER_TOPICS = {
   CREATED: "order.created",
-  UPDATED: "order.updated",
-};
+  CANCELLED: "order.cancelled",
+} as const;
 

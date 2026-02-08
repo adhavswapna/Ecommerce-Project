@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
-import { publishOrderCreated, publishOrderUpdated } from "../kafka/order-producer";
-import { OrderCreatedEvent, OrderUpdatedEvent } from "../kafka/order-events";
+import { publishOrderCreated, publishOrderUpdated } from "../kafka/order.producer";
+import { OrderCreatedEvent, OrderUpdatedEvent } from "../kafka/order.events";
 
 // In-memory orders storage (replace with DB later)
 const orders: Record<string, any> = {};

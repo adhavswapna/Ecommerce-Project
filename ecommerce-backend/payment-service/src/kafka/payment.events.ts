@@ -1,16 +1,23 @@
 export interface OrderCreatedEvent {
   orderId: string;
   userId: string;
+  userEmail: string;
   totalAmount: number;
-  status: "CREATED";
   createdAt: string;
 }
 
-export interface PaymentCompletedEvent {
+export interface PaymentSuccessEvent {
   orderId: string;
   paymentId: string;
   amount: number;
-  status: "SUCCESS" | "FAILED";
+  userEmail: string;
   completedAt: string;
+}
+
+export interface PaymentFailedEvent {
+  orderId: string;
+  reason: string;
+  userEmail: string;
+  failedAt: string;
 }
 

@@ -1,7 +1,7 @@
 // src/kafka/invoice.consumer.ts
 import { getKafkaConsumer } from "./kafka-client";
 import { INVOICE_TOPICS } from "./invoice.topics";
-import { PaymentSuccessEvent } from "./invoice.events";
+import { PaymentSuccessEvent, InvoiceGeneratedEvent } from "./invoice.events";
 import { publishInvoiceGenerated } from "./invoice.producer";
 import { generateInvoicePDF, InvoiceData } from "../pdf/invoice.pdf";
 import { uploadInvoicePDF, getMinioPresignedUrl } from "../minio/minio-client";
@@ -21,57 +21,57 @@ export async function startInvoiceConsumer() {
     eachMessage: async ({ message }) => {
       if (!message.value) return;
 
-      let data: PaymentSuccessEvent & { 
-        customerName?: string;
-        billingAddress?: string;
-        shippingAddress?: string;
-        vendorEmail?: string;
-        items?: any[];
-      };
-
+      let data: PaymentSuccessEvent;
       try {
         data = JSON.parse(message.value.toString());
       } catch (err) {
-        console.error("❌ Invalid JSON in payment.success:", err);
+        console.error("❌ Invalid JSON in payment.success:", message.value.toString());
         return;
       }
 
       console.log("📥 payment.success received", data);
 
       try {
-        // ---------------- Generate PDF ----------------
+        // ---------------- Prepare Invoice Data ----------------
         const invoiceData: InvoiceData = {
           orderId: data.orderId,
-          customerName: data.customerName || data.userEmail,
+          customerName: data.customerName || "Customer",
           customerEmail: data.userEmail,
-          billingAddress: data.billingAddress || "N/A",
-          shippingAddress: data.shippingAddress || "N/A",
+          billingAddress: data.billingAddress || "",
+          shippingAddress: data.shippingAddress || "",
           vendorName: data.vendorName,
-          vendorAddress: data.vendorEmail ? "Vendor Address" : undefined,
+          vendorAddress: data.vendorAddress,
+          gstNumber: data.gstNumber,
+          panNumber: data.panNumber,
           items: data.items || [],
           date: new Date().toISOString(),
         };
 
+        // ---------------- Generate PDF ----------------
         const pdfBuffer = await generateInvoicePDF(invoiceData);
 
         const fileName = `${data.orderId}.pdf`;
+
+        // ---------------- Upload to MinIO ----------------
         await uploadInvoicePDF(fileName, pdfBuffer);
 
-        // ---------------- Pre-signed URL ----------------
-        const presignedUrl = await getMinioPresignedUrl(fileName);
+        // ---------------- Generate Pre-signed URL ----------------
+        const invoiceUrl = await getMinioPresignedUrl(fileName);
 
-        // ---------------- Publish invoice.generated ----------------
-        await publishInvoiceGenerated({
+        // ---------------- Publish Invoice Generated Event ----------------
+        const invoiceEvent: InvoiceGeneratedEvent = {
           invoiceId: "inv_" + Date.now(),
           orderId: data.orderId,
           amount: data.amount,
           userEmail: data.userEmail,
-          vendorEmail: data.vendorEmail, 
-          invoiceUrl: presignedUrl,
+          vendorEmail: data.vendorEmail, // optional
+          invoiceUrl,
           createdAt: new Date().toISOString(),
-        });
+        };
 
-        console.log("📤 invoice.generated published with pre-signed URL");
+        await publishInvoiceGenerated(invoiceEvent);
+
+        console.log("📤 invoice.generated published", invoiceEvent);
       } catch (err) {
         console.error("🔥 Error generating/uploading invoice:", err);
       }

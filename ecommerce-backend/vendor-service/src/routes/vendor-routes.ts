@@ -1,10 +1,11 @@
 import { Router } from "express";
-import { addVendor, getVendors, toggleVendorStatus } from "../controllers/vendor-controller";
+import { VendorController } from "../controllers/vendor.controller";
 
 const router = Router();
 
-router.post("/", addVendor);
-router.get("/", getVendors);
-router.patch("/:id/status", toggleVendorStatus);
+// Vendor routes
+router.post("/create", VendorController.createVendor);
+router.put("/status/:id", VendorController.updateStatus);
 
 export default router;
+

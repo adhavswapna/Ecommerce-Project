@@ -10,6 +10,9 @@ export const minioClient = new Client({
 
 export const BUCKET_NAME = "invoices";
 
+/**
+ * Initialize MinIO bucket
+ */
 export async function initMinio() {
   const exists = await minioClient.bucketExists(BUCKET_NAME);
   if (!exists) {
@@ -18,5 +21,22 @@ export async function initMinio() {
   } else {
     console.log("🪣 MinIO bucket exists:", BUCKET_NAME);
   }
+}
+
+/**
+ * Upload a PDF buffer to MinIO
+ */
+export async function uploadInvoicePDF(fileName: string, buffer: Buffer) {
+  await minioClient.putObject(BUCKET_NAME, fileName, buffer, {
+    "Content-Type": "application/pdf",
+  });
+  console.log(`✅ Invoice uploaded to MinIO: ${fileName}`);
+}
+
+/**
+ * Generate a pre-signed URL valid for 1 hour
+ */
+export async function getMinioPresignedUrl(objectName: string): Promise<string> {
+  return minioClient.presignedGetObject(BUCKET_NAME, objectName, 60 * 60); // 1 hour
 }
 
