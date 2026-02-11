@@ -1,4 +1,4 @@
-import { getProducer } from "./kafka-client";
+import { getProducer } from "./kafka.client";
 import { KAFKA_TOPICS } from "./topics";
 
 export async function publishUserCreatedEvent(user: {
