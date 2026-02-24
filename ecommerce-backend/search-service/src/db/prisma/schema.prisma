@@ -1,0 +1,26 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model SearchProduct {
+  id          String   @id                // SAME ID as product-service
+  name        String
+  description String?
+  price       Float?
+  vendorId    String?
+  categoryId  String?
+
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([name])
+  @@index([vendorId])
+  @@index([categoryId])
+}

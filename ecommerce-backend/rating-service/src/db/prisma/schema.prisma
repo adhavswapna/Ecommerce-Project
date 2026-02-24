@@ -1,0 +1,16 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")  // <- points to .env DATABASE_URL
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(uuid())
+  eventType String
+  entityId  String
+  payload   Json
+  createdAt DateTime @default(now())
+}

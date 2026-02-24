@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  userId        String
+  totalAmount   Float
+  currency      String      @default("INR") // INR / USD
+  paymentMethod String      // cod / upi / netbanking / card
+  status        String      // PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED, REFUNDED
+  items         OrderItem[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Float
+
+  order Order @relation(fields: [orderId], references: [id])
+}
+y
