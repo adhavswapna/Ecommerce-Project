@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { AuthService } from "../services/auth.service";
 import { Role } from "../constants/role.enum";
+import { registerSchema } from "../validators/auth.validator";
 
 export class AuthController {
 
@@ -8,32 +9,27 @@ export class AuthController {
   // REGISTER USER
   // =========================
   static registerUser = async (req: Request, res: Response) => {
-    try {
-      const { name, email, password, phone, address } = req.body;
+  try {
 
-      if (!name || !email || !password) {
-        return res.status(400).json({
-          message: "Name, email and password are required",
-        });
-      }
+    const data = registerSchema.parse(req.body);
 
-      const token = await AuthService.register(
-        name,
-        email,
-        password,
-        Role.USER,
-        phone,
-        address
-      );
+    const token = await AuthService.register(
+      data.name,
+      data.email,
+      data.password,
+      Role.USER,
+      data.phone,
+      data.address
+    );
 
-      return res.status(201).json({ token });
+    return res.status(201).json({ token });
 
-    } catch (err: any) {
-      return res.status(400).json({
-        message: err.message,
-      });
-    }
-  };
+  } catch (err: any) {
+    return res.status(400).json({
+      message: err.message,
+    });
+  }
+};
 
   // =========================
   // REGISTER VENDOR
