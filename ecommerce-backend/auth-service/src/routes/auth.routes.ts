@@ -15,8 +15,8 @@ router.post("/login", AuthController.login);
 router.post("/register", AuthController.registerUser);
 
 // 🔐 Password Recovery
-router.post("/password/forgot", AuthController.forgotPassword);
-router.post("/password/reset", AuthController.resetPassword);
+router.post("/forgot-password", AuthController.forgotPassword);
+router.post("/reset-password", AuthController.resetPassword);
 
 // 🔥 GOOGLE OAUTH LOGIN
 router.get("/google", AuthController.googleLogin);
