@@ -179,7 +179,7 @@ export class AuthService {
   const frontendUrl =
     process.env.FRONTEND_URL ||
     process.env.NEXT_PUBLIC_FRONTEND_URL ||
-    "http://127.0.0.0:3000";
+    "http://localhost:3000";
 
   const resetUrl = `${frontendUrl}/reset-password?token=${rawToken}`;
 

@@ -13,13 +13,15 @@ export default function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   // Redirect if already logged in
   useEffect(() => {
     if (token) {
-      router.push("/"); // homepage or dashboard
+      router.push("/");
     }
   }, [token, router]);
 
@@ -54,14 +56,34 @@ export default function LoginForm() {
         style={{ padding: "0.5rem" }}
       />
 
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-        style={{ padding: "0.5rem" }}
-      />
+      {/* PASSWORD FIELD */}
+      <div style={{ position: "relative" }}>
+        <input
+          type={showPassword ? "text" : "password"}
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          style={{
+            padding: "0.5rem",
+            width: "100%",
+          }}
+        />
+
+        <span
+          onClick={() => setShowPassword(!showPassword)}
+          style={{
+            position: "absolute",
+            right: "10px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            cursor: "pointer",
+            fontSize: "14px",
+          }}
+        >
+          {showPassword ? "🙈" : "👁"}
+        </span>
+      </div>
 
       <button
         type="submit"
