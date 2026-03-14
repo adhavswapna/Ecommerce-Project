@@ -1,35 +1,31 @@
+// src/controllers/auth.controller.ts
 import { Request, Response } from "express";
 import { AuthService } from "../services/auth.service";
 import { Role } from "../constants/role.enum";
 import { registerSchema } from "../validators/auth.validator";
 
 export class AuthController {
-
   // =========================
   // REGISTER USER
   // =========================
   static registerUser = async (req: Request, res: Response) => {
-  try {
+    try {
+      const data = registerSchema.parse(req.body);
 
-    const data = registerSchema.parse(req.body);
+      const token = await AuthService.register(
+        data.name,
+        data.email,
+        data.password,
+        Role.USER,
+        data.phone,
+        data.address
+      );
 
-    const token = await AuthService.register(
-      data.name,
-      data.email,
-      data.password,
-      Role.USER,
-      data.phone,
-      data.address
-    );
-
-    return res.status(201).json({ token });
-
-  } catch (err: any) {
-    return res.status(400).json({
-      message: err.message,
-    });
-  }
-};
+      return res.status(201).json({ token });
+    } catch (err: any) {
+      return res.status(400).json({ message: err.message });
+    }
+  };
 
   // =========================
   // REGISTER VENDOR
@@ -39,26 +35,14 @@ export class AuthController {
       const { name, email, password, phone, address } = req.body;
 
       if (!name || !email || !password) {
-        return res.status(400).json({
-          message: "Name, email and password are required",
-        });
+        return res.status(400).json({ message: "Name, email and password are required" });
       }
 
-      const token = await AuthService.register(
-        name,
-        email,
-        password,
-        Role.VENDOR,
-        phone,
-        address
-      );
+      const token = await AuthService.register(name, email, password, Role.VENDOR, phone, address);
 
       return res.status(201).json({ token });
-
     } catch (err: any) {
-      return res.status(400).json({
-        message: err.message,
-      });
+      return res.status(400).json({ message: err.message });
     }
   };
 
@@ -70,26 +54,14 @@ export class AuthController {
       const { name, email, password, phone, address } = req.body;
 
       if (!name || !email || !password) {
-        return res.status(400).json({
-          message: "Name, email and password are required",
-        });
+        return res.status(400).json({ message: "Name, email and password are required" });
       }
 
-      const token = await AuthService.register(
-        name,
-        email,
-        password,
-        Role.ADMIN,
-        phone,
-        address
-      );
+      const token = await AuthService.register(name, email, password, Role.ADMIN, phone, address);
 
       return res.status(201).json({ token });
-
     } catch (err: any) {
-      return res.status(400).json({
-        message: err.message,
-      });
+      return res.status(400).json({ message: err.message });
     }
   };
 
@@ -101,19 +73,14 @@ export class AuthController {
       const { email, password } = req.body;
 
       if (!email || !password) {
-        return res.status(400).json({
-          message: "Email and password are required",
-        });
+        return res.status(400).json({ message: "Email and password are required" });
       }
 
       const token = await AuthService.login(email, password);
 
       return res.json({ token });
-
     } catch (err: any) {
-      return res.status(401).json({
-        message: err.message,
-      });
+      return res.status(401).json({ message: err.message });
     }
   };
 
@@ -124,10 +91,8 @@ export class AuthController {
     try {
       const { url } = AuthService.getGoogleAuthUrl();
       return res.redirect(url);
-    } catch (err: any) {
-      return res.status(500).json({
-        message: "Google login failed",
-      });
+    } catch {
+      return res.status(500).json({ message: "Google login failed" });
     }
   };
 
@@ -137,26 +102,15 @@ export class AuthController {
   static googleCallback = async (req: Request, res: Response) => {
     try {
       const { code } = req.query;
+      if (!code) return res.status(400).json({ message: "Google authorization code missing" });
 
-      if (!code) {
-        return res.status(400).json({
-          message: "Google authorization code missing",
-        });
-      }
+      const result = await AuthService.googleCallback(code as string);
 
-      const result = await AuthService.googleCallback(
-        code as string
-      );
-
-      // Redirect frontend with token
       return res.redirect(
         `${process.env.FRONTEND_URL}/login-success?token=${result.token}`
       );
-
     } catch (err: any) {
-      return res.status(500).json({
-        message: "Google authentication failed",
-      });
+      return res.status(500).json({ message: "Google authentication failed" });
     }
   };
 
@@ -165,20 +119,13 @@ export class AuthController {
   // =========================
   static me = async (req: Request & { user?: any }, res: Response) => {
     try {
-      if (!req.user?.userId) {
-        return res.status(401).json({
-          message: "Unauthorized",
-        });
-      }
+      if (!req.user?.userId) return res.status(401).json({ message: "Unauthorized" });
 
       const user = await AuthService.getMe(req.user.userId);
 
       return res.json(user);
-
     } catch {
-      return res.status(401).json({
-        message: "Unauthorized",
-      });
+      return res.status(401).json({ message: "Unauthorized" });
     }
   };
 
@@ -188,22 +135,18 @@ export class AuthController {
   static forgotPassword = async (req: Request, res: Response) => {
     try {
       const { email } = req.body;
-
-      if (!email) {
-        return res.status(400).json({
-          message: "Email is required",
-        });
-      }
+      if (!email) return res.status(400).json({ message: "Email is required" });
 
       await AuthService.forgotPassword(email);
 
+      // Return generic message to avoid email enumeration
       return res.json({
-        message: "If the email exists, a reset link has been sent",
+        message: "If the email exists, a reset link has been sent. Check your inbox.",
       });
-
-    } catch {
-      return res.json({
-        message: "If the email exists, a reset link has been sent",
+    } catch (err: any) {
+      console.error("🔥 forgotPassword error:", err);
+      return res.status(500).json({
+        message: "If the email exists, a reset link has been sent. Check your inbox.",
       });
     }
   };
@@ -214,29 +157,18 @@ export class AuthController {
   static resetPassword = async (req: Request, res: Response) => {
     try {
       const { token, newPassword } = req.body;
+      if (!token || !newPassword)
+        return res.status(400).json({ message: "Token and new password are required" });
 
-      if (!token || !newPassword) {
-        return res.status(400).json({
-          message: "Token and new password are required",
-        });
-      }
-
-      if (newPassword.length < 8) {
-        return res.status(400).json({
-          message: "Password must be at least 8 characters",
-        });
-      }
+      if (newPassword.length < 8)
+        return res.status(400).json({ message: "Password must be at least 8 characters" });
 
       await AuthService.resetPassword(token, newPassword);
 
-      return res.json({
-        message: "Password reset successful",
-      });
-
+      return res.json({ message: "Password reset successful. You can now login." });
     } catch (err: any) {
-      return res.status(400).json({
-        message: err.message,
-      });
+      console.error("🔥 resetPassword error:", err);
+      return res.status(400).json({ message: err.message || "Invalid token" });
     }
   };
 }

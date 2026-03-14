@@ -9,14 +9,11 @@ import crypto from "crypto";
 import { v4 as uuid } from "uuid";
 
 export class AuthService {
-
   /* =====================================================
-   GOOGLE AUTH URL
+     GOOGLE AUTH URL
   ===================================================== */
-
   static getGoogleAuthUrl() {
     const state = crypto.randomUUID();
-
     const params = new URLSearchParams({
       client_id: process.env.GOOGLE_CLIENT_ID!,
       redirect_uri: process.env.GOOGLE_REDIRECT_URI!,
@@ -26,21 +23,14 @@ export class AuthService {
       prompt: "consent",
       state,
     });
-
-    return {
-      url: `https://accounts.google.com/o/oauth2/v2/auth?${params}`,
-      state,
-    };
+    return { url: `https://accounts.google.com/o/oauth2/v2/auth?${params}`, state };
   }
 
   /* =====================================================
-   GOOGLE CALLBACK
+     GOOGLE CALLBACK
   ===================================================== */
-
   static async googleCallback(code: string) {
     try {
-
-      // Exchange authorization code → access token
       const tokenRes = await axios.post(
         "https://oauth2.googleapis.com/token",
         new URLSearchParams({
@@ -50,41 +40,23 @@ export class AuthService {
           redirect_uri: process.env.GOOGLE_REDIRECT_URI!,
           grant_type: "authorization_code",
         }),
-        {
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-        }
+        { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
       );
 
       const accessToken = tokenRes.data.access_token;
 
-      // Get user profile from Google
       const userInfo = await axios.get(
         "https://www.googleapis.com/oauth2/v2/userinfo",
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${accessToken}` } }
       );
 
       const { email, name, picture } = userInfo.data;
 
-      let user = await prisma.authUser.findUnique({
-        where: { email },
-      });
+      let user = await prisma.authUser.findUnique({ where: { email } });
 
-      // Auto register if user does not exist
       if (!user) {
         user = await prisma.authUser.create({
-          data: {
-            email,
-            name,
-            password: uuid(),
-            role: "USER",
-            isVerified: true,
-          },
+          data: { email, name, password: uuid(), role: "USER", isVerified: true },
         });
 
         if (process.env.ENABLE_KAFKA === "true") {
@@ -97,30 +69,20 @@ export class AuthService {
         }
       }
 
-      // Create Redis session
       const sessionId = uuid();
-
       await redis.set(
         `session:${sessionId}`,
-        JSON.stringify({
-          userId: user.id,
-          role: user.role,
-          email: user.email,
-        }),
+        JSON.stringify({ userId: user.id, role: user.role, email: user.email }),
         "EX",
         7 * 24 * 60 * 60
       );
 
       return {
-        token: signToken({
-          userId: user.id,
-          role: user.role,
-        }),
+        token: signToken({ userId: user.id, role: user.role }),
         sessionId,
         user,
         avatar: picture,
       };
-
     } catch (err: any) {
       console.error("Google OAuth Error:", err.response?.data || err.message);
       throw new Error("Google authentication failed");
@@ -128,9 +90,8 @@ export class AuthService {
   }
 
   /* =====================================================
-   NORMAL REGISTER
+     NORMAL REGISTER
   ===================================================== */
-
   static async register(
     name: string,
     email: string,
@@ -140,19 +101,9 @@ export class AuthService {
     address?: string
   ) {
     try {
-
       const hashedPassword = await hashPassword(password);
-
       const user = await prisma.authUser.create({
-        data: {
-          name,
-          email,
-          password: hashedPassword,
-          role,
-          phone,
-          address,
-          isVerified: true,
-        },
+        data: { name, email, password: hashedPassword, role, phone, address, isVerified: true },
       });
 
       if (process.env.ENABLE_KAFKA === "true") {
@@ -164,16 +115,9 @@ export class AuthService {
         });
       }
 
-      return signToken({
-        userId: user.id,
-        role: user.role,
-      });
-
+      return signToken({ userId: user.id, role: user.role });
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2002"
-      ) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
         throw new Error("User already exists");
       }
       throw error;
@@ -181,87 +125,64 @@ export class AuthService {
   }
 
   /* =====================================================
-   LOGIN
+     LOGIN
   ===================================================== */
-
   static async login(email: string, password: string) {
-
-    const user = await prisma.authUser.findUnique({
-      where: { email },
-    });
-
+    const user = await prisma.authUser.findUnique({ where: { email } });
     if (!user) throw new Error("Invalid credentials");
 
     const isMatch = await comparePassword(password, user.password);
     if (!isMatch) throw new Error("Invalid credentials");
 
-    return signToken({
-      userId: user.id,
-      role: user.role,
-    });
+    return signToken({ userId: user.id, role: user.role });
   }
 
   /* =====================================================
-   GET PROFILE
+     GET PROFILE
   ===================================================== */
-
   static async getMe(userId: string) {
     return prisma.authUser.findUnique({
       where: { id: userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        phone: true,
-        address: true,
-        createdAt: true,
-      },
+      select: { id: true, name: true, email: true, role: true, phone: true, address: true, createdAt: true },
     });
   }
 
   /* =====================================================
-   PASSWORD RESET
+     PASSWORD RESET
   ===================================================== */
-
   static async forgotPassword(email: string) {
-
-    const user = await prisma.authUser.findUnique({
-      where: { email },
-    });
-
+    const user = await prisma.authUser.findUnique({ where: { email } });
     if (!user) return;
 
     const rawToken = crypto.randomBytes(32).toString("hex");
-
-    const hashedToken = crypto
-      .createHash("sha256")
-      .update(rawToken)
-      .digest("hex");
+    const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
 
     await prisma.authUser.update({
       where: { email },
-      data: {
-        resetToken: hashedToken,
-        resetTokenExpiry: new Date(Date.now() + 15 * 60 * 1000),
-      },
+      data: { resetToken: hashedToken, resetTokenExpiry: new Date(Date.now() + 15 * 60 * 1000) },
     });
+
+    // 🔥 Send email via Kafka
+    if (process.env.ENABLE_KAFKA === "true") {
+      const resetUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/reset-password?token=${rawToken}`;
+      await authProducer.publishPasswordReset({
+        to: user.email,
+        subject: "Password Reset Request 🔑",
+        html: `<p>Hi ${user.name || "User"},</p>
+               <p>You requested a password reset. Click the link below to reset your password:</p>
+               <a href="${resetUrl}" target="_blank">Reset Password</a>
+               <p>This link is valid for 15 minutes.</p>`,
+      });
+    }
 
     console.log("RESET TOKEN:", rawToken);
   }
 
   static async resetPassword(token: string, newPassword: string) {
-
-    const hashedToken = crypto
-      .createHash("sha256")
-      .update(token)
-      .digest("hex");
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
     const user = await prisma.authUser.findFirst({
-      where: {
-        resetToken: hashedToken,
-        resetTokenExpiry: { gt: new Date() },
-      },
+      where: { resetToken: hashedToken, resetTokenExpiry: { gt: new Date() } },
     });
 
     if (!user) throw new Error("Invalid token");
@@ -270,11 +191,7 @@ export class AuthService {
 
     await prisma.authUser.update({
       where: { id: user.id },
-      data: {
-        password: hashedPassword,
-        resetToken: null,
-        resetTokenExpiry: null,
-      },
+      data: { password: hashedPassword, resetToken: null, resetTokenExpiry: null },
     });
   }
 }
