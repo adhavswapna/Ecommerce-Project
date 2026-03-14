@@ -1,7 +1,7 @@
 "use client";
 
-import ResetPasswordForm from "@/components/auth/ResetPasswordForm";
-import AuthLayout from "@/components/auth/AuthLayout";
+import ResetPasswordForm from "../../components/auth/ResetPasswordForm";
+import AuthLayout from "../../components/auth/AuthLayout";
 
 // Get the token from query params
 import { useSearchParams } from "next/navigation";
@@ -16,3 +16,4 @@ export default function ResetPasswordPage() {
     </AuthLayout>
   );
 }
+

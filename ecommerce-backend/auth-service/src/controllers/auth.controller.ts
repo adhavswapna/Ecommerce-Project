@@ -5,6 +5,7 @@ import { Role } from "../constants/role.enum";
 import { registerSchema } from "../validators/auth.validator";
 
 export class AuthController {
+
   // =========================
   // REGISTER USER
   // =========================
@@ -22,6 +23,7 @@ export class AuthController {
       );
 
       return res.status(201).json({ token });
+
     } catch (err: any) {
       return res.status(400).json({ message: err.message });
     }
@@ -35,12 +37,22 @@ export class AuthController {
       const { name, email, password, phone, address } = req.body;
 
       if (!name || !email || !password) {
-        return res.status(400).json({ message: "Name, email and password are required" });
+        return res.status(400).json({
+          message: "Name, email and password are required"
+        });
       }
 
-      const token = await AuthService.register(name, email, password, Role.VENDOR, phone, address);
+      const token = await AuthService.register(
+        name,
+        email,
+        password,
+        Role.VENDOR,
+        phone,
+        address
+      );
 
       return res.status(201).json({ token });
+
     } catch (err: any) {
       return res.status(400).json({ message: err.message });
     }
@@ -54,12 +66,22 @@ export class AuthController {
       const { name, email, password, phone, address } = req.body;
 
       if (!name || !email || !password) {
-        return res.status(400).json({ message: "Name, email and password are required" });
+        return res.status(400).json({
+          message: "Name, email and password are required"
+        });
       }
 
-      const token = await AuthService.register(name, email, password, Role.ADMIN, phone, address);
+      const token = await AuthService.register(
+        name,
+        email,
+        password,
+        Role.ADMIN,
+        phone,
+        address
+      );
 
       return res.status(201).json({ token });
+
     } catch (err: any) {
       return res.status(400).json({ message: err.message });
     }
@@ -73,12 +95,15 @@ export class AuthController {
       const { email, password } = req.body;
 
       if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
+        return res.status(400).json({
+          message: "Email and password are required"
+        });
       }
 
       const token = await AuthService.login(email, password);
 
       return res.json({ token });
+
     } catch (err: any) {
       return res.status(401).json({ message: err.message });
     }
@@ -91,8 +116,11 @@ export class AuthController {
     try {
       const { url } = AuthService.getGoogleAuthUrl();
       return res.redirect(url);
+
     } catch {
-      return res.status(500).json({ message: "Google login failed" });
+      return res.status(500).json({
+        message: "Google login failed"
+      });
     }
   };
 
@@ -102,15 +130,28 @@ export class AuthController {
   static googleCallback = async (req: Request, res: Response) => {
     try {
       const { code } = req.query;
-      if (!code) return res.status(400).json({ message: "Google authorization code missing" });
+
+      if (!code) {
+        return res.status(400).json({
+          message: "Google authorization code missing"
+        });
+      }
 
       const result = await AuthService.googleCallback(code as string);
 
+      const frontendUrl =
+        process.env.FRONTEND_URL || "http://localhost:3000";
+
       return res.redirect(
-        `${process.env.FRONTEND_URL}/login-success?token=${result.token}`
+        `${frontendUrl}/login-success?token=${result.token}`
       );
-    } catch (err: any) {
-      return res.status(500).json({ message: "Google authentication failed" });
+
+    } catch (err) {
+      console.error("🔥 Google auth error:", err);
+
+      return res.status(500).json({
+        message: "Google authentication failed"
+      });
     }
   };
 
@@ -119,13 +160,20 @@ export class AuthController {
   // =========================
   static me = async (req: Request & { user?: any }, res: Response) => {
     try {
-      if (!req.user?.userId) return res.status(401).json({ message: "Unauthorized" });
+      if (!req.user?.userId) {
+        return res.status(401).json({
+          message: "Unauthorized"
+        });
+      }
 
       const user = await AuthService.getMe(req.user.userId);
 
       return res.json(user);
+
     } catch {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({
+        message: "Unauthorized"
+      });
     }
   };
 
@@ -135,18 +183,26 @@ export class AuthController {
   static forgotPassword = async (req: Request, res: Response) => {
     try {
       const { email } = req.body;
-      if (!email) return res.status(400).json({ message: "Email is required" });
+
+      if (!email) {
+        return res.status(400).json({
+          message: "Email is required"
+        });
+      }
 
       await AuthService.forgotPassword(email);
 
-      // Return generic message to avoid email enumeration
       return res.json({
-        message: "If the email exists, a reset link has been sent. Check your inbox.",
+        message:
+          "If the email exists, a reset link has been sent. Check your inbox."
       });
-    } catch (err: any) {
+
+    } catch (err) {
       console.error("🔥 forgotPassword error:", err);
-      return res.status(500).json({
-        message: "If the email exists, a reset link has been sent. Check your inbox.",
+
+      return res.json({
+        message:
+          "If the email exists, a reset link has been sent. Check your inbox."
       });
     }
   };
@@ -157,18 +213,31 @@ export class AuthController {
   static resetPassword = async (req: Request, res: Response) => {
     try {
       const { token, newPassword } = req.body;
-      if (!token || !newPassword)
-        return res.status(400).json({ message: "Token and new password are required" });
 
-      if (newPassword.length < 8)
-        return res.status(400).json({ message: "Password must be at least 8 characters" });
+      if (!token || !newPassword) {
+        return res.status(400).json({
+          message: "Token and new password are required"
+        });
+      }
+
+      if (newPassword.length < 8) {
+        return res.status(400).json({
+          message: "Password must be at least 8 characters"
+        });
+      }
 
       await AuthService.resetPassword(token, newPassword);
 
-      return res.json({ message: "Password reset successful. You can now login." });
+      return res.json({
+        message: "Password reset successful. You can now login."
+      });
+
     } catch (err: any) {
       console.error("🔥 resetPassword error:", err);
-      return res.status(400).json({ message: err.message || "Invalid token" });
+
+      return res.status(400).json({
+        message: err.message || "Invalid or expired token"
+      });
     }
   };
 }

@@ -151,47 +151,104 @@ export class AuthService {
      PASSWORD RESET
   ===================================================== */
   static async forgotPassword(email: string) {
-    const user = await prisma.authUser.findUnique({ where: { email } });
-    if (!user) return;
+  const user = await prisma.authUser.findUnique({
+    where: { email },
+  });
 
-    const rawToken = crypto.randomBytes(32).toString("hex");
-    const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
-
-    await prisma.authUser.update({
-      where: { email },
-      data: { resetToken: hashedToken, resetTokenExpiry: new Date(Date.now() + 15 * 60 * 1000) },
-    });
-
-    // 🔥 Send email via Kafka
-    if (process.env.ENABLE_KAFKA === "true") {
-      const resetUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/reset-password?token=${rawToken}`;
-      await authProducer.publishPasswordReset({
-        to: user.email,
-        subject: "Password Reset Request 🔑",
-        html: `<p>Hi ${user.name || "User"},</p>
-               <p>You requested a password reset. Click the link below to reset your password:</p>
-               <a href="${resetUrl}" target="_blank">Reset Password</a>
-               <p>This link is valid for 15 minutes.</p>`,
-      });
-    }
-
-    console.log("RESET TOKEN:", rawToken);
+  // Do not reveal if user exists (security)
+  if (!user) {
+    console.log(`Password reset requested for non-existing email: ${email}`);
+    return;
   }
+
+  // Generate secure token
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+
+  const TOKEN_EXPIRY = 15 * 60 * 1000; // 15 minutes
+
+  await prisma.authUser.update({
+    where: { email },
+    data: {
+      resetToken: hashedToken,
+      resetTokenExpiry: new Date(Date.now() + TOKEN_EXPIRY),
+    },
+  });
+
+  // Determine frontend URL
+  const frontendUrl =
+    process.env.FRONTEND_URL ||
+    process.env.NEXT_PUBLIC_FRONTEND_URL ||
+    "http://127.0.0.0:3000";
+
+  const resetUrl = `${frontendUrl}/reset-password?token=${rawToken}`;
+
+  console.log("Generated reset URL:", resetUrl);
+
+  /* 🔥 Send email via Kafka */
+  if (process.env.ENABLE_KAFKA === "true") {
+    await authProducer.publishPasswordReset({
+      to: user.email,
+      subject: "Password Reset Request 🔑",
+      html: `
+        <p>Hi ${user.name || "User"},</p>
+
+        <p>You requested a password reset for your account.</p>
+
+        <p>
+          Click the button below to reset your password:
+        </p>
+
+        <p>
+          <a href="${resetUrl}" 
+             style="padding:10px 16px;background:#2563eb;color:white;text-decoration:none;border-radius:6px;">
+             Reset Password
+          </a>
+        </p>
+
+        <p>This link will expire in <b>15 minutes</b>.</p>
+
+        <p>If you did not request this, please ignore this email.</p>
+      `,
+    });
+  }
+
+  // Only for development debugging
+  if (process.env.NODE_ENV !== "production") {
+    console.log("RESET TOKEN (DEV ONLY):", rawToken);
+  }
+}
 
   static async resetPassword(token: string, newPassword: string) {
-    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(token)
+    .digest("hex");
 
-    const user = await prisma.authUser.findFirst({
-      where: { resetToken: hashedToken, resetTokenExpiry: { gt: new Date() } },
-    });
+  const user = await prisma.authUser.findFirst({
+    where: {
+      resetToken: hashedToken,
+      resetTokenExpiry: {
+        gt: new Date(),
+      },
+    },
+  });
 
-    if (!user) throw new Error("Invalid token");
-
-    const hashedPassword = await hashPassword(newPassword);
-
-    await prisma.authUser.update({
-      where: { id: user.id },
-      data: { password: hashedPassword, resetToken: null, resetTokenExpiry: null },
-    });
+  if (!user) {
+    throw new Error("Invalid or expired reset token");
   }
+
+  const hashedPassword = await hashPassword(newPassword);
+
+  await prisma.authUser.update({
+    where: { id: user.id },
+    data: {
+      password: hashedPassword,
+      resetToken: null,
+      resetTokenExpiry: null,
+    },
+  });
+
+  console.log(`Password reset successful for user: ${user.email}`);
+}
 }
