@@ -8,8 +8,9 @@ import GoogleLoginButton from "./GoogleLoginButton";
 
 export default function LoginForm() {
   const router = useRouter();
+
   const token = useAuthStore((s) => s.token);
-  const setToken = useAuthStore((s) => s.setToken);
+  const setAuth = useAuthStore((s) => s.setAuth);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,15 +28,25 @@ export default function LoginForm() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
     setError("");
     setLoading(true);
 
     try {
       const res = await login(email, password);
-      setToken(res.token);
-      setLoading(false);
+
+      // Save token + role in store
+      setAuth(res.token, res.role);
+
+      // Redirect after login
+      router.push("/");
     } catch (err: any) {
-      setError(err.message || "Login failed");
+      setError(
+        err?.response?.data?.message ||
+        err?.message ||
+        "Login failed"
+      );
+    } finally {
       setLoading(false);
     }
   };
@@ -43,20 +54,25 @@ export default function LoginForm() {
   return (
     <form
       onSubmit={handleLogin}
-      style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "1rem",
+      }}
     >
       <h1>Login</h1>
 
+      {/* EMAIL */}
       <input
         type="email"
         placeholder="Email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
-        style={{ padding: "0.5rem" }}
+        style={{ padding: "0.6rem" }}
       />
 
-      {/* PASSWORD FIELD */}
+      {/* PASSWORD */}
       <div style={{ position: "relative" }}>
         <input
           type={showPassword ? "text" : "password"}
@@ -65,7 +81,7 @@ export default function LoginForm() {
           onChange={(e) => setPassword(e.target.value)}
           required
           style={{
-            padding: "0.5rem",
+            padding: "0.6rem",
             width: "100%",
           }}
         />
@@ -85,18 +101,33 @@ export default function LoginForm() {
         </span>
       </div>
 
+      {/* LOGIN BUTTON */}
       <button
         type="submit"
-        style={{ padding: "0.5rem", cursor: "pointer" }}
         disabled={loading}
+        style={{
+          padding: "0.6rem",
+          cursor: "pointer",
+        }}
       >
         {loading ? "Logging in..." : "Login"}
       </button>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {/* ERROR MESSAGE */}
+      {error && (
+        <p
+          style={{
+            color: "red",
+            fontSize: "14px",
+          }}
+        >
+          {error}
+        </p>
+      )}
 
       <hr />
 
+      {/* GOOGLE LOGIN */}
       <GoogleLoginButton />
     </form>
   );

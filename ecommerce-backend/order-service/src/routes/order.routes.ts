@@ -10,10 +10,12 @@ import {
 const router = Router();
 
 router.post("/", createOrder);
+
+router.get("/user/:userId", getOrdersByUser);
+router.get("/:orderId", getOrderByIdController);
+
 router.post("/confirm/:orderId", confirmOrder);
 router.delete("/cancel/:orderId", cancelOrder);
-router.get("/:orderId", getOrderByIdController);
-router.get("/user/:userId", getOrdersByUser);
 
 export default router;
 

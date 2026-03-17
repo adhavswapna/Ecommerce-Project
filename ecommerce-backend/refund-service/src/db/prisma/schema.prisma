@@ -1,0 +1,30 @@
+// ✅ GENERATOR
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ✅ DATABASE CONNECTION
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ✅ MODEL
+model Refund {
+  id        Int          @id @default(autoincrement())
+  orderId   Int
+  userId    Int
+  reason    String
+  status    RefundStatus @default(REQUESTED)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+// ✅ ENUM
+enum RefundStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  PICKED_UP
+  COMPLETED
+}

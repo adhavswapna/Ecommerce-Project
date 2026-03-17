@@ -1,9 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
 
 interface JwtPayload {
   userId: string;
-  role: 'USER' | 'VENDOR' | 'ADMIN';
+  role: "USER" | "ADMIN" | "VENDOR";
 }
 
 export const authMiddleware = (
@@ -13,11 +13,11 @@ export const authMiddleware = (
 ) => {
   const header = req.headers.authorization;
 
-  if (!header || !header.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'Unauthorized' });
+  if (!header || !header.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Unauthorized" });
   }
 
-  const token = header.split(' ')[1];
+  const token = header.split(" ")[1];
 
   try {
     const decoded = jwt.verify(
@@ -25,14 +25,10 @@ export const authMiddleware = (
       process.env.JWT_SECRET!
     ) as JwtPayload;
 
-    // Attach user to request
-    req.user = {
-      userId: decoded.userId,
-      role: decoded.role,
-    };
+    req.user = decoded;
 
     next();
-  } catch (error) {
-    return res.status(401).json({ message: 'Invalid token' });
+  } catch {
+    return res.status(401).json({ message: "Invalid token" });
   }
 };

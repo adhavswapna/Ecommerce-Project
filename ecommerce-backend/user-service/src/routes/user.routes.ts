@@ -1,26 +1,15 @@
 import { Router } from "express";
 import { UserController } from "../controllers/user.controller";
+import { authMiddleware } from "../middlewares/auth.middleware";
 
 const router = Router();
 
-// User registration
-router.post("/register", UserController.register);
+router.get("/me", authMiddleware, UserController.getMe);
 
-// User verification
-router.post("/verify/:id", UserController.verify);
+router.get("/:id", UserController.getById);
 
-// User login
-router.post("/login", UserController.login);
+router.put("/:id", authMiddleware, UserController.updateProfile);
 
-// Update profile
-router.put("/update/:id", UserController.updateProfile);
-
-// Password reset
-router.post("/password/reset/request", UserController.passwordResetRequest);
-router.post("/password/reset/complete", UserController.passwordResetComplete);
-
-// Delete user
-router.delete("/delete/:id", UserController.deleteUser);
+router.delete("/:id", authMiddleware, UserController.deleteUser);
 
 export default router;
-

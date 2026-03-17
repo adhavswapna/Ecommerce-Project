@@ -1,13 +1,21 @@
 // src/kafka/email.consumer.ts
+
 import { getKafka } from "./kafka.client";
 import { EMAIL_TOPICS, type EmailTopic } from "./email.topics";
 import { sendEmail } from "./sendEmail";
 
-// ---------------- Helper: fetch emails for inventory alerts ----------------
+/* -------------------------------------------------------------------------- */
+/*                        Helper: inventory alert emails                      */
+/* -------------------------------------------------------------------------- */
+
 function getEmailsForInventory(productId: string): string[] {
-  // In production, fetch from DB, config, or admin notification list
+  // In production fetch from DB or admin config
   return ["swapnaadhav123@gmail.com"];
 }
+
+/* -------------------------------------------------------------------------- */
+/*                            Start Kafka Consumer                            */
+/* -------------------------------------------------------------------------- */
 
 export async function startEmailConsumer() {
   if (process.env.ENABLE_KAFKA !== "true") {
@@ -16,11 +24,13 @@ export async function startEmailConsumer() {
   }
 
   const kafka = getKafka();
+
   const consumer = kafka.consumer({
     groupId: process.env.KAFKA_GROUP_ID || "email-service-group",
   });
 
   await consumer.connect();
+
   await consumer.subscribe({
     topics: [...Object.values(EMAIL_TOPICS)],
     fromBeginning: false,
@@ -36,14 +46,18 @@ export async function startEmailConsumer() {
       if (!raw) return;
 
       let payload: any;
+
       try {
         payload = JSON.parse(raw);
       } catch {
-        console.error(`❌ Invalid JSON on topic ${topic}`, raw);
+        console.error(`❌ Invalid JSON received on topic ${topic}`, raw);
         return;
       }
 
-      // ---------------- PASSWORD RESET ----------------
+      /* ---------------------------------------------------------------------- */
+      /*                         PASSWORD RESET SPECIAL CASE                    */
+      /* ---------------------------------------------------------------------- */
+
       if (topic === EMAIL_TOPICS.AUTH_PASSWORD_RESET) {
         if (!payload.to || !payload.subject || !payload.html) {
           console.warn("⚠️ Invalid password reset payload", payload);
@@ -56,35 +70,48 @@ export async function startEmailConsumer() {
         } catch (err) {
           console.error("🔥 Failed to send password reset email:", err);
         }
-        return; // Skip other email logic
-      }
 
-      // ---------------- Other emails ----------------
-      const emails: string[] = [];
-      if (payload.email) emails.push(payload.email);
-      if (payload.userEmail) emails.push(payload.userEmail);
-      if (payload.vendorEmail) emails.push(payload.vendorEmail);
-
-      // Auto-lookup for inventory alerts if no email
-      if (
-        (topic === EMAIL_TOPICS.INVENTORY_LOW ||
-          topic === EMAIL_TOPICS.INVENTORY_OUT_OF_STOCK) &&
-        emails.length === 0
-      ) {
-        emails.push(...getEmailsForInventory(payload.productId));
-      }
-
-      if (emails.length === 0) {
-        console.warn(`⚠️ No recipient email found for topic ${topic}`, payload);
         return;
       }
 
-      console.log(`📩 Event received [${topic}]`, payload);
+      /* ---------------------------------------------------------------------- */
+      /*                       Collect email recipients                         */
+      /* ---------------------------------------------------------------------- */
 
-      try {
-        for (const email of emails) {
+      const emails = new Set<string>();
+
+      if (payload.email) emails.add(payload.email);
+      if (payload.userEmail) emails.add(payload.userEmail);
+      if (payload.vendorEmail) emails.add(payload.vendorEmail);
+
+      /* Auto lookup inventory alerts */
+
+      if (
+        (topic === EMAIL_TOPICS.INVENTORY_LOW ||
+          topic === EMAIL_TOPICS.INVENTORY_OUT_OF_STOCK) &&
+        emails.size === 0
+      ) {
+        const inventoryEmails = getEmailsForInventory(payload.productId);
+
+        inventoryEmails.forEach((e) => emails.add(e));
+      }
+
+      if (emails.size === 0) {
+        console.warn(`⚠️ No recipient email for topic ${topic}`, payload);
+        return;
+      }
+
+      console.log(`📩 Email event received [${topic}]`);
+
+      /* ---------------------------------------------------------------------- */
+      /*                         Process email events                           */
+      /* ---------------------------------------------------------------------- */
+
+      for (const email of emails) {
+        try {
           switch (topic as EmailTopic) {
-            // ---------------- USER ----------------
+            /* ---------------- USER ---------------- */
+
             case EMAIL_TOPICS.USER_REGISTERED:
               await sendEmail(
                 email,
@@ -101,7 +128,8 @@ export async function startEmailConsumer() {
               );
               break;
 
-            // ---------------- ORDER ----------------
+            /* ---------------- ORDER ---------------- */
+
             case EMAIL_TOPICS.ORDER_CREATED:
               await sendEmail(
                 email,
@@ -118,7 +146,8 @@ export async function startEmailConsumer() {
               );
               break;
 
-            // ---------------- PAYMENT ----------------
+            /* ---------------- PAYMENT ---------------- */
+
             case EMAIL_TOPICS.PAYMENT_SUCCESS:
               await sendEmail(
                 email,
@@ -143,10 +172,11 @@ export async function startEmailConsumer() {
               );
               break;
 
-            // ---------------- INVOICE ----------------
+            /* ---------------- INVOICE ---------------- */
+
             case EMAIL_TOPICS.INVOICE_GENERATED:
               if (!payload.invoiceUrl) {
-                console.warn("⚠️ Invoice URL missing in payload", payload);
+                console.warn("⚠️ Missing invoice URL", payload);
                 break;
               }
 
@@ -158,13 +188,16 @@ export async function startEmailConsumer() {
                 <p><b>Order ID:</b> ${payload.orderId}</p>
                 <p><b>Amount:</b> ₹${payload.amount}</p>
                 <p>
-                  <a href="${payload.invoiceUrl}" target="_blank">📄 Download Invoice</a>
+                  <a href="${payload.invoiceUrl}" target="_blank">
+                    📄 Download Invoice
+                  </a>
                 </p>
                 `
               );
               break;
 
-            // ---------------- VENDOR ----------------
+            /* ---------------- VENDOR ---------------- */
+
             case EMAIL_TOPICS.VENDOR_CREATED:
               await sendEmail(
                 email,
@@ -185,16 +218,19 @@ export async function startEmailConsumer() {
               await sendEmail(
                 email,
                 "Vendor Rejected ❌",
-                "Unfortunately, your vendor application was rejected."
+                "Unfortunately your vendor application was rejected."
               );
               break;
 
-            // ---------------- INVENTORY ----------------
+            /* ---------------- INVENTORY ---------------- */
+
             case EMAIL_TOPICS.INVENTORY_LOW:
               await sendEmail(
                 email,
                 "Low Inventory Alert ⚠️",
-                `Product <b>${payload.productId}</b> is running low. Current quantity: ${payload.quantity}, Threshold: ${payload.threshold}.`
+                `Product <b>${payload.productId}</b> is running low.
+                 Current quantity: ${payload.quantity}.
+                 Threshold: ${payload.threshold}.`
               );
               break;
 
@@ -206,7 +242,8 @@ export async function startEmailConsumer() {
               );
               break;
 
-            // ---------------- SHIPPING ----------------
+            /* ---------------- SHIPPING ---------------- */
+
             case EMAIL_TOPICS.SHIPPING_CREATED:
               await sendEmail(
                 email,
@@ -234,21 +271,20 @@ export async function startEmailConsumer() {
             case EMAIL_TOPICS.SHIPPING_CANCELLED:
               await sendEmail(
                 email,
-                "Order Cancelled ❌",
-                `Your shipment for order <b>${payload.orderId}</b> has been cancelled.`
+                "Shipment Cancelled ❌",
+                `Shipment for order <b>${payload.orderId}</b> has been cancelled.`
               );
               break;
 
             default:
-              console.warn(`⚠️ No handler for topic ${topic}`);
+              console.warn(`⚠️ No email handler for topic ${topic}`);
           }
 
-          console.log(`✅ Email sent to ${email} for topic ${topic}`);
+          console.log(`✅ Email sent to ${email} [${topic}]`);
+        } catch (err) {
+          console.error("🔥 Email send failed:", err);
         }
-      } catch (err) {
-        console.error("🔥 Email send failed:", err);
       }
     },
   });
 }
-

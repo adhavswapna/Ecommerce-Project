@@ -5,7 +5,7 @@ import {
   updateCartItem,
   removeCartItem,
   clearUserCart,
-} from "../services/cart-service";
+} from "../services/cart.service";
 
 export async function addItem(req: Request, res: Response) {
   try {

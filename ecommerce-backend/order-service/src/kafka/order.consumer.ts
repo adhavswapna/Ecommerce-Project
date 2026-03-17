@@ -1,20 +1,75 @@
 import { getKafkaConsumer } from "./kafka.client";
-import { ORDER_TOPICS } from "./order.topics";
+import {
+  confirmOrderService,
+  cancelOrderService,
+} from "../services/order.service";
+
+/* ---------------- Local copy of payment topics ---------------- */
+const PAYMENT_TOPICS = {
+  PAYMENT_SUCCESS: "payment.success",
+  PAYMENT_FAILED: "payment.failed",
+} as const;
 
 export async function startOrderConsumer() {
   const consumer = await getKafkaConsumer();
-  if (!consumer) return;
 
-  await consumer.subscribe({ topic: ORDER_TOPICS.CREATED });
-  await consumer.subscribe({ topic: ORDER_TOPICS.CANCELLED });
+  if (!consumer) {
+    console.log("⚠️ Kafka disabled for order-service");
+    return;
+  }
+
+  /* ---------------- Subscribe ---------------- */
+
+  await consumer.subscribe({
+    topic: PAYMENT_TOPICS.PAYMENT_SUCCESS,
+    fromBeginning: false,
+  });
+
+  await consumer.subscribe({
+    topic: PAYMENT_TOPICS.PAYMENT_FAILED,
+    fromBeginning: false,
+  });
+
+  console.log("📥 Order Kafka consumer started");
+
+  /* ---------------- Run Consumer ---------------- */
 
   await consumer.run({
     eachMessage: async ({ topic, message }) => {
       if (!message.value) return;
 
-      const payload = JSON.parse(message.value.toString());
-      console.log("📥 Order event received:", topic, payload);
+      try {
+        const payload = JSON.parse(message.value.toString());
+
+        switch (topic) {
+          case PAYMENT_TOPICS.PAYMENT_SUCCESS:
+            console.log("💳 Payment success received", payload);
+
+            if (payload?.orderId) {
+              await confirmOrderService(payload.orderId);
+            } else {
+              console.warn("⚠️ Missing orderId in payment.success");
+            }
+
+            break;
+
+          case PAYMENT_TOPICS.PAYMENT_FAILED:
+            console.log("❌ Payment failed received", payload);
+
+            if (payload?.orderId) {
+              await cancelOrderService(payload.orderId);
+            } else {
+              console.warn("⚠️ Missing orderId in payment.failed");
+            }
+
+            break;
+
+          default:
+            console.warn("⚠️ Unknown topic:", topic);
+        }
+      } catch (err) {
+        console.error("❌ Order consumer error:", err);
+      }
     },
   });
 }
-

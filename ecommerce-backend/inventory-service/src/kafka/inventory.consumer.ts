@@ -1,7 +1,7 @@
-// src/kafka/inventory.consumer.ts
+import { Consumer } from "kafkajs";
 import { getKafka } from "./kafka-client";
 import { INVENTORY_TOPICS } from "./inventory.topics";
-import { Consumer } from "kafkajs";
+import { reduceStock, restoreStock } from "../services/inventory.service";
 
 let consumer: Consumer | null = null;
 
@@ -18,6 +18,7 @@ export async function startInventoryConsumer() {
   });
 
   await consumer.connect();
+
   console.log("✅ Inventory Kafka consumer connected");
 
   await consumer.subscribe({
@@ -30,43 +31,58 @@ export async function startInventoryConsumer() {
     fromBeginning: false,
   });
 
-  console.log("📥 Inventory Kafka consumer subscribed to topics");
+  console.log("📥 Inventory Kafka consumer subscribed");
 
   await consumer.run({
     eachMessage: async ({ topic, message }) => {
       if (!message.value) return;
 
-      const payload = JSON.parse(message.value.toString());
+      try {
+        const payload = JSON.parse(message.value.toString());
 
-      switch (topic) {
-        case INVENTORY_TOPICS.ORDER_CREATED:
-          console.log(
-            `📦 ORDER_CREATED → Reduce stock | orderId=${payload.orderId}`
-          );
-          // TODO: reduce inventory stock here
-          break;
+        if (!payload.items || !Array.isArray(payload.items)) {
+          console.warn("⚠️ Invalid inventory payload", payload);
+          return;
+        }
 
-        case INVENTORY_TOPICS.ORDER_CANCELLED:
-          console.log(
-            `♻️ ORDER_CANCELLED → Restore stock | orderId=${payload.orderId}`
-          );
-          // TODO: restore inventory stock here
-          break;
+        switch (topic) {
+          case INVENTORY_TOPICS.ORDER_CREATED:
+            console.log("📦 ORDER_CREATED received", payload);
 
-        default:
-          console.warn("⚠️ Unknown topic received:", topic);
+            for (const item of payload.items) {
+              if (!item.productId || !item.quantity) continue;
+
+              await reduceStock(item.productId, item.quantity);
+            }
+
+            console.log("📉 Stock reduced");
+            break;
+
+          case INVENTORY_TOPICS.ORDER_CANCELLED:
+            console.log("♻️ ORDER_CANCELLED received", payload);
+
+            for (const item of payload.items) {
+              if (!item.productId || !item.quantity) continue;
+
+              await restoreStock(item.productId, item.quantity);
+            }
+
+            console.log("📈 Stock restored");
+            break;
+
+          default:
+            console.warn("⚠️ Unknown topic:", topic);
+        }
+      } catch (error) {
+        console.error("❌ Inventory consumer error:", error);
       }
     },
   });
 }
 
-/**
- * Graceful shutdown
- */
 export async function stopInventoryConsumer() {
   if (consumer) {
     await consumer.disconnect();
     console.log("🛑 Inventory Kafka consumer disconnected");
   }
 }
-

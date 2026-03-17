@@ -28,4 +28,4 @@ model OrderItem {
 
   order Order @relation(fields: [orderId], references: [id])
 }
-y
+

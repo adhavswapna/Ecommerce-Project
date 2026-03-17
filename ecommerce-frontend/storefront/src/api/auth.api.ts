@@ -1,14 +1,23 @@
-import axios from "axios";
+import { api } from "@/lib/api";
 
 const AUTH_API = process.env.NEXT_PUBLIC_AUTH_API_URL;
 
-// ------------------- LOGIN -------------------
-export async function login(email: string, password: string) {
-  const { data } = await axios.post(`${AUTH_API}/auth/login`, { email, password });
-  return data; // { token: string }
+export interface AuthResponse {
+  token: string;
+  role: "USER" | "VENDOR" | "ADMIN";
 }
 
-// ------------------- REGISTER USER -------------------
+// LOGIN
+export async function login(email: string, password: string) {
+  const { data } = await api.post<AuthResponse>(
+    `${AUTH_API}/auth/login`,
+    { email, password }
+  );
+
+  return data;
+}
+
+// REGISTER
 interface RegisterPayload {
   name: string;
   email: string;
@@ -18,21 +27,30 @@ interface RegisterPayload {
 }
 
 export async function registerUser(payload: RegisterPayload) {
-  const { data } = await axios.post(`${AUTH_API}/auth/register`, payload);
-  return data; // { token: string }
+  const { data } = await api.post<AuthResponse>(
+    `${AUTH_API}/auth/register`,
+    payload
+  );
+
+  return data;
 }
 
-// ------------------- FORGOT PASSWORD -------------------
+// FORGOT PASSWORD
 export async function forgotPassword(email: string) {
-  const { data } = await axios.post(`${AUTH_API}/auth/forgot-password`, { email });
-  return data; // { message: string }
+  const { data } = await api.post(
+    `${AUTH_API}/auth/forgot-password`,
+    { email }
+  );
+
+  return data;
 }
 
-// ------------------- RESET PASSWORD -------------------
+// RESET PASSWORD
 export async function resetPassword(token: string, newPassword: string) {
-  const { data } = await axios.post(`${AUTH_API}/auth/reset-password`, {
-    token,
-    newPassword,
-  });
-  return data; // { message: string }
+  const { data } = await api.post(
+    `${AUTH_API}/auth/reset-password`,
+    { token, newPassword }
+  );
+
+  return data;
 }

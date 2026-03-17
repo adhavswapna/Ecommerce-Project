@@ -1,7 +1,8 @@
-import { Kafka, Partitioners } from "kafkajs";
+import { Kafka } from "kafkajs";
 
 let kafka: Kafka;
-let producerInstance: ReturnType<Kafka["producer"]>;
+let producer: any;
+let consumer: any;
 
 export function getKafka() {
   if (!kafka) {
@@ -14,14 +15,24 @@ export function getKafka() {
 }
 
 export async function getUserProducer() {
-  if (!producerInstance) {
-    const kafkaClient = getKafka();
-    producerInstance = kafkaClient.producer({
-      createPartitioner: Partitioners.LegacyPartitioner,
-    });
-    await producerInstance.connect();
-    console.log("✅ User-service Kafka producer connected");
+  if (!producer) {
+    producer = getKafka().producer();
+    await producer.connect();
+    console.log("✅ User Kafka producer connected");
   }
-  return producerInstance;
+
+  return producer;
 }
 
+export async function getUserConsumer() {
+  if (!consumer) {
+    consumer = getKafka().consumer({
+      groupId: "user-service-group",
+    });
+
+    await consumer.connect();
+    console.log("✅ User Kafka consumer connected");
+  }
+
+  return consumer;
+}

@@ -1,10 +1,17 @@
 import dotenv from "dotenv";
-import app from "./app"; // your Express app
+import app from "./app";
+import { disconnectKafka } from "./kafka/kafka.client";
 
-dotenv.config(); // load .env
+dotenv.config();
 
-const port = Number(process.env.SERVICE_PORT) || 3005; // use SERVICE_PORT from .env
+const port = Number(process.env.SERVICE_PORT) || 3005;
 
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+  console.log(`🚀 Cart Service running on port ${port}`);
+});
+
+process.on("SIGINT", async () => {
+  console.log("Shutting down Cart Service...");
+  await disconnectKafka();
+  process.exit(0);
 });

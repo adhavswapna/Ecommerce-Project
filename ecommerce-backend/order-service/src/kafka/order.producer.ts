@@ -28,4 +28,3 @@ export async function publishOrderCancelled(payload: OrderCancelledEvent) {
 
   console.log("📤 order.cancelled published", payload);
 }
-
