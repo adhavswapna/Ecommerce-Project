@@ -6,33 +6,58 @@ import productRoutes from "./routes/product.routes";
 
 const app = express();
 
-// ------------------------
-// Middleware
-// ------------------------
-app.use(helmet());          // Security headers
-app.use(cors());            // Allow frontend cross-origin requests
-app.use(express.json());    // Parse JSON body
-app.use(morgan("dev"));     // HTTP request logging
+/* =========================
+   Middleware
+========================= */
 
-// ------------------------
-// Routes
-// ------------------------
+// ✅ Fix helmet + CORS conflict
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false,
+  })
+);
+
+// ✅ Proper CORS config (IMPORTANT)
+app.use(
+  cors({
+    origin: "http://localhost:3000", // ⚠️ MUST be plain string (not markdown)
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  })
+);
+
+// ✅ Handle preflight requests
+app.options("*", cors());
+
+app.use(express.json());
+app.use(morgan("dev"));
+
+/* =========================
+   Routes
+========================= */
+
 app.use("/products", productRoutes);
 
-// ------------------------
-// Health check
-// ------------------------
+/* =========================
+   Health check
+========================= */
+
 app.get("/health", (_req: Request, res: Response) => {
   res.json({ status: "UP", service: "Product Service" });
 });
 
-// ------------------------
-// Global error handling
-// ------------------------
-app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-  console.error("Unhandled Error:", err);
-  res.status(500).json({ message: err.message || "Internal server error" });
-});
+/* =========================
+   Global error handling
+========================= */
+
+app.use(
+  (err: Error, _req: Request, res: Response, _next: NextFunction) => {
+    console.error("❌ Unhandled Error:", err);
+
+    res.status(500).json({
+      message: err.message || "Internal server error",
+    });
+  }
+);
 
 export default app;
-

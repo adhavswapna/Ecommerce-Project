@@ -2,15 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useRouter } from "next/navigation";
 
 const CART_API = process.env.NEXT_PUBLIC_CART_API_URL;
 
 /* ================= HELPER ================= */
 function getUserId() {
-  const token = localStorage.getItem("token");
-  if (!token) return null;
-
   try {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+
     const payload = JSON.parse(atob(token.split(".")[1]));
     return payload.userId;
   } catch {
@@ -21,22 +22,32 @@ function getUserId() {
 export default function CartPage() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   /* ================= FETCH CART ================= */
   const fetchCart = async () => {
-    const userId = getUserId();
-    if (!userId) return;
+    try {
+      const userId = getUserId();
 
-    const res = await api.get(`${CART_API}/cart/${userId}`);
-    setItems(res.data);
-    setLoading(false);
+      if (!userId) {
+        router.push("/login");
+        return;
+      }
+
+      const res = await api.get(`${CART_API}/cart/${userId}`);
+      setItems(res.data || []);
+    } catch (err: any) {
+      console.error("Cart error:", err?.response?.data || err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchCart();
   }, []);
 
-  /* ================= UPDATE QUANTITY ================= */
+  /* ================= UPDATE ================= */
   const updateQuantity = async (itemId: string, quantity: number) => {
     if (quantity < 1) return;
 
@@ -44,13 +55,11 @@ export default function CartPage() {
     fetchCart();
   };
 
-  /* ================= REMOVE ITEM ================= */
   const removeItem = async (itemId: string) => {
     await api.delete(`${CART_API}/cart/remove/${itemId}`);
     fetchCart();
   };
 
-  /* ================= CLEAR CART ================= */
   const clearCart = async () => {
     const userId = getUserId();
     if (!userId) return;
@@ -59,13 +68,17 @@ export default function CartPage() {
     fetchCart();
   };
 
-  /* ================= TOTAL ================= */
+  const handleCheckout = () => {
+    router.push("/checkout");
+  };
+
   const total = items.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
 
   /* ================= UI ================= */
+
   if (loading) return <p className="p-6">Loading cart...</p>;
 
   if (items.length === 0) {
@@ -89,7 +102,6 @@ export default function CartPage() {
               <p>₹{item.price}</p>
             </div>
 
-            {/* QUANTITY CONTROLS */}
             <div className="flex items-center gap-3">
               <button
                 onClick={() =>
@@ -112,7 +124,6 @@ export default function CartPage() {
               </button>
             </div>
 
-            {/* REMOVE */}
             <button
               onClick={() => removeItem(item.id)}
               className="text-red-500"
@@ -123,7 +134,6 @@ export default function CartPage() {
         ))}
       </div>
 
-      {/* TOTAL SECTION */}
       <div className="mt-8 border-t pt-4">
         <h2 className="text-xl font-bold">
           Total: ₹{total.toFixed(2)}
@@ -137,7 +147,10 @@ export default function CartPage() {
             Clear Cart
           </button>
 
-          <button className="bg-green-600 text-white px-4 py-2 rounded">
+          <button
+            onClick={handleCheckout}
+            className="bg-green-600 text-white px-4 py-2 rounded"
+          >
             Checkout
           </button>
         </div>

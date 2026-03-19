@@ -7,8 +7,10 @@ import { Product } from "@/types/product";
 import { useParams, useRouter } from "next/navigation";
 
 export default function ProductDetailPage() {
-  const { id } = useParams();
+  const params = useParams();
   const router = useRouter();
+
+  const id = Array.isArray(params?.id) ? params.id[0] : params?.id;
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -17,26 +19,35 @@ export default function ProductDetailPage() {
   const [message, setMessage] = useState("");
 
   /* ================= FETCH PRODUCT ================= */
+  const fetchProduct = async () => {
+    try {
+      if (!id) return;
+
+      setLoading(true);
+      setError("");
+
+      const data = await getProductById(id);
+      setProduct(data);
+    } catch {
+      setError("Failed to load product");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        if (!id) return;
-
-        const data = await getProductById(id as string);
-        setProduct(data);
-      } catch (err) {
-        setError("Failed to load product");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchProduct();
   }, [id]);
 
   /* ================= ADD TO CART ================= */
   const handleAddToCart = async () => {
     if (!product) return;
+
+    // ✅ Prevent useless API call
+    if (product.stock === 0) {
+      setMessage("❌ Product is out of stock");
+      return;
+    }
 
     try {
       setAdding(true);
@@ -46,11 +57,14 @@ export default function ProductDetailPage() {
 
       setMessage("✅ Added to cart");
 
-      // optional: redirect to cart after 1 sec
-      setTimeout(() => {
-        router.push("/cart");
-      }, 1000);
+      // ✅ Better UX → instant navigation
+      router.push("/cart");
     } catch (err: any) {
+      if (err.message?.includes("not logged in")) {
+        router.push("/login");
+        return;
+      }
+
       setMessage(err.message || "❌ Failed to add to cart");
     } finally {
       setAdding(false);
@@ -59,7 +73,20 @@ export default function ProductDetailPage() {
 
   /* ================= UI STATES ================= */
   if (loading) return <p className="p-6">Loading product...</p>;
-  if (error) return <p className="p-6 text-red-500">{error}</p>;
+
+  if (error)
+    return (
+      <div className="p-6">
+        <p className="text-red-500">{error}</p>
+        <button
+          onClick={fetchProduct}
+          className="mt-4 px-4 py-2 bg-black text-white rounded"
+        >
+          Retry
+        </button>
+      </div>
+    );
+
   if (!product) return <p className="p-6">Product not found</p>;
 
   /* ================= UI ================= */

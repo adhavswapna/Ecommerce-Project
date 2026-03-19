@@ -7,20 +7,24 @@ if (!CART_API) {
 }
 
 /**
- * Decode JWT (simple)
+ * Get userId from token (safe wrapper)
  */
-function getUserIdFromToken(): string | null {
-  if (typeof window === "undefined") return null;
+const getUserId = (): string => {
+  if (typeof window === "undefined") {
+    throw new Error("Window not available");
+  }
+
   const token = localStorage.getItem("token");
-  if (!token) return null;
+  if (!token) throw new Error("User not logged in");
 
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));
+    if (!payload?.userId) throw new Error("Invalid token");
     return payload.userId;
   } catch {
-    return null;
+    throw new Error("Invalid token format");
   }
-}
+};
 
 /**
  * Add to cart
@@ -30,42 +34,68 @@ export const addToCart = async (
   price: number,
   quantity = 1
 ) => {
-  const userId = getUserIdFromToken();
-  if (!userId) throw new Error("User not logged in");
+  try {
+    const userId = getUserId();
 
-  const res = await api.post(`${CART_API}/cart/add`, { userId, productId, price, quantity });
-  return res.data;
+    const res = await api.post(`${CART_API}/cart/add`, {
+      userId,
+      productId,
+      price,
+      quantity,
+    });
+
+    return res.data;
+  } catch (error: any) {
+    console.error("Add to cart failed:", error?.response?.data || error.message);
+    throw new Error("Failed to add to cart");
+  }
 };
 
 /**
  * Remove from cart
  */
 export const removeFromCart = async (productId: string) => {
-  const userId = getUserIdFromToken();
-  if (!userId) throw new Error("User not logged in");
+  try {
+    const userId = getUserId();
 
-  const res = await api.post(`${CART_API}/cart/remove`, { userId, productId });
-  return res.data;
+    const res = await api.post(`${CART_API}/cart/remove`, {
+      userId,
+      productId,
+    });
+
+    return res.data;
+  } catch (error: any) {
+    console.error("Remove from cart failed:", error?.response?.data || error.message);
+    throw new Error("Failed to remove item");
+  }
 };
 
 /**
  * Fetch cart items
  */
 export const getCartItems = async () => {
-  const userId = getUserIdFromToken();
-  if (!userId) throw new Error("User not logged in");
+  try {
+    const userId = getUserId();
 
-  const res = await api.get(`${CART_API}/cart/${userId}`);
-  return res.data;
+    const res = await api.get(`${CART_API}/cart/${userId}`);
+    return res.data;
+  } catch (error: any) {
+    console.error("Fetch cart failed:", error?.response?.data || error.message);
+    throw new Error("Failed to fetch cart");
+  }
 };
 
 /**
- * Checkout
+ * Checkout cart
  */
 export const checkoutCart = async () => {
-  const userId = getUserIdFromToken();
-  if (!userId) throw new Error("User not logged in");
+  try {
+    const userId = getUserId();
 
-  const res = await api.post(`${CART_API}/checkout`, { userId });
-  return res.data;
+    const res = await api.post(`${CART_API}/checkout`, { userId });
+    return res.data;
+  } catch (error: any) {
+    console.error("Checkout failed:", error?.response?.data || error.message);
+    throw new Error("Checkout failed");
+  }
 };
