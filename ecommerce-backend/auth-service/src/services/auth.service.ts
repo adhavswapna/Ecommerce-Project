@@ -78,7 +78,7 @@ export class AuthService {
       );
 
       return {
-        token: signToken({ userId: user.id, role: user.role }),
+        token: signToken({ userId: user.id, role: user.role, name: user.name, email: user.email }),
         sessionId,
         user,
         avatar: picture,
@@ -115,7 +115,7 @@ export class AuthService {
         });
       }
 
-      return signToken({ userId: user.id, role: user.role });
+      return signToken({ userId: user.id, role: user.role, name: user.name, email: user.email });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
         throw new Error("User already exists");
@@ -134,7 +134,7 @@ export class AuthService {
     const isMatch = await comparePassword(password, user.password);
     if (!isMatch) throw new Error("Invalid credentials");
 
-    return signToken({ userId: user.id, role: user.role });
+    return signToken({ userId: user.id, role: user.role, name: user.name, email: user.email });
   }
 
   /* =====================================================
