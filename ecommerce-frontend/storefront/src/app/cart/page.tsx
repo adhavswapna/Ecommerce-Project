@@ -22,11 +22,19 @@ function getUserId() {
 export default function CartPage() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   /* ================= FETCH CART ================= */
   const fetchCart = async () => {
     try {
+      setLoading(true);
+      setError(null);
+
+      if (!CART_API) {
+        throw new Error("CART API URL not set");
+      }
+
       const userId = getUserId();
 
       if (!userId) {
@@ -38,6 +46,7 @@ export default function CartPage() {
       setItems(res.data || []);
     } catch (err: any) {
       console.error("Cart error:", err?.response?.data || err.message);
+      setError("Failed to load cart");
     } finally {
       setLoading(false);
     }
@@ -47,25 +56,38 @@ export default function CartPage() {
     fetchCart();
   }, []);
 
-  /* ================= UPDATE ================= */
-  const updateQuantity = async (itemId: string, quantity: number) => {
-    if (quantity < 1) return;
+  /* ================= ACTIONS ================= */
 
-    await api.put(`${CART_API}/cart/update/${itemId}`, { quantity });
-    fetchCart();
+  const updateQuantity = async (itemId: string, quantity: number) => {
+    try {
+      if (quantity < 1) return;
+
+      await api.put(`${CART_API}/cart/update/${itemId}`, { quantity });
+      fetchCart();
+    } catch (err) {
+      console.error("Update error", err);
+    }
   };
 
   const removeItem = async (itemId: string) => {
-    await api.delete(`${CART_API}/cart/remove/${itemId}`);
-    fetchCart();
+    try {
+      await api.delete(`${CART_API}/cart/remove/${itemId}`);
+      fetchCart();
+    } catch (err) {
+      console.error("Remove error", err);
+    }
   };
 
   const clearCart = async () => {
-    const userId = getUserId();
-    if (!userId) return;
+    try {
+      const userId = getUserId();
+      if (!userId) return;
 
-    await api.delete(`${CART_API}/cart/clear/${userId}`);
-    fetchCart();
+      await api.delete(`${CART_API}/cart/clear/${userId}`);
+      fetchCart();
+    } catch (err) {
+      console.error("Clear error", err);
+    }
   };
 
   const handleCheckout = () => {
@@ -81,52 +103,57 @@ export default function CartPage() {
 
   if (loading) return <p className="p-6">Loading cart...</p>;
 
+  if (error) return <p className="p-6 text-red-500">{error}</p>;
+
   if (items.length === 0) {
-    return <p className="p-6">🛒 Your cart is empty</p>;
+    return <p className="p-6 text-gray-500">🛒 Your cart is empty</p>;
   }
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Your Cart</h1>
+      <h1 className="text-3xl font-bold mb-6">🛒 Your Cart</h1>
 
       <div className="space-y-4">
         {items.map((item) => (
           <div
             key={item.id}
-            className="border p-4 rounded flex justify-between items-center"
+            className="border p-4 rounded-lg flex justify-between items-center shadow-sm"
           >
+            {/* Product Info */}
             <div>
               <p className="font-semibold">
-                Product ID: {item.productId}
+                Product: {item.productName || item.productId}
               </p>
-              <p>₹{item.price}</p>
+              <p className="text-gray-600">₹{item.price}</p>
             </div>
 
+            {/* Quantity Controls */}
             <div className="flex items-center gap-3">
               <button
                 onClick={() =>
                   updateQuantity(item.id, item.quantity - 1)
                 }
-                className="px-2 bg-gray-200 rounded"
+                className="px-3 py-1 bg-gray-200 rounded"
               >
                 -
               </button>
 
-              <span>{item.quantity}</span>
+              <span className="font-semibold">{item.quantity}</span>
 
               <button
                 onClick={() =>
                   updateQuantity(item.id, item.quantity + 1)
                 }
-                className="px-2 bg-gray-200 rounded"
+                className="px-3 py-1 bg-gray-200 rounded"
               >
                 +
               </button>
             </div>
 
+            {/* Remove */}
             <button
               onClick={() => removeItem(item.id)}
-              className="text-red-500"
+              className="text-red-500 font-semibold"
             >
               Remove
             </button>
@@ -134,6 +161,7 @@ export default function CartPage() {
         ))}
       </div>
 
+      {/* TOTAL */}
       <div className="mt-8 border-t pt-4">
         <h2 className="text-xl font-bold">
           Total: ₹{total.toFixed(2)}
@@ -151,7 +179,7 @@ export default function CartPage() {
             onClick={handleCheckout}
             className="bg-green-600 text-white px-4 py-2 rounded"
           >
-            Checkout
+            Proceed to Checkout
           </button>
         </div>
       </div>
