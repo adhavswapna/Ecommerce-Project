@@ -1,10 +1,10 @@
-import { getKafkaConsumer } from "./kafka.client";
+import { getKafkaConsumer, getKafkaProducer } from "./kafka.client";
 import {
   confirmOrderService,
   cancelOrderService,
 } from "../services/order.service";
 
-/* ---------------- Local copy of payment topics ---------------- */
+/* ---------------- Topics ---------------- */
 const PAYMENT_TOPICS = {
   PAYMENT_SUCCESS: "payment.success",
   PAYMENT_FAILED: "payment.failed",
@@ -12,13 +12,12 @@ const PAYMENT_TOPICS = {
 
 export async function startOrderConsumer() {
   const consumer = await getKafkaConsumer();
+  const producer = await getKafkaProducer();
 
-  if (!consumer) {
+  if (!consumer || !producer) {
     console.log("⚠️ Kafka disabled for order-service");
     return;
   }
-
-  /* ---------------- Subscribe ---------------- */
 
   await consumer.subscribe({
     topic: PAYMENT_TOPICS.PAYMENT_SUCCESS,
@@ -32,8 +31,6 @@ export async function startOrderConsumer() {
 
   console.log("📥 Order Kafka consumer started");
 
-  /* ---------------- Run Consumer ---------------- */
-
   await consumer.run({
     eachMessage: async ({ topic, message }) => {
       if (!message.value) return;
@@ -41,31 +38,45 @@ export async function startOrderConsumer() {
       try {
         const payload = JSON.parse(message.value.toString());
 
-        switch (topic) {
-          case PAYMENT_TOPICS.PAYMENT_SUCCESS:
-            console.log("💳 Payment success received", payload);
+        /* ================= PAYMENT SUCCESS ================= */
+        if (topic === PAYMENT_TOPICS.PAYMENT_SUCCESS) {
+          console.log("💳 Payment success received", payload);
 
-            if (payload?.orderId) {
-              await confirmOrderService(payload.orderId);
-            } else {
-              console.warn("⚠️ Missing orderId in payment.success");
-            }
+          if (!payload?.orderId) {
+            console.warn("⚠️ Missing orderId");
+            return;
+          }
 
-            break;
+          // 1. confirm order
+          await confirmOrderService(payload.orderId);
 
-          case PAYMENT_TOPICS.PAYMENT_FAILED:
-            console.log("❌ Payment failed received", payload);
+          // 2. 🚀 TRIGGER INVOICE SERVICE
+          await producer.send({
+            topic: "invoice.requested",
+            messages: [
+              {
+                value: JSON.stringify({
+                  orderId: payload.orderId,
+                  userId: payload.userId,
+                  amount: payload.amount,
+                }),
+              },
+            ],
+          });
 
-            if (payload?.orderId) {
-              await cancelOrderService(payload.orderId);
-            } else {
-              console.warn("⚠️ Missing orderId in payment.failed");
-            }
+          console.log("📤 invoice.requested sent");
+        }
 
-            break;
+        /* ================= PAYMENT FAILED ================= */
+        if (topic === PAYMENT_TOPICS.PAYMENT_FAILED) {
+          console.log("❌ Payment failed received", payload);
 
-          default:
-            console.warn("⚠️ Unknown topic:", topic);
+          if (!payload?.orderId) {
+            console.warn("⚠️ Missing orderId");
+            return;
+          }
+
+          await cancelOrderService(payload.orderId);
         }
       } catch (err) {
         console.error("❌ Order consumer error:", err);

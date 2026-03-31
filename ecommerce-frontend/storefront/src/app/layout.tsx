@@ -14,13 +14,17 @@ export default function RootLayout({ children }: RootLayoutProps) {
       <head>
         <title>ShopSphere</title>
         <meta name="description" content="ShopSphere e-commerce platform" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
-      <body style={{ margin: 0, fontFamily: "Arial, sans-serif" }}>
-        {/* Navbar appears on all pages */}
+
+      <body className="bg-gray-50 text-gray-900">
+        {/* ✅ Navbar fixed at top */}
         <Navbar />
 
-        {/* Main content */}
-        <main style={{ padding: "2rem" }}>{children}</main>
+        {/* ✅ Page Content */}
+        <main className="pt-16 px-6 max-w-7xl mx-auto">
+          {children}
+        </main>
       </body>
     </html>
   );

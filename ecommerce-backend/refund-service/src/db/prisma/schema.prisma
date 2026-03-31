@@ -1,4 +1,3 @@
-// ✅ GENERATOR
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,13 +10,18 @@ datasource db {
 
 // ✅ MODEL
 model Refund {
-  id        Int          @id @default(autoincrement())
-  orderId   Int
-  userId    Int
+  id        String       @id @default(cuid())   // ✅ FIXED
+  orderId   String
+  userId    String
+  paymentId String
+  amount    Float
   reason    String
   status    RefundStatus @default(REQUESTED)
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
+
+  @@index([orderId])
+  @@index([userId])
 }
 
 // ✅ ENUM

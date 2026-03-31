@@ -1,56 +1,63 @@
-import { api } from "@/lib/api";
+// src/api/auth.api.ts
 
-const AUTH_API = process.env.NEXT_PUBLIC_AUTH_API_URL;
+import { authApi } from "./apiClient";
 
 export interface AuthResponse {
   token: string;
   role: "USER" | "VENDOR" | "ADMIN";
 }
 
-// LOGIN
+// 🔐 LOGIN
 export async function login(email: string, password: string) {
-  const { data } = await api.post<AuthResponse>(
-    `${AUTH_API}/auth/login`,
-    { email, password }
-  );
+  const { data } = await authApi.post<AuthResponse>("/auth/login", {
+    email,
+    password,
+  });
+
+  if (typeof window !== "undefined") {
+    localStorage.setItem("token", data.token);
+  }
 
   return data;
 }
 
-// REGISTER
-interface RegisterPayload {
+// 📝 REGISTER
+export async function registerUser(payload: {
   name: string;
   email: string;
   password: string;
   phone?: string;
   address?: string;
-}
-
-export async function registerUser(payload: RegisterPayload) {
-  const { data } = await api.post<AuthResponse>(
-    `${AUTH_API}/auth/register`,
+}) {
+  const { data } = await authApi.post<AuthResponse>(
+    "/auth/register",
     payload
   );
 
-  return data;
-}
-
-// FORGOT PASSWORD
-export async function forgotPassword(email: string) {
-  const { data } = await api.post(
-    `${AUTH_API}/auth/forgot-password`,
-    { email }
-  );
+  if (typeof window !== "undefined") {
+    localStorage.setItem("token", data.token);
+  }
 
   return data;
 }
 
-// RESET PASSWORD
-export async function resetPassword(token: string, newPassword: string) {
-  const { data } = await api.post(
-    `${AUTH_API}/auth/reset-password`,
-    { token, newPassword }
-  );
+// 👤 GET CURRENT USER ✅ (FIXED)
+export async function getMe() {
+  try {
+    const { data } = await authApi.get("/auth/me");
+    return data;
+  } catch (error: any) {
+    console.error(
+      "getMe error:",
+      error.response?.data || error.message || error.toString()
+    );
+    return null;
+  }
+}
 
-  return data;
+// 🚪 LOGOUT
+export function logout() {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("token");
+  }
 }

@@ -5,24 +5,15 @@ import {
   updateRefundStatus,
 } from "../controllers/refund.controller";
 
+import { authMiddleware } from "../middlewares/auth.middleware";
+
 const router = Router();
 
-/**
- * Create refund (manual / admin fallback)
- * POST /refunds
- */
-router.post("/", createRefund);
+// 🔥 MUST PROTECT THIS ROUTE
+router.post("/", authMiddleware, createRefund);
 
-/**
- * Get refunds for an order
- * GET /refunds/order/:orderId
- */
 router.get("/order/:orderId", getRefundByOrder);
 
-/**
- * Update refund status (admin)
- * PATCH /refunds/:id
- */
-router.patch("/:id", updateRefundStatus);
+router.patch("/:id", authMiddleware, updateRefundStatus);
 
 export default router;

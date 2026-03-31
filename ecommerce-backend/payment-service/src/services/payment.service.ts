@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+// ✅ CREATE PAYMENT
 export async function createPaymentService(
   userId: string,
   orderId: string,
@@ -21,10 +22,23 @@ export async function createPaymentService(
   });
 }
 
+// ✅ GET PAYMENTS BY ORDER
 export async function getPaymentsByOrderService(orderId: string) {
-  return prisma.payment.findMany({ where: { orderId } });
+  return prisma.payment.findMany({
+    where: { orderId },
+    orderBy: { createdAt: "desc" },
+  });
 }
 
+// ✅ NEW: GET PAYMENTS BY USER
+export async function getPaymentsByUserService(userId: string) {
+  return prisma.payment.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+// ✅ UPDATE PAYMENT STATUS
 export async function updatePaymentStatus(
   paymentId: string,
   status: string,
@@ -32,22 +46,25 @@ export async function updatePaymentStatus(
 ) {
   return prisma.payment.update({
     where: { id: paymentId },
-    data: { status, transactionId },
+    data: {
+      status,
+      transactionId,
+    },
   });
 }
 
+// ✅ REFUND
 export async function refundPaymentService(orderId: string) {
-  // Mark all payments for this order as refunded
   return prisma.payment.updateMany({
     where: { orderId },
     data: { status: "REFUNDED" },
   });
 }
 
+// ✅ GET LATEST PAYMENT STATUS
 export async function getPaymentStatusService(orderId: string) {
   return prisma.payment.findFirst({
     where: { orderId },
     orderBy: { createdAt: "desc" },
   });
 }
-

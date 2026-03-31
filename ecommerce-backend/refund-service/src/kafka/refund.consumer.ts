@@ -1,6 +1,7 @@
-import { consumer } from "./kafka.client";
-import { REFUND_TOPICS } from "./refund.topics";
+import { kafka } from "./kafka.client";
 import { RefundService } from "../services/refund.service";
+
+const consumer = kafka.consumer({ groupId: "refund-group" });
 
 const refundService = new RefundService();
 
@@ -8,21 +9,21 @@ export async function startRefundConsumer() {
   await consumer.connect();
 
   await consumer.subscribe({
-    topic: REFUND_TOPICS.PAYMENT_REFUND_REQUESTED,
+    topic: "payment.refund.requested",
     fromBeginning: false,
   });
 
-  console.log("💰 Refund consumer started");
+  console.log("✅ Refund Consumer Started");
 
   await consumer.run({
     eachMessage: async ({ message }) => {
       if (!message.value) return;
 
-      const payload = JSON.parse(message.value.toString());
+      const data = JSON.parse(message.value.toString());
 
-      console.log("💸 Refund request received:", payload);
+      console.log("📥 Refund Request:", data);
 
-      await refundService.processRefund(payload);
+      await refundService.processRefund(data);
     },
   });
 }

@@ -11,9 +11,12 @@ export async function publishInvoiceGenerated(
 
   await producer.send({
     topic: INVOICE_TOPICS.INVOICE_GENERATED,
-    messages: [{ value: JSON.stringify(payload) }],
+    messages: [
+      {
+        value: JSON.stringify(payload),
+      },
+    ],
   });
 
   console.log("📤 invoice.generated event published", payload);
 }
-

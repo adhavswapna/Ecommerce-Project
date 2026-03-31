@@ -1,28 +1,24 @@
 import { Router } from "express";
-import { generateInvoicePDF } from "../pdf/invoice.pdf";
-import { uploadInvoicePDF } from "../minio/invoice-upload";
+import {
+  getAllInvoices,
+  getInvoice,
+  createInvoiceController,
+  downloadInvoiceController,
+} from "../controllers/invoice.controller";
+
+// 👉 import your auth middleware
+import { authMiddleware } from "../middlewares/auth.middleware"; // adjust path
 
 const router = Router();
 
-router.post("/invoice", async (req, res) => {
-  try {
-    const pdfBuffer = await generateInvoicePDF(req.body);
+// 🔐 protect all routes
+router.use(authMiddleware);
 
-    const fileName = `invoice-${req.body.orderId}.pdf`;
+router.get("/", getAllInvoices);
+router.get("/:id", getInvoice);
+router.post("/", createInvoiceController);
 
-    await uploadInvoicePDF(fileName, pdfBuffer);
-
-    res.status(201).json({
-      message: "Invoice generated & uploaded",
-      fileName,
-    });
-  } catch (err: any) {
-    console.error(err);
-    res.status(500).json({
-      message: err.message || "Invoice generation failed",
-    });
-  }
-});
+// 🔗 signed URL download
+router.get("/:id/download", downloadInvoiceController);
 
 export default router;
-

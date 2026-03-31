@@ -1,48 +1,61 @@
 import { prisma } from "../db/prisma/prisma";
 import { publishRefundCompleted } from "../kafka/refund.producer";
 
+// ✅ Refund Status Enum
+type RefundStatus =
+  | "REQUESTED"
+  | "APPROVED"
+  | "REJECTED"
+  | "PICKED_UP"
+  | "COMPLETED";
+
+interface RefundData {
+  orderId: string;
+  paymentId: string;
+  userId: string;
+  amount: number;
+  reason: string;
+}
+
 export class RefundService {
   /**
-   * Called by Kafka consumer (payment.refund.requested)
+   * Create refund (Kafka / manual trigger)
    */
-  async processRefund(data: {
-    orderId: string;
-    paymentId: string;
-    amount: number;
-    reason: string;
-  }) {
-    // 1️⃣ Create refund entry
+  async processRefund(data: RefundData) {
+    const { orderId, paymentId, userId, amount, reason } = data;
+
+    // 1️⃣ Create refund
     const refund = await prisma.refund.create({
       data: {
-        orderId: data.orderId,
-        paymentId: data.paymentId,
-        amount: data.amount,
-        reason: data.reason,
-        status: "PROCESSING",
+        orderId,
+        paymentId,
+        userId,
+        amount,
+        reason,
+        status: "REQUESTED",
       },
     });
 
     try {
-      // 2️⃣ Simulate refund success (later: Razorpay/Stripe)
+      // 2️⃣ Simulate refund success (replace with Razorpay/Stripe later)
       const updatedRefund = await prisma.refund.update({
         where: { id: refund.id },
-        data: { status: "SUCCESS" },
+        data: { status: "COMPLETED" },
       });
 
-      // 3️⃣ Emit event
+      // 3️⃣ Kafka event
       await publishRefundCompleted({
         orderId: updatedRefund.orderId,
         refundId: updatedRefund.id,
         amount: updatedRefund.amount,
-        status: "SUCCESS",
+        status: updatedRefund.status,
       });
 
       return updatedRefund;
     } catch (error) {
-      // 4️⃣ Handle failure
       await prisma.refund.update({
         where: { id: refund.id },
-        data: { status: "FAILED" },
+        data: { status: "REJECTED" },
       });
 
       throw error;
@@ -50,9 +63,9 @@ export class RefundService {
   }
 
   /**
-   * Optional manual admin update
+   * Update refund status
    */
-  async updateStatus(id: string, status: string) {
+  async updateStatus(id: string, status: RefundStatus) {
     return prisma.refund.update({
       where: { id },
       data: { status },
@@ -60,7 +73,7 @@ export class RefundService {
   }
 
   /**
-   * Fetch refund
+   * Get refunds by order
    */
   async getRefundByOrder(orderId: string) {
     return prisma.refund.findMany({

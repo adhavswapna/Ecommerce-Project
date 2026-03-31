@@ -6,56 +6,78 @@ import productRoutes from "./routes/product.routes";
 
 const app = express();
 
-/* =========================
-   Middleware
-========================= */
+/* ==================================================
+   GLOBAL MIDDLEWARES
+================================================== */
 
-// ✅ Fix helmet + CORS conflict
+// ✅ Security headers (fix for cross-origin issues like images/files)
 app.use(
   helmet({
     crossOriginResourcePolicy: false,
   })
 );
 
-// ✅ Proper CORS config (IMPORTANT)
+// ✅ CORS (VERY IMPORTANT for frontend + WSL)
 app.use(
   cors({
-    origin: "http://localhost:3000", // ⚠️ MUST be plain string (not markdown)
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    origin: [
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "http://172.25.225.233:3000", // ✅ your WSL frontend
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
 
-// ✅ Handle preflight requests
+// ✅ Handle preflight requests (important for PUT/DELETE/auth headers)
 app.options("*", cors());
 
+// ✅ Body parsing
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// ✅ Logging
 app.use(morgan("dev"));
 
-/* =========================
-   Routes
-========================= */
-
-app.use("/products", productRoutes);
-
-/* =========================
-   Health check
-========================= */
+/* ==================================================
+   HEALTH CHECK
+================================================== */
 
 app.get("/health", (_req: Request, res: Response) => {
-  res.json({ status: "UP", service: "Product Service" });
+  res.status(200).json({
+    status: "product-service running",
+  });
 });
 
-/* =========================
-   Global error handling
-========================= */
+/* ==================================================
+   ROUTES
+================================================== */
+
+// 👉 Final endpoint: http://localhost:3003/products
+app.use("/products", productRoutes);
+
+/* ==================================================
+   404 HANDLER
+================================================== */
+
+app.use((_req: Request, res: Response) => {
+  res.status(404).json({
+    message: "Route not found",
+  });
+});
+
+/* ==================================================
+   GLOBAL ERROR HANDLER
+================================================== */
 
 app.use(
-  (err: Error, _req: Request, res: Response, _next: NextFunction) => {
-    console.error("❌ Unhandled Error:", err);
+  (err: any, _req: Request, res: Response, _next: NextFunction) => {
+    console.error("❌ Product Service Error:", err);
 
-    res.status(500).json({
-      message: err.message || "Internal server error",
+    res.status(err.status || 500).json({
+      message: err.message || "Internal Server Error",
     });
   }
 );

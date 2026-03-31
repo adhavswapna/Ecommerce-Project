@@ -2,23 +2,22 @@ import { Router } from "express";
 import {
   getAllProducts,
   getProduct,
-  getStock,
   addProduct,
   editProduct,
   removeProduct,
+  getStock,
 } from "../controllers/product.controller";
 
 const router = Router();
 
-/* ================= PRODUCT ROUTES ================= */
+/* =========================================
+   PRODUCT ROUTES
+========================================= */
 
 // Get all products
 router.get("/", getAllProducts);
 
-// Check product stock (must come before :id route)
-router.get("/stock/:id", getStock);
-
-// Get single product
+// Get product by ID
 router.get("/:id", getProduct);
 
 // Create product
@@ -29,5 +28,8 @@ router.put("/:id", editProduct);
 
 // Delete product
 router.delete("/:id", removeProduct);
+
+// Check stock
+router.get("/:id/stock", getStock);
 
 export default router;

@@ -1,31 +1,45 @@
-import { producer } from "./kafka.client";
-import { REFUND_TOPICS } from "./refund.topics";
+import { Kafka } from "kafkajs";
 
-export const refundProducer = {
-  /**
-   * Emit when refund is successfully processed
-   */
-  async sendRefundCompleted(data: {
-    orderId: string;
-    refundId: string;
-    amount: number;
-    status: string;
-  }) {
-    try {
-      await producer.connect();
+const kafka = new Kafka({
+  clientId: process.env.KAFKA_CLIENT_ID || "refund-service",
+  brokers: [process.env.KAFKA_BROKER || "localhost:9092"],
+});
 
-      await producer.send({
-        topic: REFUND_TOPICS.REFUND_COMPLETED,
-        messages: [
-          {
-            value: JSON.stringify(data),
-          },
-        ],
-      });
+const producer = kafka.producer();
 
-      console.log("📤 refund.completed published", data);
-    } catch (error) {
-      console.error("❌ Failed to publish refund.completed:", error);
-    }
-  },
-};
+let isConnected = false;
+
+/**
+ * ✅ Ensure producer is connected before sending
+ */
+async function ensureConnection() {
+  if (!isConnected) {
+    await producer.connect();
+    isConnected = true;
+    console.log("✅ Kafka Producer Connected");
+  }
+}
+
+export async function publishRefundCompleted(data: {
+  orderId: string;
+  refundId: string;
+  amount: number;
+  status: string;
+}) {
+  try {
+    await ensureConnection(); // 🔥 FIX
+
+    await producer.send({
+      topic: "refund.completed",
+      messages: [
+        {
+          value: JSON.stringify(data),
+        },
+      ],
+    });
+
+    console.log("📤 Refund Completed Event Sent:", data);
+  } catch (error) {
+    console.error("❌ Kafka Producer Error:", error);
+  }
+}

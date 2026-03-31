@@ -1,19 +1,35 @@
 import { Router } from "express";
 import {
-  addItem,
-  getCart,
+  addItemController,
+  addToWishlist,
+  getCartItems,
+  getWishlistItems,
   updateItem,
-  removeItem,
-  clearCart,
+  removeItemController,
+  clearItems,
+  moveItemToCart,
 } from "../controllers/cart.controller";
+
+import { authMiddleware } from "../middlewares/auth.middleware";
 
 const router = Router();
 
-router.post("/add", addItem);
-router.get("/:userId", getCart);
-router.put("/update/:itemId", updateItem);
-router.delete("/remove/:itemId", removeItem);
-router.delete("/clear/:userId", clearCart);
+/* ================= CART ================= */
+
+router.post("/add", authMiddleware, addItemController);
+router.get("/", authMiddleware, getCartItems);
+
+/* ================= WISHLIST ================= */
+
+router.post("/wishlist/add", authMiddleware, addToWishlist);
+router.get("/wishlist", authMiddleware, getWishlistItems);
+router.delete("/wishlist/remove/:itemId", authMiddleware, removeItemController);
+router.put("/wishlist/move/:itemId", authMiddleware, moveItemToCart);
+
+/* ================= COMMON ================= */
+
+router.put("/update/:itemId", authMiddleware, updateItem);
+router.delete("/remove/:itemId", authMiddleware, removeItemController);
+router.delete("/clear", authMiddleware, clearItems);
 
 export default router;
-

@@ -21,8 +21,8 @@ export const config = {
   minio: {
     endPoint: process.env.MINIO_ENDPOINT || "localhost",
     port: Number(process.env.MINIO_PORT || 9000),
-    accessKey: process.env.MINIO_ACCESS_KEY || "minioadmin",
-    secretKey: process.env.MINIO_SECRET_KEY || "minioadmin",
+    accessKey: process.env.MINIO_ROOT_USER || "minio",
+    secretKey: process.env.MINIO_ROOT_PASSWORD || "minio123",
     bucket: process.env.MINIO_BUCKET || "invoices",
     useSSL: process.env.MINIO_USE_SSL === "true",
   },

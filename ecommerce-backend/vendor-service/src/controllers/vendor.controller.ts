@@ -1,5 +1,8 @@
 import { Request, Response } from "express";
-import prisma from "../db/prisma/prisma";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
 import {
   publishVendorCreated,
   publishVendorStatusUpdated,

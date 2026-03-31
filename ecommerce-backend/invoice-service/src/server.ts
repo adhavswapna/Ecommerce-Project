@@ -1,36 +1,30 @@
-import express from "express";
 import dotenv from "dotenv";
-import invoiceRoutes from "./routes/invoice.routes";
+dotenv.config();
+
+import app from "./app";
 import { initMinio } from "./minio/minio-client";
 import { startInvoiceConsumer } from "./kafka/invoice.consumer";
 
-dotenv.config();
-
-const app = express();
-app.use(express.json());
-
 async function start() {
-  console.log("🚀 Starting Invoice Service...");
+  try {
+    console.log("🚀 Starting Invoice Service...");
 
-  await initMinio();
+    await initMinio();
 
-  // ✅ START KAFKA CONSUMER
-  if (process.env.ENABLE_KAFKA === "true") {
-    await startInvoiceConsumer();
-  } else {
-    console.log("⚠️ Kafka disabled for invoice-service");
+    if (process.env.ENABLE_KAFKA === "true") {
+      await startInvoiceConsumer();
+    }
+
+    const port = process.env.PORT || 3010;
+
+    app.listen(port, () => {
+      console.log(`📄 Invoice service running on port ${port}`);
+    });
+
+  } catch (err) {
+    console.error("❌ Invoice service failed to start", err);
+    process.exit(1);
   }
-
-  app.use("/invoice", invoiceRoutes);
-
-  const port = process.env.SERVICE_PORT || 3010;
-  app.listen(port, () =>
-    console.log(`📄 Invoice service running on port ${port}`)
-  );
 }
 
-start().catch((err) => {
-  console.error("❌ Invoice service failed to start", err);
-  process.exit(1);
-});
-
+start();

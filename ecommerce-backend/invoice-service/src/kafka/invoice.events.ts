@@ -5,7 +5,7 @@ export interface PaymentSuccessEvent {
   paymentId: string;
   amount: number;
   userEmail: string;
-  vendorEmail?: string; // optional vendor
+  vendorEmail?: string;
   customerName?: string;
   billingAddress?: string;
   shippingAddress?: string;
@@ -28,4 +28,3 @@ export interface InvoiceGeneratedEvent {
   invoiceUrl: string;
   createdAt: string;
 }
-

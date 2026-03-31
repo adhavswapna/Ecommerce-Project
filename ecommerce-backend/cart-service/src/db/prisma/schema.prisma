@@ -21,7 +21,12 @@ model CartItem {
   productId String
   quantity  Int
   price     Float
+  type      CartItemType  @default(CART)
 
   cart Cart @relation(fields: [cartId], references: [id])
 }
 
+enum CartItemType {
+  CART
+  WISHLIST
+}

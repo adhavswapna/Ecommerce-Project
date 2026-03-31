@@ -7,4 +7,10 @@ export interface Product {
   vendorId: string;
   createdAt: string;
   updatedAt: string;
+
+  // ✅ NEW FIELD (supports multiple images)
+  images?: string[];
+
+  // ✅ OPTIONAL: fallback support (old data compatibility)
+  image?: string;
 }

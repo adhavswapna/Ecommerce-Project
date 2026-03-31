@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import axios from "axios";
 
 import {
   publishCartItemAdded,
@@ -11,32 +12,53 @@ import { setCart, getCart, deleteCart } from "../redis/cart.cache";
 const prisma = new PrismaClient();
 
 /* ======================================================
-   ADD ITEM TO CART
+   FETCH PRODUCT FROM PRODUCT SERVICE
 ====================================================== */
+async function fetchProduct(productId: string) {
+  try {
+    const response = await axios.get(
+      `http://localhost:3003/products/${productId}`
+    );
 
-export async function addToCart(
+    return response.data;
+  } catch (error) {
+    console.error("❌ Failed to fetch product:", error);
+    throw new Error("Product not found");
+  }
+}
+
+/* ======================================================
+   ADD ITEM TO CART OR WISHLIST (FIXED 🔥)
+====================================================== */
+export async function addItem(
   userId: string,
   productId: string,
-  price: number,
-  quantity: number
+  quantity: number,
+  type: "CART" | "WISHLIST" = "CART"
 ) {
   try {
+    if (!productId || quantity <= 0) {
+      throw new Error("Invalid product or quantity");
+    }
+
+    // ✅ Fetch product from product-service
+    const product = await fetchProduct(productId);
+
+    const price = product.price;
+
     let cart = await prisma.cart.findFirst({
       where: { userId },
     });
 
     if (!cart) {
-      cart = await prisma.cart.create({
-        data: { userId },
-      });
+      cart = await prisma.cart.create({ data: { userId } });
     }
-
-    /* check if item already exists */
 
     const existingItem = await prisma.cartItem.findFirst({
       where: {
         cartId: cart.id,
         productId,
+        type,
       },
     });
 
@@ -45,9 +67,7 @@ export async function addToCart(
     if (existingItem) {
       item = await prisma.cartItem.update({
         where: { id: existingItem.id },
-        data: {
-          quantity: existingItem.quantity + quantity,
-        },
+        data: { quantity: existingItem.quantity + quantity },
       });
     } else {
       item = await prisma.cartItem.create({
@@ -55,159 +75,179 @@ export async function addToCart(
           cartId: cart.id,
           productId,
           quantity,
-          price,
+          price, // ✅ from product-service
+          type,
         },
       });
     }
 
     /* invalidate cache */
-
     await deleteCart(userId);
 
     /* kafka event */
+    if (type === "CART") {
+      await publishCartItemAdded({
+        userId,
+        productId,
+        quantity,
+        price,
+      });
+    }
 
-    await publishCartItemAdded({
-      userId,
-      productId,
-      quantity,
-      price,
-    });
-
-    console.log("🛒 Cart item added:", item.id);
+    console.log(`🛒 ${type} item added:`, item.id);
 
     return item;
   } catch (error) {
-    console.error("❌ addToCart error:", error);
+    console.error("❌ addItem error:", error);
     throw error;
   }
 }
 
 /* ======================================================
-   GET USER CART
+   GET USER CART OR WISHLIST
 ====================================================== */
-
-export async function getUserCart(userId: string) {
+export async function getUserItems(
+  userId: string,
+  type: "CART" | "WISHLIST" = "CART"
+) {
   try {
-    /* check redis first */
+    const cachedItems = await getCart(userId);
 
-    const cachedCart = await getCart(userId);
-
-    if (cachedCart) {
+    if (cachedItems && type === "CART") {
       console.log("⚡ Cart served from Redis");
-      return cachedCart;
+      return cachedItems;
     }
 
     const cart = await prisma.cart.findFirst({
       where: { userId },
-      include: { items: true },
+      include: {
+        items: {
+          where: { type },
+        },
+      },
     });
 
     const items = cart?.items || [];
 
-    /* cache result */
-
-    await setCart(userId, items);
+    if (type === "CART") {
+      await setCart(userId, items);
+    }
 
     return items;
   } catch (error) {
-    console.error("❌ getUserCart error:", error);
+    console.error("❌ getUserItems error:", error);
     throw error;
   }
 }
 
 /* ======================================================
-   UPDATE CART ITEM
+   UPDATE ITEM QUANTITY
 ====================================================== */
-
-export async function updateCartItem(itemId: string, quantity: number) {
+export async function updateItemQuantity(
+  itemId: string,
+  quantity: number
+) {
   try {
-    if (quantity <= 0) {
-      throw new Error("Quantity must be greater than 0");
-    }
+    if (quantity <= 0) throw new Error("Quantity must be greater than 0");
 
     const item = await prisma.cartItem.update({
       where: { id: itemId },
       data: { quantity },
-      include: {
-        cart: true,
-      },
+      include: { cart: true },
     });
-
-    /* invalidate cache */
 
     await deleteCart(item.cart.userId);
 
-    console.log("✏️ Cart item updated:", itemId);
+    console.log("✏️ Item quantity updated:", itemId);
 
     return item;
   } catch (error) {
-    console.error("❌ updateCartItem error:", error);
+    console.error("❌ updateItemQuantity error:", error);
     throw error;
   }
 }
 
 /* ======================================================
-   REMOVE ITEM FROM CART
+   REMOVE ITEM FROM CART OR WISHLIST
 ====================================================== */
-
-export async function removeCartItem(itemId: string) {
+export async function removeItem(itemId: string) {
   try {
     const item = await prisma.cartItem.delete({
       where: { id: itemId },
-      include: {
-        cart: true,
-      },
+      include: { cart: true },
     });
-
-    /* invalidate cache */
 
     await deleteCart(item.cart.userId);
 
-    /* kafka event */
+    if (item.type === "CART") {
+      await publishCartItemRemoved({
+        userId: item.cart.userId,
+        productId: item.productId,
+      });
+    }
 
-    await publishCartItemRemoved({
-      userId: item.cart.userId,
-      productId: item.productId,
-    });
-
-    console.log("🗑 Cart item removed:", itemId);
+    console.log(`🗑 ${item.type} item removed:`, itemId);
 
     return item;
   } catch (error) {
-    console.error("❌ removeCartItem error:", error);
+    console.error("❌ removeItem error:", error);
     throw error;
   }
 }
 
 /* ======================================================
-   CLEAR USER CART
+   CLEAR USER CART OR WISHLIST
 ====================================================== */
-
-export async function clearUserCart(userId: string) {
+export async function clearUserItems(
+  userId: string,
+  type: "CART" | "WISHLIST" = "CART"
+) {
   try {
-    const cart = await prisma.cart.findFirst({
-      where: { userId },
-    });
-
+    const cart = await prisma.cart.findFirst({ where: { userId } });
     if (!cart) return;
 
     await prisma.cartItem.deleteMany({
-      where: { cartId: cart.id },
+      where: { cartId: cart.id, type },
     });
-
-    /* invalidate cache */
 
     await deleteCart(userId);
 
-    /* kafka event */
+    if (type === "CART") {
+      await publishCartCleared({ userId });
+    }
 
-    await publishCartCleared({
-      userId,
+    console.log(`🧹 ${type} cleared for user:`, userId);
+  } catch (error) {
+    console.error("❌ clearUserItems error:", error);
+    throw error;
+  }
+}
+
+/* ======================================================
+   MOVE ITEM FROM WISHLIST TO CART
+====================================================== */
+export async function moveWishlistToCart(itemId: string) {
+  try {
+    const item = await prisma.cartItem.update({
+      where: { id: itemId },
+      data: { type: "CART" },
+      include: { cart: true },
     });
 
-    console.log("🧹 Cart cleared for user:", userId);
+    await deleteCart(item.cart.userId);
+
+    await publishCartItemAdded({
+      userId: item.cart.userId,
+      productId: item.productId,
+      quantity: item.quantity,
+      price: item.price,
+    });
+
+    console.log("📦 Wishlist item moved to cart:", itemId);
+
+    return item;
   } catch (error) {
-    console.error("❌ clearUserCart error:", error);
+    console.error("❌ moveWishlistToCart error:", error);
     throw error;
   }
 }

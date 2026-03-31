@@ -1,0 +1,17 @@
+/* styles/globals.css */
+
+.badge {
+  position: absolute;
+  top: -8px;
+  right: -10px;
+  font-size: 10px;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
+.badge.red { background: #ef4444; }
+.badge.yellow { background: #eab308; }
+.badge.green { background: #22c55e; }
+.badge.purple { background: #a855f7; }
+.badge.blue { background: #3b82f6; }
