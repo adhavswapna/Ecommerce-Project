@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useMemo, useState, useEffect } from "react";
 import { useAuthStore } from "@/store/auth.store";
+import { useNotificationStore } from "@/store/notification.store"; // 🔥 add this
 
 export default function Navbar() {
   const { token, logout } = useAuthStore();
@@ -12,6 +13,10 @@ export default function Navbar() {
 
   const [mounted, setMounted] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  // 🔔 Notifications from store
+  const notifications = useNotificationStore((s) => s.notifications);
 
   useEffect(() => setMounted(true), []);
 
@@ -36,7 +41,7 @@ export default function Navbar() {
 
   return (
     <nav className="bg-white border-b shadow-sm px-6 py-3 flex justify-between items-center">
-      
+
       {/* LOGO */}
       <Link href="/" className="text-2xl font-bold">
         ShopSphere
@@ -69,6 +74,45 @@ export default function Navbar() {
             <Link href="/wishlist" className={isActive("/wishlist")}>
               ❤️ Wishlist
             </Link>
+
+            {/* 🔔 NOTIFICATION BELL */}
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative"
+              >
+                🔔
+
+                {/* Notification Count */}
+                {notifications.length > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-1 rounded-full">
+                    {notifications.length}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Dropdown */}
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-72 bg-white shadow-lg rounded-md border max-h-80 overflow-y-auto z-50">
+
+                  {notifications.length === 0 ? (
+                    <p className="p-4 text-gray-500 text-sm">
+                      No notifications
+                    </p>
+                  ) : (
+                    notifications.map((n, i) => (
+                      <div
+                        key={i}
+                        className="px-4 py-2 border-b text-sm hover:bg-gray-100"
+                      >
+                        {n.message}
+                      </div>
+                    ))
+                  )}
+
+                </div>
+              )}
+            </div>
 
             {/* ACCOUNT DROPDOWN */}
             <div className="relative">

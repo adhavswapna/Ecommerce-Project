@@ -1,61 +1,56 @@
-// src/hooks/useLiveNotification.ts
-
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useAuthStore } from "@/store/auth.store";
+import { useNotificationStore } from "@/store/notification.store";
 
-interface BadgeCounts {
-  cart: number;
-  payments: number;
-  orders: number;
-  returns: number;
-  notifications: number;
-}
-
-export const useLiveNotification = (userId?: string) => {
-  const [counts, setCounts] = useState<BadgeCounts>({
-    cart: 0,
-    payments: 0,
-    orders: 0,
-    returns: 0,
-    notifications: 0,
-  });
+export const useLiveNotification = () => {
+  const user = useAuthStore((state) => state.user);
+  const addNotification = useNotificationStore(
+    (state: any) => state.addNotification
+  );
 
   useEffect(() => {
-    if (!userId) return;
+    if (!user?.id) return;
 
-    let ws: WebSocket;
+    // 🔌 Connect WebSocket with userId
+    const ws = new WebSocket(
+      `ws://localhost:3005?userId=${user.id}`
+    );
 
-    const connect = () => {
-      ws = new WebSocket("ws://localhost:8080");
-
-      ws.onopen = () => console.log("✅ WS connected");
-
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-
-          if (data.userId === userId) {
-            setCounts((prev) => ({
-              ...prev,
-              ...data,
-            }));
-          }
-        } catch (err) {
-          console.error("WS parse error:", err);
-        }
-      };
-
-      ws.onclose = () => {
-        console.log("❌ WS disconnected, retrying...");
-        setTimeout(connect, 3000); // auto reconnect
-      };
+    ws.onopen = () => {
+      console.log("✅ WebSocket connected for user:", user.id);
     };
 
-    connect();
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
 
-    return () => ws?.close();
-  }, [userId]);
+        console.log("🔔 Live Notification:", data);
 
-  return counts;
+        // 🔥 Add to global store
+        addNotification({
+          id: Date.now(), // temporary id
+          type: data.type || "INFO",
+          message: data.message || "New notification",
+          createdAt: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.error("❌ Invalid notification data:", err);
+      }
+    };
+
+    ws.onerror = (err) => {
+      console.error("❌ WebSocket error:", err);
+    };
+
+    ws.onclose = () => {
+      console.log("❌ WebSocket disconnected");
+    };
+
+    // 🧹 Cleanup on unmount
+    return () => {
+      ws.close();
+    };
+  }, [user?.id, addNotification]);
 };

@@ -2,6 +2,7 @@
 
 import { ReactNode } from "react";
 import Navbar from "@/components/Navbar";
+import { useLiveNotification } from "@/hooks/useLiveNotification"; // 🔥 add this
 import "./globals.css";
 
 interface RootLayoutProps {
@@ -9,6 +10,9 @@ interface RootLayoutProps {
 }
 
 export default function RootLayout({ children }: RootLayoutProps) {
+  // 🔔 Initialize WebSocket globally
+  useLiveNotification();
+
   return (
     <html lang="en">
       <head>
