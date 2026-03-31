@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useAuthStore } from "@/store/auth.store";
-import { useNotificationStore } from "@/store/notification.store"; // 🔥 add this
+import NotificationDropdown from "@/components/notifications/NotificationDropdown";
 
 export default function Navbar() {
   const { token, logout } = useAuthStore();
@@ -13,12 +13,31 @@ export default function Navbar() {
 
   const [mounted, setMounted] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
 
-  // 🔔 Notifications from store
-  const notifications = useNotificationStore((s) => s.notifications);
+  // 🔥 Ref for outside click
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => setMounted(true), []);
+
+  // 🔥 Close dropdown on route change
+  useEffect(() => {
+    setShowDropdown(false);
+  }, [pathname]);
+
+  // 🔥 Close on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const user = useMemo(() => {
     if (!token) return null;
@@ -35,15 +54,17 @@ export default function Navbar() {
   };
 
   const isActive = (path: string) =>
-    pathname === path ? "font-semibold underline" : "hover:text-blue-600";
+    pathname === path
+      ? "font-semibold text-blue-600"
+      : "hover:text-blue-600";
 
   if (!mounted) return null;
 
   return (
-    <nav className="bg-white border-b shadow-sm px-6 py-3 flex justify-between items-center">
+    <nav className="bg-white border-b shadow-sm px-6 py-3 flex justify-between items-center sticky top-0 z-50">
 
       {/* LOGO */}
-      <Link href="/" className="text-2xl font-bold">
+      <Link href="/" className="text-2xl font-bold text-blue-600">
         ShopSphere
       </Link>
 
@@ -75,62 +96,32 @@ export default function Navbar() {
               ❤️ Wishlist
             </Link>
 
-            {/* 🔔 NOTIFICATION BELL */}
-            <div className="relative">
+            {/* 🔔 Notifications */}
+            <NotificationDropdown />
+
+            {/* 👤 ACCOUNT DROPDOWN */}
+            <div className="relative" ref={dropdownRef}>
               <button
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="relative"
-              >
-                🔔
-
-                {/* Notification Count */}
-                {notifications.length > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-1 rounded-full">
-                    {notifications.length}
-                  </span>
-                )}
-              </button>
-
-              {/* Notification Dropdown */}
-              {showNotifications && (
-                <div className="absolute right-0 mt-2 w-72 bg-white shadow-lg rounded-md border max-h-80 overflow-y-auto z-50">
-
-                  {notifications.length === 0 ? (
-                    <p className="p-4 text-gray-500 text-sm">
-                      No notifications
-                    </p>
-                  ) : (
-                    notifications.map((n, i) => (
-                      <div
-                        key={i}
-                        className="px-4 py-2 border-b text-sm hover:bg-gray-100"
-                      >
-                        {n.message}
-                      </div>
-                    ))
-                  )}
-
-                </div>
-              )}
-            </div>
-
-            {/* ACCOUNT DROPDOWN */}
-            <div className="relative">
-              <button
-                onClick={() => setShowDropdown(!showDropdown)}
-                className="font-medium"
+                onClick={() => setShowDropdown((prev) => !prev)}
+                className="font-medium hover:text-blue-600"
               >
                 Hello, {user?.name || "User"} ▼
               </button>
 
               {showDropdown && (
-                <div className="absolute right-0 mt-2 w-44 bg-white shadow-lg rounded-md border">
+                <div className="absolute right-0 mt-2 w-44 bg-white shadow-lg rounded-md border z-50">
 
-                  <Link href="/profile" className="block px-4 py-2 hover:bg-gray-100">
+                  <Link
+                    href="/profile"
+                    className="block px-4 py-2 hover:bg-gray-100"
+                  >
                     Profile
                   </Link>
 
-                  <Link href="/orders" className="block px-4 py-2 hover:bg-gray-100">
+                  <Link
+                    href="/orders"
+                    className="block px-4 py-2 hover:bg-gray-100"
+                  >
                     Orders
                   </Link>
 

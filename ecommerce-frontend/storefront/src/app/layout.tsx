@@ -2,7 +2,9 @@
 
 import { ReactNode } from "react";
 import Navbar from "@/components/Navbar";
-import { useLiveNotification } from "@/hooks/useLiveNotification"; // 🔥 add this
+import { useLiveNotification } from "@/hooks/useLiveNotification";
+import MobileNotificationPanel from "@/components/notifications/MobileNotificationPanel";
+import { Toaster } from "react-hot-toast"; // 🔥 toast system
 import "./globals.css";
 
 interface RootLayoutProps {
@@ -10,7 +12,7 @@ interface RootLayoutProps {
 }
 
 export default function RootLayout({ children }: RootLayoutProps) {
-  // 🔔 Initialize WebSocket globally
+  // 🔔 Initialize WebSocket globally (only once)
   useLiveNotification();
 
   return (
@@ -22,13 +24,21 @@ export default function RootLayout({ children }: RootLayoutProps) {
       </head>
 
       <body className="bg-gray-50 text-gray-900">
-        {/* ✅ Navbar fixed at top */}
+
+        {/* 🔥 Global Toast Notifications */}
+        <Toaster position="top-right" reverseOrder={false} />
+
+        {/* ✅ Navbar */}
         <Navbar />
+
+        {/* 📱 Mobile Notification Panel */}
+        <MobileNotificationPanel />
 
         {/* ✅ Page Content */}
         <main className="pt-16 px-6 max-w-7xl mx-auto">
           {children}
         </main>
+
       </body>
     </html>
   );
