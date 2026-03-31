@@ -1,6 +1,6 @@
 import { consumer } from "./kafka.client";
 import { NOTIFICATION_TOPICS } from "./notification.topics";
-import { broadcast } from "../websocket/websocket";
+import { sendToUser } from "../websocket/websocket"; // 👈 use user-specific
 
 export const startKafkaConsumer = async () => {
   await consumer.connect();
@@ -19,23 +19,84 @@ export const startKafkaConsumer = async () => {
 
       console.log(`📩 Event received: ${topic}`, data);
 
+      let notification = {
+        userId: data.userId,
+        type: "",
+        message: "",
+      };
+
       switch (topic) {
-        case NOTIFICATION_TOPICS.CART_UPDATED:
-          broadcast({ userId: data.userId, cart: data.count });
+        // 🛒 CART
+        case NOTIFICATION_TOPICS.CART_ITEM_ADDED:
+          notification = {
+            userId: data.userId,
+            type: "CART",
+            message: "Item added to cart 🛒",
+          };
           break;
 
+        case NOTIFICATION_TOPICS.CART_ITEM_REMOVED:
+          notification = {
+            userId: data.userId,
+            type: "CART",
+            message: "Item removed from cart ❌",
+          };
+          break;
+
+        // 📦 ORDER
         case NOTIFICATION_TOPICS.ORDER_CREATED:
-          broadcast({ userId: data.userId, orders: 1, notifications: 1 });
+          notification = {
+            userId: data.userId,
+            type: "ORDER",
+            message: "Order placed successfully ✅",
+          };
+          break;
+
+        case NOTIFICATION_TOPICS.ORDER_SHIPPED:
+          notification = {
+            userId: data.userId,
+            type: "ORDER",
+            message: "Your order is shipped 🚚",
+          };
+          break;
+
+        case NOTIFICATION_TOPICS.ORDER_DELIVERED:
+          notification = {
+            userId: data.userId,
+            type: "ORDER",
+            message: "Order delivered 🎉",
+          };
+          break;
+
+        // 💳 PAYMENT
+        case NOTIFICATION_TOPICS.PAYMENT_SUCCESS:
+          notification = {
+            userId: data.userId,
+            type: "PAYMENT",
+            message: "Payment successful 💳",
+          };
           break;
 
         case NOTIFICATION_TOPICS.PAYMENT_FAILED:
-          broadcast({ userId: data.userId, payments: 1, notifications: 1 });
+          notification = {
+            userId: data.userId,
+            type: "PAYMENT",
+            message: "Payment failed ❌",
+          };
           break;
 
+        // 🔁 RETURN
         case NOTIFICATION_TOPICS.RETURN_REQUESTED:
-          broadcast({ userId: data.userId, returns: 1 });
+          notification = {
+            userId: data.userId,
+            type: "RETURN",
+            message: "Return requested 🔁",
+          };
           break;
       }
+
+      // 🔔 Send to frontend
+      sendToUser(notification.userId, notification);
     },
   });
 };

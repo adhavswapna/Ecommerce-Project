@@ -1,27 +1,30 @@
-import { WebSocketServer } from "ws";
+import { WebSocketServer, WebSocket } from "ws";
 
 let wss: WebSocketServer;
+
+// 🔥 store user connections
+const userSockets = new Map<string, WebSocket>();
 
 export const initWebSocket = (port: number) => {
   wss = new WebSocketServer({ port });
 
-  wss.on("connection", (ws) => {
-    console.log("✅ WS Client connected");
+  wss.on("connection", (ws, req) => {
+    // 👇 get userId from query
+    const url = new URL(req.url || "", `http://${req.headers.host}`);
+    const userId = url.searchParams.get("userId");
+
+    if (userId) {
+      userSockets.set(userId, ws);
+      console.log(`✅ User connected: ${userId}`);
+    }
 
     ws.on("close", () => {
-      console.log("❌ WS Client disconnected");
+      if (userId) {
+        userSockets.delete(userId);
+        console.log(`❌ User disconnected: ${userId}`);
+      }
     });
   });
 
   console.log(`🔔 WebSocket running on ws://localhost:${port}`);
-};
-
-export const broadcast = (data: any) => {
-  if (!wss) return;
-
-  wss.clients.forEach((client: any) => {
-    if (client.readyState === 1) {
-      client.send(JSON.stringify(data));
-    }
-  });
 };
