@@ -6,6 +6,7 @@ import {
   removeItem,
   clearUserItems,
   moveWishlistToCart,
+  moveCartToWishlist,
 } from "../services/cart.service";
 
 /* ======================================================
@@ -112,17 +113,49 @@ export async function removeItemController(req: Request, res: Response) {
 }
 
 /* ======================================================
-   CLEAR CART / WISHLIST
+   CLEAR CART
 ====================================================== */
 export async function clearItems(req: Request, res: Response) {
   try {
     const userId = (req as any).user.userId;
 
-    await clearUserItems(userId);
+    await clearUserItems(userId, "CART");
 
     res.json({ message: "Cart cleared" });
   } catch (error) {
-    console.error("Error clearing items:", error);
+    console.error("Error clearing cart:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+/* ======================================================
+   CLEAR WISHLIST
+====================================================== */
+export async function clearWishlist(req: Request, res: Response) {
+  try {
+    const userId = (req as any).user.userId;
+
+    await clearUserItems(userId, "WISHLIST");
+
+    res.json({ message: "Wishlist cleared" });
+  } catch (error) {
+    console.error("Error clearing wishlist:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+/* ======================================================
+   MOVE CART → WISHLIST
+====================================================== */
+export async function moveItemToWishlist(req: Request, res: Response) {
+  try {
+    const { itemId } = req.params;
+
+    const item = await moveCartToWishlist(itemId);
+
+    res.json(item);
+  } catch (error) {
+    console.error("Error moving to wishlist:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 }
@@ -138,7 +171,7 @@ export async function moveItemToCart(req: Request, res: Response) {
 
     res.json(item);
   } catch (error) {
-    console.error("Error moving item:", error);
+    console.error("Error moving to cart:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 }

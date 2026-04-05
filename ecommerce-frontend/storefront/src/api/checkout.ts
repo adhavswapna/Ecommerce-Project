@@ -1,19 +1,11 @@
-import { cartApi } from "./apiClient";
+import { orderApi } from "./apiClient";
 
-export const getCartItems = async (userId: string) => {
-  try {
-    const res = await cartApi.get(`/cart/${userId}`);
-    return res.data || [];
-  } catch (err) {
-    console.error("Cart API error:", err);
-    return [];
-  }
+export const createOrder = async (data: any) => {
+  const res = await orderApi.post("/orders", data);
+  return res.data;
 };
 
-export const clearCart = async (userId: string) => {
-  try {
-    await cartApi.delete(`/cart/clear/${userId}`);
-  } catch (err) {
-    console.error("Clear cart error:", err);
-  }
+export const confirmOrder = async (orderId: string) => {
+  const res = await orderApi.post(`/orders/confirm/${orderId}`);
+  return res.data;
 };

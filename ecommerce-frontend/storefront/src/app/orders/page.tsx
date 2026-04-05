@@ -1,13 +1,12 @@
-// src/app/orders/page.tsx
 "use client";
 
-import AuthLayout from "@/components/auth/AuthLayout";
 import OrdersList from "@/components/orders/OrdersList";
 
 export default function OrdersPage() {
   return (
-    <AuthLayout title="My Orders">
+    <div>
+      <h1 className="text-2xl font-bold p-6">My Orders</h1>
       <OrdersList />
-    </AuthLayout>
+    </div>
   );
 }

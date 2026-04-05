@@ -1,25 +1,16 @@
-import { addToCart, getUserCart } from "./cart";
 import { cartApi } from "./apiClient";
 
-export async function getWishlistItems(userId: string) {
-  try {
-    return await getUserCart(userId);
-  } catch (error) {
-    console.error("Wishlist API error:", error);
-    throw error;
-  }
-}
+export const addToWishlist = (productId: string) =>
+  cartApi.post("/cart/wishlist/add", {
+    productId,
+    quantity: 1,
+  });
 
-export async function addToWishlist(
-  userId: string,
-  productId: string,
-  price: number,
-  quantity = 1
-) {
-  return await addToCart(userId, productId, price, quantity);
-}
+export const getWishlist = () =>
+  cartApi.get("/cart/wishlist");
 
-export async function removeFromWishlist(itemId: string) {
-  const res = await cartApi.delete(`/remove/${itemId}`);
-  return res.data;
-}
+export const removeFromWishlist = (id: string) =>
+  cartApi.delete(`/cart/wishlist/remove/${id}`);
+
+export const moveToCart = (id: string) =>
+  cartApi.put(`/cart/cart/move/${id}`);

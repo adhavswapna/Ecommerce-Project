@@ -1,16 +1,16 @@
 "use client";
 
 import { useCart } from "@/hooks/useCart";
+import { useRouter } from "next/navigation";
 
 export default function CartView() {
-  const { cartItems, loading, increaseQty, decreaseQty, removeItem } = useCart();
+  const { cartItems, loading } = useCart();
+  const router = useRouter();
 
-  if (loading) {
-    return <p className="p-6">Loading cart...</p>;
-  }
+  if (loading) return <p className="p-6">Loading...</p>;
 
   if (cartItems.length === 0) {
-    return <p className="p-6">🛒 Cart is empty</p>;
+    return <p className="p-6">Cart is empty</p>;
   }
 
   const total = cartItems.reduce(
@@ -19,48 +19,28 @@ export default function CartView() {
   );
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-4">
+    <div className="p-6">
+      <h1 className="text-2xl font-bold">Cart</h1>
+
       {cartItems.map((item) => (
-        <div
-          key={item.id}
-          className="flex justify-between items-center border-b pb-4"
-        >
-          <div>
-            <p className="font-semibold">{item.productId}</p>
-            <p className="text-gray-500">₹{item.price}</p>
-          </div>
-
-          {/* Quantity */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => decreaseQty(item.id, item.quantity)}
-              className="px-2 bg-gray-200 rounded"
-            >
-              -
-            </button>
-
-            <span>{item.quantity}</span>
-
-            <button
-              onClick={() => increaseQty(item.id, item.quantity)}
-              className="px-2 bg-gray-200 rounded"
-            >
-              +
-            </button>
-          </div>
-
-          <button
-            onClick={() => removeItem(item.id)}
-            className="text-red-500"
-          >
-            Remove
-          </button>
+        <div key={item.id} className="border p-4 mt-4 rounded">
+          <p><b>Product:</b> {item.productId}</p>
+          <p><b>Qty:</b> {item.quantity}</p>
+          <p><b>Price:</b> ₹{item.price}</p>
         </div>
       ))}
 
-      <div className="text-right font-bold text-lg">
+      <h2 className="mt-4 font-semibold text-lg">
         Total: ₹{total}
-      </div>
+      </h2>
+
+      {/* ✅ FIX: Redirect to checkout */}
+      <button
+        onClick={() => router.push("/checkout")}
+        className="mt-6 bg-green-600 text-white px-6 py-3 rounded"
+      >
+        Proceed to Checkout
+      </button>
     </div>
   );
 }

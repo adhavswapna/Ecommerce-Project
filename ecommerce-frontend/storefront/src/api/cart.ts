@@ -1,7 +1,7 @@
 import { cartApi } from "./apiClient";
 
 /**
- * ➕ ADD TO CART (NO PRICE NEEDED)
+ * ➕ ADD TO CART
  */
 export async function addToCart(
   productId: string,
@@ -16,30 +16,10 @@ export async function addToCart(
 }
 
 /**
- * ❤️ ADD TO WISHLIST
- */
-export async function addToWishlist(productId: string) {
-  const res = await cartApi.post("/cart/wishlist/add", {
-    productId,
-    quantity: 1,
-  });
-
-  return res.data;
-}
-
-/**
  * 🛒 GET CART
  */
 export async function getUserCart() {
   const res = await cartApi.get("/cart");
-  return res.data;
-}
-
-/**
- * ❤️ GET WISHLIST
- */
-export async function getWishlist() {
-  const res = await cartApi.get("/cart/wishlist");
   return res.data;
 }
 
@@ -59,14 +39,6 @@ export async function updateCartItem(itemId: string, quantity: number) {
  */
 export async function removeCartItem(itemId: string) {
   const res = await cartApi.delete(`/cart/remove/${itemId}`);
-  return res.data;
-}
-
-/**
- * 🔁 MOVE WISHLIST → CART
- */
-export async function moveToCart(itemId: string) {
-  const res = await cartApi.put(`/cart/wishlist/move/${itemId}`);
   return res.data;
 }
 

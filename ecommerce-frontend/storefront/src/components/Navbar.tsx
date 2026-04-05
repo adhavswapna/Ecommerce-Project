@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useMemo, useState, useEffect, useRef } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import NotificationDropdown from "@/components/notifications/NotificationDropdown";
+import { useCartStore } from "@/store/cartStore";
 
 export default function Navbar() {
   const { token, logout } = useAuthStore();
@@ -14,17 +15,18 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  // 🔥 Ref for outside click
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => setMounted(true), []);
 
-  // 🔥 Close dropdown on route change
+  // ✅ FIX: Get cart items and derive count
+  const cartItems = useCartStore((state) => state.cartItems);
+  const cartCount = cartItems.length;
+
   useEffect(() => {
     setShowDropdown(false);
   }, [pathname]);
 
-  // 🔥 Close on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -36,7 +38,8 @@ export default function Navbar() {
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () =>
+      document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const user = useMemo(() => {
@@ -68,7 +71,6 @@ export default function Navbar() {
         ShopSphere
       </Link>
 
-      {/* NAV LINKS */}
       <div className="flex items-center gap-6 text-sm">
 
         {!token ? (
@@ -84,8 +86,15 @@ export default function Navbar() {
               Products
             </Link>
 
-            <Link href="/cart" className={isActive("/cart")}>
+            {/* 🛒 CART */}
+            <Link href="/cart" className={`${isActive("/cart")} relative`}>
               🛒 Cart
+
+              {cartCount > 0 && (
+                <span className="absolute -top-2 -right-3 bg-red-500 text-white text-xs px-1.5 rounded-full">
+                  {cartCount}
+                </span>
+              )}
             </Link>
 
             <Link href="/orders" className={isActive("/orders")}>
@@ -96,10 +105,9 @@ export default function Navbar() {
               ❤️ Wishlist
             </Link>
 
-            {/* 🔔 Notifications */}
             <NotificationDropdown />
 
-            {/* 👤 ACCOUNT DROPDOWN */}
+            {/* 👤 USER */}
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setShowDropdown((prev) => !prev)}
