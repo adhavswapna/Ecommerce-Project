@@ -12,5 +12,9 @@ export default function CartPage() {
     if (!requireAuth(router)) return;
   }, [router]);
 
-  return <CartView />;
+  return (
+    <div>
+      <CartView />
+    </div>
+  );
 }

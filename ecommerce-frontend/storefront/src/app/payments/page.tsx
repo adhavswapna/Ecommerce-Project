@@ -1,58 +1,110 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import PaymentView from "@/components/payment/PaymentView";
-import PaymentCard from "@/components/payment/PaymentCard";
-import { usePayments } from "@/hooks/usePayments";
+import { useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { createPayment } from "@/api/payments";
+import { confirmOrder } from "@/api/checkout";
+import { orderApi } from "@/api/apiClient";
 
-export default function Page() {
+export default function PaymentPage() {
   const params = useSearchParams();
+  const router = useRouter();
+
   const orderId = params.get("orderId");
 
-  const userId =
-    typeof window !== "undefined" ? localStorage.getItem("userId") || "" : "";
+  const [method, setMethod] = useState("COD");
+  const [loading, setLoading] = useState(false);
 
-  // ❌ Not logged in
-  if (!userId) {
-    return (
-      <p className="p-6 text-red-500">
-        You must be logged in to view payments.
-      </p>
-    );
-  }
+  const handlePayment = async () => {
+    try {
+      if (!orderId) {
+        alert("Order ID missing");
+        return;
+      }
 
-  const { payments, loading, error } = usePayments(userId);
+      setLoading(true);
 
-  // ⏳ Loading
-  if (loading) {
-    return <p className="p-6 text-gray-500">Loading payments...</p>;
-  }
+      // ✅ STEP 1: Fetch order details
+      const res = await orderApi.get(`/orders/${orderId}`);
+      const order = res.data;
 
-  // ❌ Error
-  if (error) {
-    return <p className="p-6 text-red-500">{error}</p>;
-  }
+      // ✅ STEP 2: Correct payload (MATCH BACKEND)
+      const payload = {
+        userId: order.userId,
+        orderId: order.id,
+        amount: order.totalAmount,
+        provider: method, // 🔥 IMPORTANT
+        currency: "INR",
+      };
 
-  // 👉 SINGLE PAYMENT VIEW
-  if (orderId) {
-    const payment = payments.find((p) => p.id === orderId);
+      console.log("💳 PAYMENT PAYLOAD:", payload);
 
-    if (!payment) {
-      return (
-        <p className="p-6 text-gray-500">
-          No payment found for order ID: {orderId}
-        </p>
+      // ✅ STEP 3: Create payment
+      await createPayment(payload);
+
+      // ✅ STEP 4: Confirm order (optional but fine)
+      await confirmOrder(orderId);
+
+      // ✅ STEP 5: Redirect
+      router.push(`/orders/order-success?orderId=${orderId}`);
+    } catch (err: any) {
+      console.error("❌ Payment Error:", err?.response?.data || err);
+
+      alert(
+        err?.response?.data?.message ||
+        "Payment failed ❌"
       );
+    } finally {
+      setLoading(false);
     }
+  };
 
-    return (
-      <div className="p-6">
-        <h2 className="font-bold mb-4">Payment Details</h2>
-        <PaymentCard payment={payment} />
+  return (
+    <div className="p-6 max-w-xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">
+        Select Payment Method
+      </h1>
+
+      {/* PAYMENT OPTIONS */}
+      <div className="space-y-3 mb-6">
+        <label className="block">
+          <input
+            type="radio"
+            value="COD"
+            checked={method === "COD"}
+            onChange={() => setMethod("COD")}
+          />
+          <span className="ml-2">Cash on Delivery</span>
+        </label>
+
+        <label className="block">
+          <input
+            type="radio"
+            value="UPI"
+            checked={method === "UPI"}
+            onChange={() => setMethod("UPI")}
+          />
+          <span className="ml-2">UPI</span>
+        </label>
+
+        <label className="block">
+          <input
+            type="radio"
+            value="CARD"
+            checked={method === "CARD"}
+            onChange={() => setMethod("CARD")}
+          />
+          <span className="ml-2">Credit/Debit Card</span>
+        </label>
       </div>
-    );
-  }
 
-  // 👉 ALL PAYMENTS
-  return <PaymentView userId={userId} />;
+      <button
+        onClick={handlePayment}
+        disabled={loading}
+        className="bg-green-600 text-white px-6 py-3 rounded w-full disabled:opacity-50"
+      >
+        {loading ? "Processing..." : "Pay & Place Order"}
+      </button>
+    </div>
+  );
 }
