@@ -17,6 +17,15 @@ export async function placeOrder(
   totalAmount: number,
   currency: string,
   paymentMethod: string,
+  address: {
+    addressLine1: string;
+    addressLine2?: string;
+    city: string;
+    state: string;
+    country?: string;
+    pincode: string;
+    phone?: string;
+  },
   items: { productId: string; quantity: number; price: number }[]
 ) {
   const order = await prisma.order.create({
@@ -26,6 +35,16 @@ export async function placeOrder(
       currency,
       paymentMethod,
       status: "PENDING",
+
+      // ✅ ADDRESS (SAVED PROPERLY)
+      addressLine1: address.addressLine1,
+      addressLine2: address.addressLine2,
+      city: address.city,
+      state: address.state,
+      country: address.country || "India",
+      pincode: address.pincode,
+      phone: address.phone,
+
       items: {
         create: items.map((item) => ({
           productId: item.productId,
@@ -34,7 +53,9 @@ export async function placeOrder(
         })),
       },
     },
-    include: { items: true },
+    include: {
+      items: true,
+    },
   });
 
   await redis.del(USER_ORDERS_CACHE(userId));
@@ -60,7 +81,6 @@ export async function getOrders(userId: string) {
   const cacheKey = USER_ORDERS_CACHE(userId);
 
   const cached = await redis.get(cacheKey);
-
   if (cached) {
     console.log("⚡ Orders fetched from Redis");
     return JSON.parse(cached);
@@ -69,7 +89,9 @@ export async function getOrders(userId: string) {
   const orders = await prisma.order.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },
-    include: { items: true },
+    include: {
+      items: true,
+    },
   });
 
   await redis.set(cacheKey, JSON.stringify(orders), "EX", 60);
@@ -83,18 +105,22 @@ export async function getOrders(userId: string) {
 export async function getOrderById(orderId: string) {
   return prisma.order.findUnique({
     where: { id: orderId },
-    include: { items: true },
+    include: {
+      items: true,
+    },
   });
 }
 
 /* =======================================================
-   UPDATE ORDER STATUS (GENERIC)
+   UPDATE ORDER STATUS
 ======================================================= */
 export async function updateOrderStatus(orderId: string, status: string) {
   const order = await prisma.order.update({
     where: { id: orderId },
     data: { status },
-    include: { items: true },
+    include: {
+      items: true,
+    },
   });
 
   await redis.del(USER_ORDERS_CACHE(order.userId));
@@ -110,23 +136,21 @@ export async function updateOrderStatus(orderId: string, status: string) {
 }
 
 /* =======================================================
-   ✅ CONFIRM ORDER (PAYMENT SUCCESS)
+   CONFIRM ORDER
 ======================================================= */
 export async function confirmOrderService(orderId: string) {
   const order = await prisma.order.update({
     where: { id: orderId },
-    data: { status: "PAID" },
+    data: { status: "CONFIRMED" },
   });
 
   await redis.del(USER_ORDERS_CACHE(order.userId));
-
-  console.log("✅ Order marked as PAID:", orderId);
 
   return order;
 }
 
 /* =======================================================
-   ❌ CANCEL ORDER (PAYMENT FAILED)
+   CANCEL ORDER
 ======================================================= */
 export async function cancelOrderService(orderId: string) {
   const order = await prisma.order.update({
@@ -140,8 +164,6 @@ export async function cancelOrderService(orderId: string) {
     orderId: order.id,
     userId: order.userId,
   });
-
-  console.log("❌ Order cancelled:", orderId);
 
   return order;
 }

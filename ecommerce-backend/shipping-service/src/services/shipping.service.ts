@@ -1,25 +1,63 @@
-import { prisma } from "../db/prisma/prisma"; // prisma client
-import { producer } from "../kafka/kafka-client"; // Kafka producer
+import { PrismaClient } from "@prisma/client";
 
-export const createShipment = async (orderId: string) => {
-  // 1️⃣ Create a shipment record in DB
-  const shipment = await prisma.shipment.create({
+const prisma = new PrismaClient();
+
+/**
+ * 📦 CREATE SHIPMENT
+ */
+export async function createShipment(data: {
+  orderId: string;
+  userId: string;
+  address: string;
+  trackingId: string;
+}) {
+  return prisma.shipment.create({
     data: {
-      orderId,
-      status: "SHIPPED", // initial status
+      orderId: data.orderId,
+      userId: data.userId,
+      address: data.address,
+      trackingId: data.trackingId,
+      status: "CREATED",
     },
   });
+}
 
-  // 2️⃣ Publish Kafka event that shipment is created
-  await producer.send({
-    topic: "shipping.created",
-    messages: [
-      {
-        value: JSON.stringify(shipment),
-      },
-    ],
+/**
+ * 📦 GET ALL SHIPMENTS
+ */
+export async function getAllShipmentsService() {
+  return prisma.shipment.findMany({
+    orderBy: { createdAt: "desc" },
   });
+}
 
-  return shipment;
-};
+/**
+ * 📦 GET SHIPMENT BY ORDER ID
+ */
+export async function getShipmentByOrderIdService(orderId: string) {
+  return prisma.shipment.findUnique({
+    where: { orderId },
+  });
+}
 
+/**
+ * 🔄 UPDATE SHIPMENT STATUS
+ */
+export async function updateShipmentStatusService(
+  id: string,
+  status: string
+) {
+  return prisma.shipment.update({
+    where: { id },
+    data: { status },
+  });
+}
+
+/**
+ * ❌ DELETE SHIPMENT
+ */
+export async function deleteShipmentService(id: string) {
+  return prisma.shipment.delete({
+    where: { id },
+  });
+}

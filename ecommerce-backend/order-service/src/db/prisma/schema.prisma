@@ -10,11 +10,29 @@ datasource db {
 model Order {
   id            String      @id @default(cuid())
   userId        String
+
+  // 💰 Payment details
   totalAmount   Float
   currency      String      @default("INR") // INR / USD
   paymentMethod String      // cod / upi / netbanking / card
-  status        String      // PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED, REFUNDED
+  paymentStatus String      @default("PENDING") // PENDING / PAID / FAILED / REFUNDED
+
+  // 🚚 Order status flow
+  status        String      @default("PENDING") 
+  // PENDING → CONFIRMED → SHIPPED → DELIVERED → CANCELLED
+
+  // 📦 Shipping details (FIXED ISSUE)
+  addressLine1  String
+  addressLine2  String?
+  city          String
+  state         String
+  country       String      @default("India")
+  pincode       String
+  phone         String?
+
+  // 🧾 Relations
   items         OrderItem[]
+
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 }
@@ -23,9 +41,9 @@ model OrderItem {
   id        String  @id @default(cuid())
   orderId   String
   productId String
+
   quantity  Int
   price     Float
 
-  order Order @relation(fields: [orderId], references: [id])
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
-

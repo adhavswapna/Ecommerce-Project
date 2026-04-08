@@ -7,19 +7,23 @@ import {
   getMyOrders,
 } from "../controllers/order.controller";
 
-// 🔥 import your auth middleware
 import { authMiddleware } from "../middlewares/auth.middleware";
 
 const router = Router();
 
-router.post("/", createOrder);
+/* ================= CREATE ORDER ================= */
+router.post("/", authMiddleware, createOrder);
 
-// ✅ NEW (BEST PRACTICE)
+/* ================= GET MY ORDERS ================= */
 router.get("/user", authMiddleware, getMyOrders);
 
-router.get("/:orderId", getOrderByIdController);
+/* ================= GET ORDER BY ID ================= */
+router.get("/:orderId", authMiddleware, getOrderByIdController);
 
-router.post("/confirm/:orderId", confirmOrder);
-router.delete("/cancel/:orderId", cancelOrder);
+/* ================= CONFIRM ORDER ================= */
+router.post("/confirm/:orderId", authMiddleware, confirmOrder);
+
+/* ================= CANCEL ORDER ================= */
+router.delete("/cancel/:orderId", authMiddleware, cancelOrder);
 
 export default router;

@@ -9,11 +9,25 @@ import {
 /* ================= CREATE ORDER ================= */
 export async function createOrder(req: Request, res: Response) {
   try {
-    const { userId, totalAmount, currency, paymentMethod, items } = req.body;
+    const {
+      userId,
+      totalAmount,
+      currency,
+      paymentMethod,
+      address,
+      items,
+    } = req.body;
 
-    if (!userId || !totalAmount || !paymentMethod || !items) {
+    if (
+      !userId ||
+      !totalAmount ||
+      !paymentMethod ||
+      !address ||
+      !items
+    ) {
       return res.status(400).json({
-        message: "userId, totalAmount, paymentMethod and items are required",
+        message:
+          "userId, totalAmount, paymentMethod, address and items are required",
       });
     }
 
@@ -22,26 +36,28 @@ export async function createOrder(req: Request, res: Response) {
       totalAmount,
       currency,
       paymentMethod,
+      address,
       items
     );
 
-    res.status(201).json(order);
+    return res.status(201).json(order);
   } catch (error) {
     console.error("Error creating order:", error);
-    res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Internal server error" });
   }
 }
 
-/* ================= ✅ GET MY ORDERS (NEW) ================= */
+/* ================= GET MY ORDERS ================= */
 export async function getMyOrders(req: Request, res: Response) {
   try {
-    const userId = (req as any).user.userId; // 🔥 from auth middleware
+    const userId = (req as any).user.userId;
 
     const orders = await getOrders(userId);
-    res.json(orders);
+
+    return res.json(orders);
   } catch (error) {
     console.error("Error fetching orders:", error);
-    res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Internal server error" });
   }
 }
 
@@ -49,37 +65,44 @@ export async function getMyOrders(req: Request, res: Response) {
 export async function getOrderByIdController(req: Request, res: Response) {
   try {
     const { orderId } = req.params;
+
     const order = await getOrderById(orderId);
 
-    if (!order) return res.status(404).json({ message: "Order not found" });
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
 
-    res.json(order);
+    return res.json(order);
   } catch (error) {
     console.error("Error fetching order:", error);
-    res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Internal server error" });
   }
 }
 
-/* ================= CONFIRM ================= */
+/* ================= CONFIRM ORDER ================= */
 export async function confirmOrder(req: Request, res: Response) {
   try {
     const { orderId } = req.params;
+
     const order = await updateOrderStatus(orderId, "CONFIRMED");
-    res.json(order);
+
+    return res.json(order);
   } catch (error) {
     console.error("Error confirming order:", error);
-    res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Internal server error" });
   }
 }
 
-/* ================= CANCEL ================= */
+/* ================= CANCEL ORDER ================= */
 export async function cancelOrder(req: Request, res: Response) {
   try {
     const { orderId } = req.params;
+
     const order = await updateOrderStatus(orderId, "CANCELLED");
-    res.json(order);
+
+    return res.json(order);
   } catch (error) {
     console.error("Error cancelling order:", error);
-    res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Internal server error" });
   }
 }

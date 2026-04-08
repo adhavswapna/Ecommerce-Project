@@ -3,6 +3,6 @@ import { shipOrder } from "../controllers/shipping.controller";
 
 const router = Router();
 
-router.post("/ship", shipOrder);
+router.post("/", shipOrder);
 
 export default router;

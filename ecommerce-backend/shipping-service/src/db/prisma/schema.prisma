@@ -8,8 +8,12 @@ generator client {
 }
 
 model Shipment {
-  id        String   @id @default(uuid())
-  orderId   String
-  status    String
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  orderId    String   @unique
+  userId     String
+  address    String
+  trackingId String
+  status     String   @default("CREATED")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }

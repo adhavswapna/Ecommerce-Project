@@ -1,18 +1,57 @@
-import { getKafkaProducer } from "./kafka-client";
+import { getKafka } from "./kafka.client";
 import { SHIPPING_TOPICS } from "./shipping.topics";
-import { ShippingCreatedEvent } from "./shipping.events";
 
-export const publishShipmentCreated = async (
-  data: ShippingCreatedEvent
-) => {
-  const producer = await getKafkaProducer();
-  if (!producer) return;
+const kafka = getKafka();
+const producer = kafka.producer();
 
+export async function connectProducer() {
+  await producer.connect();
+}
+
+export async function emitShippingCreated(payload: any) {
   await producer.send({
     topic: SHIPPING_TOPICS.SHIPPING_CREATED,
-    messages: [{ value: JSON.stringify(data) }],
+    messages: [
+      {
+        key: payload.orderId,
+        value: JSON.stringify(payload),
+      },
+    ],
   });
+}
 
-  console.log("📤 shipping.created published", data);
-};
+export async function emitOutForDelivery(payload: any) {
+  await producer.send({
+    topic: SHIPPING_TOPICS.SHIPPING_OUT_FOR_DELIVERY,
+    messages: [
+      {
+        key: payload.orderId,
+        value: JSON.stringify(payload),
+      },
+    ],
+  });
+}
 
+export async function emitDelivered(payload: any) {
+  await producer.send({
+    topic: SHIPPING_TOPICS.SHIPPING_DELIVERED,
+    messages: [
+      {
+        key: payload.orderId,
+        value: JSON.stringify(payload),
+      },
+    ],
+  });
+}
+
+export async function emitCancelled(payload: any) {
+  await producer.send({
+    topic: SHIPPING_TOPICS.SHIPPING_CANCELLED,
+    messages: [
+      {
+        key: payload.orderId,
+        value: JSON.stringify(payload),
+      },
+    ],
+  });
+}
