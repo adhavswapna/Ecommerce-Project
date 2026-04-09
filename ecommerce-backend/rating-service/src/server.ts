@@ -1,13 +1,17 @@
-import "dotenv/config";
-import app from "./app";
+import dotenv from 'dotenv';
+dotenv.config();   // ✅ load env first
 
-const PORT = Number(process.env.PORT);
+import app from './app';
+import { connectKafka } from './kafka/kafka.client';
 
-app.get("/health", (_req, res) => {
-  res.json({ status: "UP", service: process.env.SERVICE_NAME });
-});
+const PORT = 3008;
 
-app.listen(PORT, () => {
-  console.log(`🚀 ${process.env.SERVICE_NAME} running on ${PORT}`);
-});
+async function start() {
+  await connectKafka();
 
+  app.listen(PORT, () => {
+    console.log(`🚀 Rating Service running on port ${PORT}`);
+  });
+}
+
+start();

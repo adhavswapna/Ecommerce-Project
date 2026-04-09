@@ -1,14 +1,13 @@
-import { Kafka, Producer } from 'kafkajs';
+import { Kafka } from 'kafkajs';
 
 const kafka = new Kafka({
   clientId: 'rating-service',
-  brokers: [process.env.KAFKA_BROKER || 'localhost:9092'],
+  brokers: ['localhost:9092'],
 });
 
-export const kafkaProducer: Producer = kafka.producer();
+export const producer = kafka.producer();
 
 export async function connectKafka() {
-  await kafkaProducer.connect();
-  console.log('Kafka producer connected for rating-service');
+  await producer.connect();
+  console.log('✅ Kafka connected (rating-service)');
 }
-

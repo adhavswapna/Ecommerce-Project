@@ -1,16 +1,65 @@
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")  // <- points to .env DATABASE_URL
+  url      = env("DATABASE_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
 }
 
+//////////////////////////////////////////////////////
+// ⭐ RATING MODEL (Production Ready)
+//////////////////////////////////////////////////////
+
+model Rating {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+
+  // rating should be between 1–5 (validate in service layer)
+  rating    Int
+  review    String?
+
+  // soft delete (important for Kafka recalculation)
+  isDeleted Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  //////////////////////////////////////////////////////
+  // INDEXES (performance)
+  //////////////////////////////////////////////////////
+  @@index([productId])
+  @@index([userId])
+  @@index([isDeleted])
+
+  //////////////////////////////////////////////////////
+  // UNIQUE CONSTRAINT
+  //////////////////////////////////////////////////////
+  @@unique([userId, productId])
+}
+
+//////////////////////////////////////////////////////
+// 📊 ANALYTICS MODEL (Enhanced)
+//////////////////////////////////////////////////////
+
 model AnalyticsEvent {
   id        String   @id @default(uuid())
+
+  // Example: RATING_CREATED, RATING_UPDATED
   eventType String
+
+  // productId / userId / orderId etc.
   entityId  String
+
   payload   Json
+
   createdAt DateTime @default(now())
+
+  //////////////////////////////////////////////////////
+  // INDEXES
+  //////////////////////////////////////////////////////
+  @@index([eventType])
+  @@index([entityId])
+  @@index([createdAt])
 }
