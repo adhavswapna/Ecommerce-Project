@@ -1,6 +1,7 @@
 import PDFDocument from "pdfkit";
 import bwipjs from "bwip-js";
 import { toWords } from "number-to-words";
+import { minioClient } from "../minio/minio-client";
 
 export interface InvoiceItem {
   description: string;
@@ -122,7 +123,7 @@ export async function generateInvoicePDF(invoice: InvoiceData): Promise<Buffer> 
       let y = tableTop + 20;
       let grandTotal = 0;
 
-      invoice.items.forEach((item, i) => {
+      (invoice.items || []).forEach((item, i) => {
         const net = item.unitPrice * item.quantity;
         const taxAmt = (net * item.taxRate) / 100;
         const total = net + taxAmt;
@@ -177,3 +178,20 @@ export async function generateInvoicePDF(invoice: InvoiceData): Promise<Buffer> 
   });
 }
 
+const BUCKET = "invoices";
+
+/**
+ * Upload PDF to MinIO
+ */
+export async function storeInvoicePDF(
+  invoiceId: string,
+  buffer: Buffer
+): Promise<string> {
+  const fileName = `${invoiceId}.pdf`;
+
+  await minioClient.putObject(BUCKET, fileName, buffer, {
+    "Content-Type": "application/pdf",
+  });
+
+  return fileName;
+}

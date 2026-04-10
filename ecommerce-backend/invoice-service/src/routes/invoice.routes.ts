@@ -5,20 +5,21 @@ import {
   createInvoiceController,
   downloadInvoiceController,
 } from "../controllers/invoice.controller";
-
-// 👉 import your auth middleware
-import { authMiddleware } from "../middlewares/auth.middleware"; // adjust path
+import { authMiddleware } from "../middlewares/auth.middleware";
 
 const router = Router();
 
-// 🔐 protect all routes
+/**
+ * 🔐 All routes protected
+ */
 router.use(authMiddleware);
 
+/**
+ * 📄 Invoice Routes
+ */
 router.get("/", getAllInvoices);
 router.get("/:id", getInvoice);
-router.post("/", createInvoiceController);
-
-// 🔗 signed URL download
+router.post("/", createInvoiceController); // manual trigger
 router.get("/:id/download", downloadInvoiceController);
 
 export default router;

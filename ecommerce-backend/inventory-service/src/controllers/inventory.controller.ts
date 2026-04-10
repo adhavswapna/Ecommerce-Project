@@ -4,11 +4,10 @@ import * as inventoryService from "../services/inventory.service";
 // ➤ Create Inventory
 export const createInventory = async (req: Request, res: Response) => {
   try {
-    console.log("📥 BODY RECEIVED:", req.body); // ✅ DEBUG
+    console.log("📥 BODY RECEIVED:", req.body);
 
     const { productId, quantity } = req.body;
 
-    // ✅ Validation
     if (!productId || quantity === undefined) {
       return res.status(400).json({
         success: false,
@@ -37,12 +36,12 @@ export const createInventory = async (req: Request, res: Response) => {
 
     return res.status(500).json({
       success: false,
-      message: error.message || "Internal Server Error",
+      message: error.message,
     });
   }
 };
 
-// ➤ Get Inventory by Product
+// ➤ Get Inventory
 export const getInventoryByProduct = async (
   req: Request,
   res: Response
@@ -68,12 +67,12 @@ export const getInventoryByProduct = async (
 
     return res.status(404).json({
       success: false,
-      message: error.message || "Inventory not found",
+      message: error.message,
     });
   }
 };
 
-// ➤ Update Stock
+// ➤ Update Stock (Admin)
 export const updateStock = async (req: Request, res: Response) => {
   try {
     const { productId } = req.params;
@@ -83,13 +82,6 @@ export const updateStock = async (req: Request, res: Response) => {
       return res.status(400).json({
         success: false,
         message: "productId and quantity are required",
-      });
-    }
-
-    if (typeof quantity !== "number" || quantity < 0) {
-      return res.status(400).json({
-        success: false,
-        message: "quantity must be a non-negative number",
       });
     }
 
@@ -107,7 +99,38 @@ export const updateStock = async (req: Request, res: Response) => {
 
     return res.status(500).json({
       success: false,
-      message: error.message || "Failed to update stock",
+      message: error.message,
+    });
+  }
+};
+
+// ➤ Reduce Stock (Order flow)
+export const reduceStock = async (req: Request, res: Response) => {
+  try {
+    const { productId, quantity } = req.body;
+
+    if (!productId || quantity === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "productId and quantity are required",
+      });
+    }
+
+    const inventory = await inventoryService.reduceStock(
+      productId,
+      quantity
+    );
+
+    return res.json({
+      success: true,
+      data: inventory,
+    });
+  } catch (error: any) {
+    console.error("❌ Reduce Stock Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 };

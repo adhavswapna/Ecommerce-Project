@@ -1,59 +1,141 @@
-// src/services/invoice.service.ts
 import prisma from "../db/prisma/prisma";
-import { PaymentCompletedEvent, InvoiceGeneratedEvent } from "../kafka/invoice.events";
 import { v4 as uuidv4 } from "uuid";
-import { generateInvoicePDF, storeInvoicePDF } from "../pdf/invoice.pdf";
+import {
+  generateInvoicePDF,
+  storeInvoicePDF,
+} from "../pdf/invoice.pdf";
 import { publishInvoiceGenerated } from "../kafka/invoice.producer";
 
 /**
- * Create a new invoice in DB (Prisma)
+ * Create invoice in DB
  */
 export async function createInvoice(data: {
   orderId: string;
   userId: string;
   fileUrl: string;
 }) {
-  return prisma.invoice.create({
-    data: {
-      orderId: data.orderId,
-      userId: data.userId,
-      fileUrl: data.fileUrl,
-    },
-  });
+  return prisma.invoice.create({ data });
 }
 
 /**
- * Generate PDF, upload to MinIO, save DB, and emit Kafka event
+ * Common input type (API + Kafka)
  */
-export async function generateAndStoreInvoice(payment: PaymentCompletedEvent) {
-  const invoiceId = uuidv4();
+export interface GenerateInvoiceInput {
+  orderId: string;
+  userId: string;
+  amount: number;
+}
 
-  // 1️⃣ Generate PDF buffer
-  const pdfBuffer = generateInvoicePDF(payment);
+/**
+ * 🔥 MAIN FUNCTION (IDEMPOTENT + PRODUCTION SAFE)
+ */
+export async function generateAndStoreInvoice(
+  input: GenerateInvoiceInput
+) {
+  const { orderId, userId, amount } = input;
 
-  // 2️⃣ Upload PDF to MinIO
-  const fileKey = await storeInvoicePDF(invoiceId, pdfBuffer);
+  if (!userId) {
+    throw new Error("userId is required");
+  }
 
-  console.log("✅ Invoice PDF uploaded to MinIO:", fileKey);
+  try {
+    /**
+     * ✅ 1. IDEMPOTENCY CHECK
+     * Prevent duplicate invoice creation
+     */
+    const existingInvoice = await prisma.invoice.findUnique({
+      where: { orderId },
+    });
 
-  // 3️⃣ Save invoice in DB
-  await createInvoice({
-    orderId: payment.orderId,
-    userId: payment.userId,
-    fileUrl: fileKey, // store MinIO object key
-  });
+    if (existingInvoice) {
+      console.log("⚠️ Invoice already exists, returning existing");
+      return existingInvoice;
+    }
 
-  // 4️⃣ Publish Kafka event
-  const invoiceEvent: InvoiceGeneratedEvent = {
-    invoiceId,
-    orderId: payment.orderId,
-    amount: payment.amount,
-    fileKey,
-    createdAt: new Date().toISOString(),
-  };
+    /**
+     * 2️⃣ Generate invoice ID
+     */
+    const invoiceId = uuidv4();
 
-  await publishInvoiceGenerated(invoiceEvent);
-  console.log("📤 InvoiceGeneratedEvent published:", invoiceEvent);
+    /**
+     * 3️⃣ Prepare PDF data
+     */
+    const invoiceData = {
+      orderId,
+      customerName: "Demo User",
+      customerEmail: "user@test.com",
+      billingAddress: "Pune, India",
+      shippingAddress: "Pune, India",
+      date: new Date().toISOString(),
+      items: [
+        {
+          description: "Order Payment",
+          unitPrice: amount,
+          quantity: 1,
+          taxRate: 18,
+        },
+      ],
+    };
+
+    /**
+     * 4️⃣ Generate PDF
+     */
+    const pdfBuffer = await generateInvoicePDF(invoiceData);
+
+    /**
+     * 5️⃣ Upload to MinIO
+     */
+    const fileKey = await storeInvoicePDF(invoiceId, pdfBuffer);
+    console.log("✅ PDF uploaded:", fileKey);
+
+    /**
+     * 6️⃣ Save to DB
+     */
+    const invoice = await prisma.invoice.create({
+      data: {
+        orderId,
+        userId,
+        fileUrl: fileKey,
+      },
+    });
+
+    console.log("✅ Invoice saved in DB");
+
+    /**
+     * 7️⃣ Publish Kafka event (non-blocking)
+     */
+    try {
+      await publishInvoiceGenerated({
+        invoiceId,
+        orderId,
+        amount,
+        fileKey,
+        createdAt: new Date().toISOString(),
+      });
+
+      console.log("📤 Kafka event published");
+    } catch (kafkaError) {
+      console.error("⚠️ Kafka failed (ignored):", kafkaError);
+    }
+
+    return invoice;
+  } catch (error: any) {
+    /**
+     * ✅ EXTRA SAFETY (handles race condition)
+     */
+    if (error.code === "P2002") {
+      console.warn("⚠️ Race condition detected, fetching existing invoice");
+
+      const existingInvoice = await prisma.invoice.findUnique({
+        where: { orderId },
+      });
+
+      if (existingInvoice) return existingInvoice;
+    }
+
+    console.error("❌ Invoice generation failed:", error);
+    throw error;
+  }
 }
 
 /**
@@ -73,4 +155,3 @@ export async function listInvoices() {
     orderBy: { createdAt: "desc" },
   });
 }
-

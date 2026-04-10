@@ -5,7 +5,7 @@ import invoiceRoutes from "./routes/invoice.routes";
 const app = express();
 app.use(express.json());
 
-app.use("/api/invoices", invoiceRoutes);
+app.use("/invoices", invoiceRoutes);
 
 export default app;
 

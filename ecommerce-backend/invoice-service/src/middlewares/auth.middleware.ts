@@ -1,18 +1,31 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 
-// 🔐 Extend Request type
+/**
+ * 🔐 Extend Request type
+ */
 export interface AuthRequest extends Request {
   user?: {
     id: string;
-    email: string;
+    email?: string;
     role?: string;
   };
 }
 
 /**
+ * 🔐 JWT Payload type (supports both id & userId)
+ */
+interface DecodedToken extends JwtPayload {
+  id?: string;
+  userId?: string;
+  email?: string;
+  role?: string;
+}
+
+/**
  * 🔐 AUTH MIDDLEWARE
  * - Verifies JWT
+ * - Supports both `id` and `userId`
  * - Attaches user to req.user
  */
 export function authMiddleware(
@@ -23,62 +36,97 @@ export function authMiddleware(
   try {
     const authHeader = req.headers.authorization;
 
-    // ❌ No token
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    // ❌ No header
+    if (!authHeader) {
       return res.status(401).json({
-        message: "Unauthorized - No token provided",
+        success: false,
+        message: "Unauthorized - Missing Authorization header",
+      });
+    }
+
+    // ❌ Invalid format
+    if (!authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized - Invalid token format",
       });
     }
 
     // Extract token
     const token = authHeader.split(" ")[1];
 
-    // ❌ No secret
+    // ❌ Missing secret
     if (!process.env.JWT_SECRET) {
       console.error("❌ JWT_SECRET missing in .env");
       return res.status(500).json({
+        success: false,
         message: "Server configuration error",
       });
     }
 
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET) as {
-      id: string;
-      email: string;
-      role?: string;
-    };
+    // ✅ Verify token
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET
+    ) as DecodedToken;
 
-    // Attach user
+    // ✅ Support BOTH id & userId
+    const userId = decoded.id || decoded.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token payload (missing user id)",
+      });
+    }
+
+    // ✅ Attach user
     req.user = {
-      id: decoded.id,
+      id: userId,
       email: decoded.email,
       role: decoded.role,
     };
 
     next();
-  } catch (err) {
-    console.error("❌ Auth error:", err);
+  } catch (err: any) {
+    console.error("❌ Auth error:", err?.message || err);
 
     return res.status(401).json({
-      message: "Unauthorized - Invalid token",
+      success: false,
+      message: "Unauthorized - Invalid or expired token",
     });
   }
 }
 
 /**
- * 🔐 OPTIONAL ROLE GUARD
+ * 🔐 ROLE GUARD
  * Example: requireRole("admin")
  */
 export function requireRole(role: string) {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (!req.user) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized",
+        });
+      }
 
-    if (req.user.role !== role) {
-      return res.status(403).json({ message: "Forbidden" });
-    }
+      if (req.user.role !== role) {
+        return res.status(403).json({
+          success: false,
+          message: "Forbidden - Insufficient role",
+        });
+      }
 
-    next();
+      next();
+    } catch (err) {
+      console.error("❌ Role guard error:", err);
+
+      return res.status(500).json({
+        success: false,
+        message: "Role check failed",
+      });
+    }
   };
 }
