@@ -5,7 +5,8 @@ const app = express();
 
 app.use(express.json());
 
-app.use("/emails", emailRoutes);
+// ✅ Base route: /email
+app.use("/email", emailRoutes);
 
 app.get("/health", (_, res) => {
   res.json({ status: "email-service up" });

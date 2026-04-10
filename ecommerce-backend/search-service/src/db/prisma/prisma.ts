@@ -1,13 +1,5 @@
-// Placeholder – same pattern as your other services
+import { PrismaClient } from "@prisma/client";
 
-
-const prisma = {
-product: {
-findMany: async (_: any) => {
-return [];
-}
-}
-};
-
+const prisma = new PrismaClient();
 
 export default prisma;
