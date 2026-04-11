@@ -3,8 +3,7 @@ import { registerEvent } from "../controllers/analytics.controller";
 
 const router = Router();
 
-// POST /analytics/event
-router.post("/event", registerEvent);
+// POST /analytics
+router.post("/", registerEvent);
 
 export default router;
-

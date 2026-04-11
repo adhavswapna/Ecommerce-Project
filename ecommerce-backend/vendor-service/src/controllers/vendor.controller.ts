@@ -1,35 +1,81 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import { VendorStatus } from "@prisma/client";
 
-const prisma = new PrismaClient();
+import {
+  createVendor,
+  listVendors,
+  updateVendorStatus,
+} from "../services/vendor.service";
 
 import {
   publishVendorCreated,
   publishVendorStatusUpdated,
 } from "../kafka/vendor.producer";
 
-// Vendor Controller
 export class VendorController {
   // ----------------------
   // Create Vendor
   // ----------------------
   static createVendor = async (req: Request, res: Response) => {
-    const { name, email } = req.body;
-
     try {
-      const vendor = await prisma.vendor.create({
-        data: { name, email },
+      const { name, email, phone, address, userId } = req.body;
+
+      if (!name || !email) {
+        return res.status(400).json({
+          message: "Name and Email are required",
+        });
+      }
+
+      const vendor = await createVendor({
+        name,
+        email,
+        phone,
+        address,
+        userId,
       });
 
-      // Kafka event
-      await publishVendorCreated({ id: vendor.id, name: vendor.name, email: vendor.email });
+      // Kafka Event
+      await publishVendorCreated({
+        id: vendor.id,
+        name: vendor.name,
+        email: vendor.email,
+      });
 
-      res.status(201).json(vendor);
+      res.status(201).json({
+        success: true,
+        data: vendor,
+      });
     } catch (err: any) {
       if (err.code === "P2002") {
-        return res.status(400).json({ error: "Email already exists" });
+        return res.status(400).json({
+          message: "Email already exists",
+        });
       }
-      res.status(500).json({ error: err.message });
+
+      res.status(500).json({
+        message: "Failed to create vendor",
+        error: err.message,
+      });
+    }
+  };
+
+  // ----------------------
+  // Get All Vendors
+  // ----------------------
+  static getVendors = async (_req: Request, res: Response) => {
+    try {
+      const vendors = await listVendors();
+
+      res.json({
+        success: true,
+        count: vendors.length,
+        data: vendors,
+      });
+    } catch (err: any) {
+      res.status(500).json({
+        message: "Failed to fetch vendors",
+        error: err.message,
+      });
     }
   };
 
@@ -37,15 +83,20 @@ export class VendorController {
   // Update Vendor Status
   // ----------------------
   static updateStatus = async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const { status } = req.body;
-
     try {
-      const vendor = await prisma.vendor.update({
-        where: { id },
-        data: { status },
-      });
+      const { id } = req.params;
+      const { status } = req.body;
 
+      // Validate enum
+      if (!Object.values(VendorStatus).includes(status)) {
+        return res.status(400).json({
+          message: "Invalid status value",
+        });
+      }
+
+      const vendor = await updateVendorStatus(id, status);
+
+      // Kafka Event
       await publishVendorStatusUpdated({
         id: vendor.id,
         name: vendor.name,
@@ -53,10 +104,16 @@ export class VendorController {
         status: vendor.status,
       });
 
-      res.json({ message: "Vendor status updated" });
+      res.json({
+        success: true,
+        message: "Vendor status updated",
+        data: vendor,
+      });
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      res.status(500).json({
+        message: "Failed to update vendor status",
+        error: err.message,
+      });
     }
   };
 }
-

@@ -9,8 +9,8 @@ datasource db {
 
 model AnalyticsEvent {
   id        String   @id @default(uuid())
-  eventType String
-  payload   Json
+  event     String
+  userId    String
+  data      Json?
   createdAt DateTime @default(now())
 }
-

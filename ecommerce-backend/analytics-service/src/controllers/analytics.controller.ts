@@ -6,14 +6,16 @@ export const registerEvent = async (req: Request, res: Response) => {
     const result = await recordAnalyticsEvent(req.body);
 
     res.status(201).json({
+      success: true,
       message: "Analytics event recorded",
       data: result,
     });
-  } catch (error) {
-    console.error(error);
+  } catch (error: any) {
+    console.error("❌ Analytics Error:", error.message);
+
     res.status(500).json({
-      message: "Failed to record analytics event",
+      success: false,
+      message: error.message || "Failed to record analytics event",
     });
   }
 };
-
