@@ -1,55 +1,103 @@
+"use client";
+
 import { useState } from "react";
-import { downloadInvoice, getInvoiceByOrderId } from "@/api/invoice.api";
 
-export const useInvoice = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+import { createInvoice } from "@/api/invoice.api";
 
-  // 📄 GET INVOICE
-  const fetchInvoice = async (orderId: string) => {
-    setLoading(true);
-    setError(null);
+import { Invoice } from "@/types/invoice";
 
-    try {
-      const data = await getInvoiceByOrderId(orderId);
-      return data;
-    } catch (err: any) {
-      console.error("❌ Invoice fetch failed:", err);
-      setError(err?.response?.data?.message || "Failed to fetch invoice");
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  // 📥 DOWNLOAD INVOICE
-  const download = async (orderId: string) => {
-    setLoading(true);
-    setError(null);
+export function useInvoice() {
 
-    try {
-      const data = await downloadInvoice(orderId);
 
-      if (data?.downloadUrl) {
-        window.open(data.downloadUrl, "_blank");
-      } else {
-        setError("Download URL not found");
+  const [loading,setLoading] =
+    useState(false);
+
+
+
+  const [invoice,setInvoice] =
+    useState<Invoice | null>(
+      null
+    );
+
+
+
+
+  const generateInvoice =
+    async(
+      payload:{
+        orderId:string;
+        amount:number;
+      }
+    )=>{
+
+
+      try {
+
+
+        setLoading(true);
+
+
+
+        const response =
+          await createInvoice(
+            payload
+          );
+
+
+
+        if(response){
+
+
+          setInvoice(
+            response
+          );
+
+
+          return response;
+
+        }
+
+
+
+        return null;
+
+
+
+      }catch(error){
+
+
+        console.error(
+          "❌ GENERATE INVOICE ERROR",
+          error
+        );
+
+
+        throw error;
+
+
+
+      }finally{
+
+
+        setLoading(false);
+
       }
 
-      return data;
-    } catch (err: any) {
-      console.error("❌ Invoice download failed:", err);
-      setError(err?.response?.data?.message || "Download failed");
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+
+
+
 
   return {
+
     loading,
-    error,
-    fetchInvoice,
-    download,
+
+    invoice,
+
+    generateInvoice,
+
   };
-};
+
+}

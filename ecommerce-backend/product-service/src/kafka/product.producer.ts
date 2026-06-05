@@ -1,7 +1,7 @@
 // src/kafka/product-producer.ts
 
-import { getProducer } from "./kafka-client";
-import { PRODUCT_TOPICS } from "./product-topics";
+import { getProducer } from "./kafka.client";
+import { PRODUCT_TOPICS } from "./product.topics";
 
 export const publishProductCreated = async (data: any) => {
   const producer = await getProducer();

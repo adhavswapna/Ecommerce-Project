@@ -2,14 +2,13 @@ import { WebSocketServer, WebSocket } from "ws";
 
 let wss: WebSocketServer;
 
-// 🔥 store user connections
+// store user connections
 const userSockets = new Map<string, WebSocket>();
 
 export const initWebSocket = (port: number) => {
   wss = new WebSocketServer({ port });
 
   wss.on("connection", (ws, req) => {
-    // 👇 get userId from query
     const url = new URL(req.url || "", `http://${req.headers.host}`);
     const userId = url.searchParams.get("userId");
 
@@ -27,4 +26,18 @@ export const initWebSocket = (port: number) => {
   });
 
   console.log(`🔔 WebSocket running on ws://localhost:${port}`);
+};
+
+/* =========================
+   ✅ ADD THIS (IMPORTANT FIX)
+   ========================= */
+export const sendToUser = (userId: string, payload: any) => {
+  const socket = userSockets.get(userId);
+
+  if (!socket || socket.readyState !== WebSocket.OPEN) {
+    console.log(`⚠️ User ${userId} not connected`);
+    return;
+  }
+
+  socket.send(JSON.stringify(payload));
 };

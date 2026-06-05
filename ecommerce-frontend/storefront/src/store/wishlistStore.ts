@@ -1,81 +1,206 @@
+// src/store/wishlistStore.ts
+
 "use client";
 
 import { create } from "zustand";
-import { cartApi } from "@/api/apiClient";
 
-type WishlistItem = {
-  id: string;
-  productId: string;
-  quantity: number;
-};
+import toast from "react-hot-toast";
 
-type WishlistState = {
-  items: WishlistItem[];
+import {
+  getWishlist,
+  addToWishlist,
+  removeFromWishlist,
+  WishlistItem,
+} from "@/api/wishlist";
 
-  fetchWishlist: () => Promise<void>;
-  addItem: (productId: string) => Promise<void>;
-  removeItem: (id: string) => Promise<void>;
-  isWishlisted: (productId: string) => boolean;
-};
+interface WishlistState {
+  wishlist: WishlistItem[];
 
-export const useWishlistStore = create<WishlistState>((set, get) => ({
-  items: [],
+  loading: boolean;
 
-  fetchWishlist: async () => {
-    try {
-      const res = await cartApi.get("/cart/wishlist");
-      set({ items: res.data });
-    } catch (err) {
-      console.error(err);
-    }
-  },
+  fetchWishlist:
+    () => Promise<void>;
 
-  addItem: async (productId) => {
-    // ⚡ Optimistic UI
-    const tempItem = {
-      id: "temp-" + productId,
-      productId,
-      quantity: 1,
-    };
+  addItem: (
+    productId: string,
+    price?: number
+  ) => Promise<void>;
 
-    set((state) => ({
-      items: [...state.items, tempItem],
-    }));
+  removeItem: (
+    itemId: string
+  ) => Promise<void>;
 
-    try {
-      await cartApi.post("/cart/wishlist/add", {
-        productId,
-        quantity: 1,
-      });
+  isWishlisted: (
+    productId: string
+  ) => boolean;
+}
 
-      await get().fetchWishlist(); // sync
-    } catch (err) {
-      console.error(err);
+export const useWishlistStore =
+  create<WishlistState>(
+    (set, get) => ({
+      wishlist: [],
 
-      // rollback
-      set((state) => ({
-        items: state.items.filter((i) => i.id !== tempItem.id),
-      }));
-    }
-  },
+      loading: false,
 
-  removeItem: async (id) => {
-    // ⚡ Optimistic remove
-    const prev = get().items;
+      /**
+       * ❤️ FETCH WISHLIST
+       */
+      fetchWishlist:
+        async () => {
+          try {
+            set({
+              loading: true,
+            });
 
-    set((state) => ({
-      items: state.items.filter((i) => i.id !== id),
-    }));
+            /**
+             * ✅ CHECK AUTH
+             */
+            if (
+              typeof window ===
+              "undefined"
+            ) {
+              return;
+            }
 
-    try {
-      await cartApi.delete(`/cart/wishlist/remove/${id}`);
-    } catch (err) {
-      console.error(err);
-      set({ items: prev }); // rollback
-    }
-  },
+            const token =
+              localStorage.getItem(
+                "token"
+              );
 
-  isWishlisted: (productId) => {
-    return get().items.some((i) => i.productId === productId);
-  },
-}));
+            if (
+              !token ||
+              token ===
+                "undefined"
+            ) {
+              set({
+                wishlist: [],
+              });
+
+              return;
+            }
+
+            const data =
+              await getWishlist();
+
+            set({
+              wishlist:
+                Array.isArray(
+                  data
+                )
+                  ? data
+                  : [],
+            });
+          } catch (
+            error
+          ) {
+            console.error(
+              error
+            );
+
+            set({
+              wishlist: [],
+            });
+
+            toast.error(
+              "Failed to load wishlist"
+            );
+          } finally {
+            set({
+              loading: false,
+            });
+          }
+        },
+
+      /**
+       * ❤️ ADD ITEM
+       */
+      addItem:
+        async (
+          productId,
+          price = 0
+        ) => {
+          try {
+            const exists =
+              get().wishlist.some(
+                (item) =>
+                  item.productId ===
+                  productId
+              );
+
+            if (exists) {
+              toast(
+                "Already in wishlist"
+              );
+
+              return;
+            }
+
+            await addToWishlist({
+              productId,
+              quantity: 1,
+              price,
+            });
+
+            await get().fetchWishlist();
+
+            toast.success(
+              "Added to wishlist"
+            );
+          } catch (
+            error
+          ) {
+            console.error(
+              error
+            );
+
+            toast.error(
+              "Failed to add wishlist item"
+            );
+          }
+        },
+
+      /**
+       * ❌ REMOVE ITEM
+       */
+      removeItem:
+        async (
+          itemId
+        ) => {
+          try {
+            await removeFromWishlist(
+              itemId
+            );
+
+            await get().fetchWishlist();
+
+            toast.success(
+              "Removed from wishlist"
+            );
+          } catch (
+            error
+          ) {
+            console.error(
+              error
+            );
+
+            toast.error(
+              "Failed to remove wishlist item"
+            );
+          }
+        },
+
+      /**
+       * 🔍 CHECK ITEM
+       */
+      isWishlisted:
+        (
+          productId
+        ) => {
+          return get().wishlist.some(
+            (item) =>
+              item.productId ===
+              productId
+          );
+        },
+    })
+  );

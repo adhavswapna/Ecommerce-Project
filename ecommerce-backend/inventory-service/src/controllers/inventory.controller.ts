@@ -4,7 +4,7 @@ import * as inventoryService from "../services/inventory.service";
 // ➤ Create Inventory
 export const createInventory = async (req: Request, res: Response) => {
   try {
-    console.log("📥 BODY RECEIVED:", req.body);
+    console.log("📥 CREATE INVENTORY BODY:", req.body);
 
     const { productId, quantity } = req.body;
 
@@ -31,7 +31,9 @@ export const createInventory = async (req: Request, res: Response) => {
       success: true,
       data: inventory,
     });
+
   } catch (error: any) {
+
     console.error("❌ Create Inventory Error:", error);
 
     return res.status(500).json({
@@ -41,13 +43,19 @@ export const createInventory = async (req: Request, res: Response) => {
   }
 };
 
+
 // ➤ Get Inventory
 export const getInventoryByProduct = async (
   req: Request,
   res: Response
 ) => {
+
   try {
+
     const { productId } = req.params;
+
+    console.log("🔎 GET INVENTORY productId:", productId);
+
 
     if (!productId) {
       return res.status(400).json({
@@ -56,13 +64,19 @@ export const getInventoryByProduct = async (
       });
     }
 
-    const inventory = await inventoryService.getByProductId(productId);
+
+    const inventory =
+      await inventoryService.getByProductId(productId);
+
 
     return res.json({
       success: true,
       data: inventory,
     });
+
+
   } catch (error: any) {
+
     console.error("❌ Get Inventory Error:", error);
 
     return res.status(404).json({
@@ -72,11 +86,24 @@ export const getInventoryByProduct = async (
   }
 };
 
+
+
 // ➤ Update Stock (Admin)
-export const updateStock = async (req: Request, res: Response) => {
+export const updateStock = async (
+  req: Request,
+  res: Response
+) => {
+
   try {
+
     const { productId } = req.params;
     const { quantity } = req.body;
+
+
+    console.log("✏️ UPDATE STOCK");
+    console.log("productId:", productId);
+    console.log("quantity:", quantity);
+
 
     if (!productId || quantity === undefined) {
       return res.status(400).json({
@@ -85,16 +112,22 @@ export const updateStock = async (req: Request, res: Response) => {
       });
     }
 
-    const inventory = await inventoryService.updateStock(
-      productId,
-      quantity
-    );
+
+    const inventory =
+      await inventoryService.updateStock(
+        productId,
+        quantity
+      );
+
 
     return res.json({
       success: true,
       data: inventory,
     });
+
+
   } catch (error: any) {
+
     console.error("❌ Update Stock Error:", error);
 
     return res.status(500).json({
@@ -104,33 +137,73 @@ export const updateStock = async (req: Request, res: Response) => {
   }
 };
 
+
+
 // ➤ Reduce Stock (Order flow)
-export const reduceStock = async (req: Request, res: Response) => {
+export const reduceStock = async (
+  req: Request,
+  res: Response
+) => {
+
   try {
+
+    console.log("📥 REDUCE STOCK BODY:", req.body);
+
+
     const { productId, quantity } = req.body;
 
+
+    console.log("🔎 productId received:", productId);
+    console.log("🔢 quantity received:", quantity);
+
+
+
     if (!productId || quantity === undefined) {
+
       return res.status(400).json({
         success: false,
         message: "productId and quantity are required",
       });
+
     }
 
-    const inventory = await inventoryService.reduceStock(
-      productId,
-      quantity
+
+
+    const inventory =
+      await inventoryService.reduceStock(
+        productId,
+        quantity
+      );
+
+
+
+    console.log(
+      "✅ REDUCE STOCK SUCCESS:",
+      inventory
     );
+
+
 
     return res.json({
       success: true,
       data: inventory,
     });
+
+
+
   } catch (error: any) {
-    console.error("❌ Reduce Stock Error:", error);
+
+
+    console.error(
+      "❌ Reduce Stock Error:",
+      error
+    );
+
 
     return res.status(500).json({
       success: false,
       message: error.message,
     });
+
   }
 };

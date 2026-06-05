@@ -1,36 +1,32 @@
-"use client";
-
-import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function OrderSuccessPage() {
-  const params = useSearchParams();
-  const router = useRouter();
-
-  const orderId = params.get("orderId");
-
   return (
-    <div className="p-6 text-center">
-      <h1 className="text-3xl font-bold text-green-600">
-        🎉 Order Placed Successfully!
-      </h1>
+    <main className="max-w-3xl mx-auto py-20 text-center">
 
-      <p className="mt-4">Order ID: {orderId}</p>
+      <div className="bg-white border rounded-3xl p-12">
 
-      <div className="mt-6 flex justify-center gap-4">
-        <button
-          onClick={() => router.push("/orders")}
-          className="bg-black text-white px-4 py-2 rounded"
+        <div className="text-6xl">
+          🎉
+        </div>
+
+        <h1 className="mt-6 text-5xl font-bold">
+          Order Successful
+        </h1>
+
+        <p className="mt-4 text-gray-500">
+          Your order has been placed successfully.
+        </p>
+
+        <Link
+          href="/orders"
+          className="inline-block mt-10 bg-black text-white px-6 py-3 rounded-xl"
         >
           View Orders
-        </button>
+        </Link>
 
-        <button
-          onClick={() => router.push("/")}
-          className="bg-gray-300 px-4 py-2 rounded"
-        >
-          Continue Shopping
-        </button>
       </div>
-    </div>
+
+    </main>
   );
 }

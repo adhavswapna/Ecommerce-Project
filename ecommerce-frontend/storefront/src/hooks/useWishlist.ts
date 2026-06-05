@@ -1,68 +1,39 @@
-import { useEffect, useState } from "react";
+// src/hooks/useWishlist.ts
+
+"use client";
+
 import {
-  addToWishlist,
-  getWishlist,
-  removeFromWishlist,
-  moveToCart,
-} from "@/api/wishlist";
+  useEffect,
+} from "react";
 
-export const useWishlist = () => {
-  const [items, setItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+import {
+  useWishlistStore,
+} from "@/store/wishlistStore";
 
-  // ❤️ FETCH
-  const fetchWishlist = async () => {
-    try {
-      const res = await getWishlist();
-      setItems(res.data);
-    } catch (err) {
-      console.error("Wishlist fetch error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+export const useWishlist =
+  () => {
+    const {
+      wishlist,
+      loading,
+      fetchWishlist,
+      addItem,
+      removeItem,
+      clearAll,
+      isWishlisted,
+    } =
+      useWishlistStore();
 
-  // ➕ ADD
-  const addItem = async (productId: string) => {
-    try {
-      await addToWishlist(productId);
-      await fetchWishlist();
-    } catch (err) {
-      console.error("Wishlist add error:", err);
-      throw err;
-    }
-  };
-
-  // ❌ REMOVE
-  const removeItem = async (id: string) => {
-    try {
-      await removeFromWishlist(id);
+    useEffect(() => {
       fetchWishlist();
-    } catch (err) {
-      console.error(err);
-    }
-  };
+    }, [fetchWishlist]);
 
-  // 🔁 MOVE TO CART
-  const moveItemToCart = async (id: string) => {
-    try {
-      await moveToCart(id);
-      fetchWishlist();
-    } catch (err) {
-      console.error(err);
-    }
+    return {
+      wishlist,
+      loading,
+      fetchWishlist,
+      addItem,
+      removeItem,
+      clearAll,
+      isWishlisted,
+    };
   };
-
-  useEffect(() => {
-    fetchWishlist();
-  }, []);
-
-  return {
-    items,
-    loading,
-    fetchWishlist,
-    addItem,
-    removeItem,
-    moveItemToCart,
-  };
-};

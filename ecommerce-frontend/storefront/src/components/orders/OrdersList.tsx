@@ -1,37 +1,40 @@
+// src/components/orders/OrdersList.tsx
+
 "use client";
 
-import { useEffect, useState } from "react";
-import { getUserOrders } from "@/api/orders";
+import { Order } from "@/types/order";
+
 import OrderItem from "./OrderItem";
 
-export default function OrdersList() {
-  const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+interface OrdersListProps {
+  orders: Order[];
+}
 
-  const fetchOrders = async () => {
-    try {
-      const data = await getUserOrders();
-      setOrders(data);
-    } catch (err) {
-      console.error("Orders error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+export default function OrdersList({
+  orders,
+}: OrdersListProps) {
+  if (!orders.length) {
+    return (
+      <div className="bg-white border rounded-2xl p-10 text-center">
+        <h2 className="text-2xl font-semibold">
+          No Orders Found
+        </h2>
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
-
-  if (loading) return <p className="p-6">Loading orders...</p>;
-
-  if (orders.length === 0)
-    return <p className="p-6">No orders found</p>;
+        <p className="text-gray-500 mt-2">
+          You haven't placed any
+          orders yet.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       {orders.map((order) => (
-        <OrderItem key={order.id} order={order} refresh={fetchOrders} />
+        <OrderItem
+          key={order.id}
+          order={order}
+        />
       ))}
     </div>
   );

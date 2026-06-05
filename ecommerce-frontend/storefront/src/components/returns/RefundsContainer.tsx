@@ -1,35 +1,83 @@
-// src/components/returns/RefundsContainer.tsx
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { requireAuth } from "@/hooks/useAuth";
-import { api } from "@/lib/api";
+import {
+  useEffect,
+  useState,
+} from "react";
 
-const REFUND_API = process.env.NEXT_PUBLIC_REFUND_API_URL;
+import {
+  getRefunds,
+} from "@/api/refunds";
 
 export default function RefundsContainer() {
-  const router = useRouter();
-  const [orderId, setOrderId] = useState("");
-  const [refunds, setRefunds] = useState<any[]>([]);
+  const [
+    refunds,
+    setRefunds,
+  ] = useState<any[]>(
+    []
+  );
 
-  const fetchRefunds = async () => {
-    if (!requireAuth(router) || !orderId) return;
-    const res = await api.get(`${REFUND_API}/refunds/order/${orderId}`);
-    setRefunds(res.data || []);
-  };
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
+
+  useEffect(() => {
+    const fetchRefunds =
+      async () => {
+        try {
+          const data =
+            await getRefunds();
+
+          setRefunds(data);
+        } catch (
+          error
+        ) {
+          console.error(
+            error
+          );
+        } finally {
+          setLoading(false);
+        }
+      };
+
+    fetchRefunds();
+  }, []);
+
+  if (loading) {
+    return (
+      <div>
+        Loading refunds...
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <input value={orderId} onChange={(e) => setOrderId(e.target.value)} placeholder="Order ID" />
-      <button onClick={fetchRefunds}>Search</button>
-      {refunds.map((r) => (
-        <div key={r.id}>
-          <p>Refund ID: {r.id}</p>
-          <p>Amount: ₹{r.amount}</p>
-          <p>Status: {r.status}</p>
-        </div>
-      ))}
+    <div className="space-y-6">
+
+      {refunds.map(
+        (refund) => (
+          <div
+            key={refund.id}
+            className="bg-white border rounded-2xl p-6"
+          >
+            <p className="font-semibold">
+              Refund #{refund.id}
+            </p>
+
+            <p className="mt-2 text-gray-500">
+              {refund.reason}
+            </p>
+
+            <p className="mt-2">
+              Status:
+              {" "}
+              {refund.status}
+            </p>
+          </div>
+        )
+      )}
+
     </div>
   );
 }

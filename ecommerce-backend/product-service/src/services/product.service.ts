@@ -4,7 +4,7 @@ import {
   publishProductCreated,
   publishProductUpdated,
   publishProductDeleted,
-} from "../kafka/product-producer";
+} from "../kafka/product.producer";
 
 const PRODUCT_CACHE_KEY = "products:all";
 

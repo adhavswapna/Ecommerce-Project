@@ -1,7 +1,7 @@
 // src/kafka/product-consumer.ts
 
 import { consumer } from "./kafka";
-import { PRODUCT_TOPICS } from "./product-topics";
+import { PRODUCT_TOPICS } from "./product.topics";
 
 export const startProductConsumer = async () => {
   await consumer.connect();

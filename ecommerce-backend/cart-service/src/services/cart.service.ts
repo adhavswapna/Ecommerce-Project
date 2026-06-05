@@ -12,16 +12,22 @@ import { setCart, getCart, deleteCart } from "../redis/cart.cache";
 const prisma = new PrismaClient();
 
 /* ======================================================
+   CONFIG (NO HARDCODING ✅)
+====================================================== */
+const PRODUCT_SERVICE_URL =
+  process.env.PRODUCT_SERVICE_URL || "http://localhost:3004";
+
+/* ======================================================
    FETCH PRODUCT FROM PRODUCT SERVICE
 ====================================================== */
 async function fetchProduct(productId: string) {
   try {
     const response = await axios.get(
-      `http://localhost:3003/products/${productId}`
+      `${PRODUCT_SERVICE_URL}/products/${productId}`
     );
     return response.data;
-  } catch (error) {
-    console.error("❌ Failed to fetch product:", error);
+  } catch (error: any) {
+    console.error("❌ Failed to fetch product:", error.message);
     throw new Error("Product not found");
   }
 }
@@ -174,7 +180,7 @@ export async function clearUserItems(
 }
 
 /* ======================================================
-   ✅ MOVE CART → WISHLIST (SAFE)
+   MOVE CART → WISHLIST
 ====================================================== */
 export async function moveCartToWishlist(itemId: string) {
   const existing = await prisma.cartItem.findUnique({
@@ -182,13 +188,8 @@ export async function moveCartToWishlist(itemId: string) {
     include: { cart: true },
   });
 
-  if (!existing) {
-    throw new Error("Item not found");
-  }
-
-  if (existing.type === "WISHLIST") {
-    return existing; // already moved
-  }
+  if (!existing) throw new Error("Item not found");
+  if (existing.type === "WISHLIST") return existing;
 
   const item = await prisma.cartItem.update({
     where: { id: itemId },
@@ -202,7 +203,7 @@ export async function moveCartToWishlist(itemId: string) {
 }
 
 /* ======================================================
-   ✅ MOVE WISHLIST → CART (SAFE)
+   MOVE WISHLIST → CART
 ====================================================== */
 export async function moveWishlistToCart(itemId: string) {
   const existing = await prisma.cartItem.findUnique({
@@ -210,13 +211,8 @@ export async function moveWishlistToCart(itemId: string) {
     include: { cart: true },
   });
 
-  if (!existing) {
-    throw new Error("Item not found");
-  }
-
-  if (existing.type === "CART") {
-    return existing; // already in cart
-  }
+  if (!existing) throw new Error("Item not found");
+  if (existing.type === "CART") return existing;
 
   const item = await prisma.cartItem.update({
     where: { id: itemId },

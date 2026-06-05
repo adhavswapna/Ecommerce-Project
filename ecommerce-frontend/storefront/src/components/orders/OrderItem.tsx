@@ -1,51 +1,90 @@
+// src/components/orders/OrderItem.tsx
+
 "use client";
 
-import { requestRefund } from "@/api/orders";
+import Link from "next/link";
 
-export default function OrderItem({ order, refresh }: any) {
-  const handleRefund = async () => {
-    try {
-      await requestRefund(order.id);
-      alert("Refund requested 💸");
-      refresh();
-    } catch (err) {
-      console.error(err);
-      alert("Refund failed ❌");
-    }
-  };
+import { Order } from "@/types/order";
 
+interface OrderItemProps {
+  order: Order;
+}
+
+export default function OrderItem({
+  order,
+}: OrderItemProps) {
   return (
-    <div className="bg-white border rounded-xl p-4 shadow-sm">
+    <div className="bg-white border rounded-2xl p-6 shadow-sm hover:shadow-md transition">
 
       {/* HEADER */}
-      <div className="flex justify-between mb-3">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+
         <div>
-          <p className="font-semibold">Order ID: {order.id}</p>
-          <p className="text-sm text-gray-500">
-            Status: {order.status}
+          <h2 className="text-lg font-semibold">
+            Order #{order.id}
+          </h2>
+
+          <p className="text-sm text-gray-500 mt-1">
+            {new Date(
+              order.createdAt
+            ).toLocaleString()}
           </p>
         </div>
 
-        <p className="font-bold">₹{order.totalAmount}</p>
+        <div className="flex flex-col items-start md:items-end">
+          <span className="text-sm font-medium">
+            Status:
+            {" "}
+            <span className="text-blue-600">
+              {order.status}
+            </span>
+          </span>
+
+          <span className="text-sm font-medium mt-1">
+            Payment:
+            {" "}
+            <span className="text-green-600">
+              {order.paymentStatus}
+            </span>
+          </span>
+        </div>
       </div>
 
-      {/* ITEMS */}
-      <div className="space-y-2">
-        {order.items.map((item: any) => (
-          <div key={item.id} className="flex justify-between text-sm">
-            <span>{item.productId}</span>
-            <span>Qty: {item.quantity}</span>
-          </div>
-        ))}
+      {/* TOTAL */}
+      <div className="mt-6">
+        <p className="text-2xl font-bold">
+          ₹
+          {order.totalAmount}
+        </p>
+
+        <p className="text-sm text-gray-500">
+          {order.items.length}
+          {" "}
+          item(s)
+        </p>
       </div>
 
-      {/* ACTION */}
-      <button
-        onClick={handleRefund}
-        className="mt-4 px-4 py-2 bg-red-500 text-white rounded"
-      >
-        Request Refund
-      </button>
+      {/* ACTIONS */}
+      <div className="mt-6 flex flex-wrap gap-3">
+
+        <Link
+          href={`/orders/${order.id}`}
+          className="bg-black text-white px-5 py-2 rounded-xl text-sm hover:bg-gray-800 transition"
+        >
+          View Details
+        </Link>
+
+        {order.paymentStatus ===
+          "PENDING" && (
+          <Link
+            href={`/payments?orderId=${order.id}&amount=${order.totalAmount}`}
+            className="bg-green-600 text-white px-5 py-2 rounded-xl text-sm hover:bg-green-700 transition"
+          >
+            Pay Now
+          </Link>
+        )}
+
+      </div>
     </div>
   );
 }

@@ -1,24 +1,30 @@
-import PaymentStatusBadge from "./PaymentStatusBadge";
-import { Payment } from "@/hooks/usePayments";
+"use client";
 
 interface Props {
-  payment: Payment;
+  title: string;
+
+  selected: boolean;
+
+  onSelect: () => void;
 }
 
-export default function PaymentCard({ payment }: Props) {
+export default function PaymentCard({
+  title,
+  selected,
+  onSelect,
+}: Props) {
   return (
-    <div className="border rounded p-4 flex justify-between items-center shadow-sm">
-      <div>
-        <p className="font-semibold">Order: {payment.orderId}</p>
-        <p className="text-sm text-gray-500">
-          {new Date(payment.createdAt).toLocaleString()}
-        </p>
-      </div>
-
-      <div className="text-right space-y-1">
-        <p className="font-semibold">${payment.amount.toFixed(2)}</p>
-        <PaymentStatusBadge status={payment.status} />
-      </div>
-    </div>
+    <button
+      onClick={onSelect}
+      className={`border rounded-xl p-6 w-full text-left transition ${
+        selected
+          ? "border-black bg-gray-100"
+          : "border-gray-200"
+      }`}
+    >
+      <h2 className="font-semibold text-lg">
+        {title}
+      </h2>
+    </button>
   );
 }

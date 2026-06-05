@@ -1,51 +1,151 @@
+// src/api/cart.ts
+
 import { cartApi } from "./apiClient";
+
+export interface CartItem {
+  id: string;
+  productId: string;
+  quantity: number;
+  price: number;
+
+  product?: {
+    id: string;
+    name: string;
+    image?: string;
+    price: number;
+  };
+}
+
+/**
+ * 📦 GET CART
+ */
+export const getCart =
+  async (): Promise<CartItem[]> => {
+    const response =
+      await cartApi.get("/cart");
+
+    console.log(
+      "GET CART RESPONSE:",
+      response.data
+    );
+
+    const data =
+      response.data;
+
+    if (Array.isArray(data)) {
+      return data;
+    }
+
+    if (
+      data?.data &&
+      Array.isArray(data.data)
+    ) {
+      return data.data;
+    }
+
+    if (
+      data?.items &&
+      Array.isArray(data.items)
+    ) {
+      return data.items;
+    }
+
+    if (
+      data?.cart?.items &&
+      Array.isArray(
+        data.cart.items
+      )
+    ) {
+      return data.cart.items;
+    }
+
+    if (
+      data?.data?.items &&
+      Array.isArray(
+        data.data.items
+      )
+    ) {
+      return data.data.items;
+    }
+
+    return [];
+  };
 
 /**
  * ➕ ADD TO CART
  */
-export async function addToCart(
-  productId: string,
-  quantity: number = 1
-) {
-  const res = await cartApi.post("/cart/add", {
-    productId,
-    quantity,
-  });
+export const addToCart =
+  async (data: {
+    productId: string;
+    quantity: number;
+    price?: number;
+  }): Promise<CartItem> => {
+    const response =
+      await cartApi.post(
+        "/cart/add",
+        data
+      );
 
-  return res.data;
-}
+    console.log(
+      "ADD CART RESPONSE:",
+      response.data
+    );
+
+    return response.data;
+  };
 
 /**
- * 🛒 GET CART
+ * ✏️ UPDATE CART ITEM
  */
-export async function getUserCart() {
-  const res = await cartApi.get("/cart");
-  return res.data;
-}
+export const updateCartItem =
+  async (
+    itemId: string,
+    quantity: number
+  ): Promise<void> => {
+    const response =
+      await cartApi.put(
+        `/cart/update/${itemId}`,
+        {
+          quantity,
+        }
+      );
 
-/**
- * 🔄 UPDATE ITEM
- */
-export async function updateCartItem(itemId: string, quantity: number) {
-  const res = await cartApi.put(`/cart/update/${itemId}`, {
-    quantity,
-  });
-
-  return res.data;
-}
+    console.log(
+      "UPDATE CART RESPONSE:",
+      response.data
+    );
+  };
 
 /**
  * ❌ REMOVE ITEM
  */
-export async function removeCartItem(itemId: string) {
-  const res = await cartApi.delete(`/cart/remove/${itemId}`);
-  return res.data;
-}
+export const removeFromCart =
+  async (
+    itemId: string
+  ): Promise<void> => {
+    const response =
+      await cartApi.delete(
+        `/cart/remove/${itemId}`
+      );
+
+    console.log(
+      "REMOVE CART RESPONSE:",
+      response.data
+    );
+  };
 
 /**
  * 🧹 CLEAR CART
  */
-export async function clearCartApi() {
-  const res = await cartApi.delete(`/cart/clear`);
-  return res.data;
-}
+export const clearCart =
+  async (): Promise<void> => {
+    const response =
+      await cartApi.delete(
+        "/cart/clear"
+      );
+
+    console.log(
+      "CLEAR CART RESPONSE:",
+      response.data
+    );
+  };

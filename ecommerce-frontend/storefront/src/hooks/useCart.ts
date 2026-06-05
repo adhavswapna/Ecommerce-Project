@@ -1,30 +1,82 @@
+// src/hooks/useCart.ts
+
 "use client";
 
 import { useCartStore } from "@/store/cartStore";
 
-export const useCart = () => {
-  const store = useCartStore();
+export const useCart =
+  () => {
+    const cartItems =
+      useCartStore(
+        (state) =>
+          state.cartItems
+      );
 
-  return {
-    cartItems: store.cartItems,
-    loading: store.loading,
+    const loading =
+      useCartStore(
+        (state) =>
+          state.loading
+      );
 
-    fetchCart: store.fetchCart,
+    const fetchCart =
+      useCartStore(
+        (state) =>
+          state.fetchCart
+      );
 
-    // 🔥 FIX: old name compatibility
-    addItem: store.addToCart,
+    const addItem =
+      useCartStore(
+        (state) =>
+          state.addItem
+      );
 
-    addToCart: store.addToCart,
+    const updateItem =
+      useCartStore(
+        (state) =>
+          state.updateItem
+      );
 
-    increaseQty: store.increaseQty,
-    decreaseQty: store.decreaseQty,
-    removeItem: store.removeItem,
-    clearCart: store.clearCart,
+    const removeItem =
+      useCartStore(
+        (state) =>
+          state.removeItem
+      );
 
-    getItemByProductId: store.getItemByProductId,
+    const clear =
+      useCartStore(
+        (state) =>
+          state.clear
+      );
 
-    // 🔥 UI VALUES
-    cartCount: store.cartCount,
-    totalAmount: store.totalAmount,
+    const total =
+      useCartStore(
+        (state) =>
+          state.cartTotal()
+      );
+
+    const count =
+      useCartStore(
+        (state) =>
+          state.cartCount()
+      );
+
+    return {
+      cartItems,
+
+      loading,
+
+      fetchCart,
+
+      addItem,
+
+      updateItem,
+
+      removeItem,
+
+      clear,
+
+      total,
+
+      count,
+    };
   };
-};

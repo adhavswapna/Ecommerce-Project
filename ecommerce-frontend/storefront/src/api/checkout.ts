@@ -1,11 +1,10 @@
-import { orderApi } from "./apiClient";
+import {
+  createOrder,
+} from "@/api/orders";
 
-export const createOrder = async (data: any) => {
-  const res = await orderApi.post("/orders", data);
-  return res.data;
-};
-
-export const confirmOrder = async (orderId: string) => {
-  const res = await orderApi.post(`/orders/confirm/${orderId}`);
-  return res.data;
-};
+export const checkout =
+  async (payload: any) => {
+    return createOrder(
+      payload
+    );
+  };

@@ -1,113 +1,135 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getCartItems } from "@/api/checkout";
-import { createOrder } from "@/api/orders";
-import { requireAuth, getUserFromToken } from "@/hooks/useAuth";
-import CheckoutItem from "./CheckoutItem";
 
-interface CartItem {
-  id: string;
-  productId: string;
-  productName?: string;
-  price: number;
-  quantity: number;
-  image?: string;
-}
+import { useCart } from "@/hooks/useCart";
+import { useOrders } from "@/hooks/useOrders";
+
+import CheckoutItem from "./CheckoutItem";
 
 export default function CheckoutContainer() {
   const router = useRouter();
 
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [placingOrder, setPlacingOrder] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { cart } = useCart();
 
-  useEffect(() => {
-    if (!requireAuth(router)) return;
+  const {
+    placeOrder,
+    loading,
+  } = useOrders();
 
-    const user = getUserFromToken();
-    if (!user?.userId) {
-      router.push("/login");
-      return;
-    }
+  const total =
+    cart.reduce(
+      (acc, item) =>
+        acc +
+        item.price *
+          item.quantity,
+      0
+    );
 
-    const fetchCart = async () => {
+  const handleCheckout =
+    async () => {
       try {
-        const data = await getCartItems(user.userId);
-        setItems(data || []);
-      } catch (err) {
-        console.error(err);
-        setError("Failed to load checkout items");
-      } finally {
-        setLoading(false);
+        const user =
+          JSON.parse(
+            localStorage.getItem(
+              "user"
+            ) || "{}"
+          );
+
+        const order =
+          await placeOrder({
+            userId:
+              user.id,
+
+            totalAmount:
+              total,
+
+            currency:
+              "INR",
+
+            paymentMethod:
+              "COD",
+
+            address: {
+              addressLine1:
+                "Shantiniketan CHSL",
+
+              addressLine2:
+                "Flat-204",
+
+              city:
+                "Kharghar",
+
+              state:
+                "Maharashtra",
+
+              country:
+                "India",
+
+              pincode:
+                "410210",
+
+              phone:
+                "9999999999",
+            },
+
+            items:
+              cart.map(
+                (item) => ({
+                  productId:
+                    item.productId,
+
+                  quantity:
+                    item.quantity,
+
+                  price:
+                    item.price,
+                })
+              ),
+          });
+
+        router.push(
+          `/payments?orderId=${order.id}&amount=${total}`
+        );
+      } catch (error) {
+        console.error(error);
       }
     };
 
-    fetchCart();
-  }, [router]);
-
-  const total = items.reduce(
-    (sum, i) => sum + i.price * i.quantity,
-    0
-  );
-
-  const placeOrder = async () => {
-    try {
-      setPlacingOrder(true);
-
-      const user = getUserFromToken();
-      if (!user?.userId) return;
-
-      const order = await createOrder({
-        userId: user.userId,
-        items,
-        totalAmount: total,
-      });
-
-      // 🔥 Redirect to payment instead of success
-      router.push(`/payment?orderId=${order.id}`);
-    } catch (err) {
-      console.error(err);
-      alert("❌ Failed to place order");
-    } finally {
-      setPlacingOrder(false);
-    }
-  };
-
-  if (loading) return <p className="p-6">Loading checkout...</p>;
-  if (error) return <p className="p-6 text-red-500">{error}</p>;
-  if (!items.length) return <p className="p-6">Cart is empty</p>;
-
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-4">
-      <h1 className="text-2xl font-bold">Checkout</h1>
-
-      <div className="space-y-2">
-        {items.map((item) => (
-          <CheckoutItem key={item.id} item={item} />
+    <div className="grid md:grid-cols-3 gap-10">
+      <div className="md:col-span-2 space-y-4">
+        {cart.map((item) => (
+          <CheckoutItem
+            key={item.id}
+            item={item}
+          />
         ))}
       </div>
 
-      <div className="text-right text-lg font-semibold">
-        Total: ₹{total.toFixed(2)}
-      </div>
+      <div className="border rounded-xl p-6 h-fit">
+        <h2 className="text-2xl font-bold">
+          Order Summary
+        </h2>
 
-      <div className="flex justify-end gap-2">
-        <button
-          onClick={() => router.push("/cart")}
-          className="px-4 py-2 bg-gray-200 rounded"
-        >
-          Back
-        </button>
+        <div className="mt-6 flex justify-between">
+          <span>Total</span>
+
+          <span>
+            ₹{total}
+          </span>
+        </div>
 
         <button
-          onClick={placeOrder}
-          disabled={placingOrder}
-          className="px-6 py-2 bg-green-600 text-white rounded disabled:opacity-50"
+          onClick={
+            handleCheckout
+          }
+          disabled={loading}
+          className="w-full mt-8 bg-black text-white py-3 rounded-xl"
         >
-          {placingOrder ? "Placing..." : "Place Order"}
+          {loading
+            ? "Processing..."
+            : "Place Order"}
         </button>
       </div>
     </div>

@@ -1,11 +1,13 @@
-// src/app/products/page.tsx
 import ProductList from "@/components/product/ProductList";
 
-export default function ProductPage() {
+export default function ProductsPage() {
   return (
-    <div className="max-w-6xl mx-auto mt-6">
-      <h1 className="text-3xl font-bold mb-4">Products</h1>
+    <main className="p-10">
+      <h1 className="text-4xl font-bold mb-8">
+        Products
+      </h1>
+
       <ProductList />
-    </div>
+    </main>
   );
 }

@@ -1,110 +1,212 @@
 "use client";
 
-import { useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { createPayment } from "@/api/payments";
-import { confirmOrder } from "@/api/checkout";
-import { orderApi } from "@/api/apiClient";
 
-export default function PaymentPage() {
-  const params = useSearchParams();
-  const router = useRouter();
+import {
+  useSearchParams,
+  useRouter,
+} from "next/navigation";
 
-  const orderId = params.get("orderId");
 
-  const [method, setMethod] = useState("COD");
-  const [loading, setLoading] = useState(false);
+import toast from "react-hot-toast";
 
-  const handlePayment = async () => {
-    try {
-      if (!orderId) {
-        alert("Order ID missing");
-        return;
-      }
 
-      setLoading(true);
+import {
+  createPayment,
+} from "@/api/payments";
 
-      // ✅ STEP 1: Fetch order details
-      const res = await orderApi.get(`/orders/${orderId}`);
-      const order = res.data;
 
-      // ✅ STEP 2: Correct payload (MATCH BACKEND)
-      const payload = {
-        userId: order.userId,
-        orderId: order.id,
-        amount: order.totalAmount,
-        provider: method, // 🔥 IMPORTANT
-        currency: "INR",
-      };
 
-      console.log("💳 PAYMENT PAYLOAD:", payload);
+export default function PaymentsPage(){
 
-      // ✅ STEP 3: Create payment
-      await createPayment(payload);
 
-      // ✅ STEP 4: Confirm order (optional but fine)
-      await confirmOrder(orderId);
+const router = useRouter();
 
-      // ✅ STEP 5: Redirect
-      router.push(`/orders/order-success?orderId=${orderId}`);
-    } catch (err: any) {
-      console.error("❌ Payment Error:", err?.response?.data || err);
 
-      alert(
-        err?.response?.data?.message ||
-        "Payment failed ❌"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+const searchParams =
+useSearchParams();
 
-  return (
-    <div className="p-6 max-w-xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">
-        Select Payment Method
-      </h1>
 
-      {/* PAYMENT OPTIONS */}
-      <div className="space-y-3 mb-6">
-        <label className="block">
-          <input
-            type="radio"
-            value="COD"
-            checked={method === "COD"}
-            onChange={() => setMethod("COD")}
-          />
-          <span className="ml-2">Cash on Delivery</span>
-        </label>
 
-        <label className="block">
-          <input
-            type="radio"
-            value="UPI"
-            checked={method === "UPI"}
-            onChange={() => setMethod("UPI")}
-          />
-          <span className="ml-2">UPI</span>
-        </label>
+const orderId =
+searchParams.get("orderId") || "";
 
-        <label className="block">
-          <input
-            type="radio"
-            value="CARD"
-            checked={method === "CARD"}
-            onChange={() => setMethod("CARD")}
-          />
-          <span className="ml-2">Credit/Debit Card</span>
-        </label>
-      </div>
 
-      <button
-        onClick={handlePayment}
-        disabled={loading}
-        className="bg-green-600 text-white px-6 py-3 rounded w-full disabled:opacity-50"
-      >
-        {loading ? "Processing..." : "Pay & Place Order"}
-      </button>
-    </div>
-  );
+
+const amount =
+Number(
+ searchParams.get("amount") || 0
+);
+
+
+
+const handlePayment =
+async()=>{
+
+
+try{
+
+
+const user =
+JSON.parse(
+ localStorage.getItem("user") || "{}"
+);
+
+
+
+if(!user.id){
+
+toast.error(
+"User not logged in"
+);
+
+return;
+
+}
+
+
+
+
+const paymentData = {
+
+
+userId:
+user.id,
+
+
+orderId,
+
+
+amount,
+
+
+provider:
+"razorpay",
+
+
+currency:
+"INR"
+
+};
+
+
+
+
+console.log(
+"PAYMENT DATA",
+paymentData
+);
+
+
+
+await createPayment(
+ paymentData
+);
+
+
+
+toast.success(
+"Payment successful"
+);
+
+
+
+router.push(
+ `/orders/order-success?id=${orderId}`
+);
+
+
+
+}catch(error){
+
+
+console.error(
+error
+);
+
+
+
+toast.error(
+"Payment failed"
+);
+
+
+
+}
+
+
+};
+
+
+
+
+
+return (
+
+<main className="max-w-3xl mx-auto py-16">
+
+
+<div className="bg-white border rounded-2xl p-10">
+
+
+<h1 className="text-4xl font-bold">
+Payment
+</h1>
+
+
+
+<div className="mt-8">
+
+<p className="text-gray-500">
+Order ID
+</p>
+
+
+<p className="font-medium break-all">
+{orderId}
+</p>
+
+
+</div>
+
+
+
+
+<div className="mt-6">
+
+<p className="text-gray-500">
+Amount
+</p>
+
+
+<h2 className="text-4xl font-bold">
+₹{amount}
+</h2>
+
+
+</div>
+
+
+
+
+<button
+
+onClick={handlePayment}
+
+className="mt-10 bg-black text-white px-6 py-3 rounded-xl"
+
+>
+
+Pay Now
+
+</button>
+
+
+
+</div>
+
+
+</main>
+
+);
+
 }

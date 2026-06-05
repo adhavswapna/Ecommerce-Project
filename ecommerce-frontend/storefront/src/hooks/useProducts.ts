@@ -1,28 +1,94 @@
-// src/hooks/useProducts.ts
-import { useEffect, useState } from "react";
-import { getProducts } from "@/api/products";
+"use client";
 
-export function useProducts() {
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+import {
+  useEffect,
+  useState,
+} from "react";
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        setError("");
-        const data = await getProducts();
-        setProducts(data);
-      } catch (err: any) {
-        setError(err.message || "Failed to fetch products");
-      } finally {
-        setLoading(false);
-      }
+import {
+  getProducts,
+  getProductById,
+} from "@/api/products";
+
+import {
+  Product,
+} from "@/types/product";
+
+export const useProducts =
+  () => {
+    const [
+      products,
+      setProducts,
+    ] = useState<Product[]>(
+      []
+    );
+
+    const [
+      product,
+      setProduct,
+    ] =
+      useState<Product | null>(
+        null
+      );
+
+    const [
+      loading,
+      setLoading,
+    ] = useState(false);
+
+    const fetchProducts =
+      async () => {
+        try {
+          setLoading(true);
+
+          const data =
+            await getProducts();
+
+          setProducts(data);
+        } catch (
+          error
+        ) {
+          console.error(
+            error
+          );
+        } finally {
+          setLoading(false);
+        }
+      };
+
+    const fetchProduct =
+      async (
+        id: string
+      ) => {
+        try {
+          setLoading(true);
+
+          const data =
+            await getProductById(
+              id
+            );
+
+          setProduct(data);
+        } catch (
+          error
+        ) {
+          console.error(
+            error
+          );
+        } finally {
+          setLoading(false);
+        }
+      };
+
+    useEffect(() => {
+      fetchProducts();
+    }, []);
+
+    return {
+      products,
+      product,
+      loading,
+      fetchProducts,
+      fetchProduct,
     };
-
-    fetchProducts();
-  }, []);
-
-  return { products, loading, error };
-}
+  };

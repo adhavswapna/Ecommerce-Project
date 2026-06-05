@@ -1,130 +1,397 @@
-// src/api/apiClient.ts
+import axios, {
+  AxiosInstance,
+  InternalAxiosRequestConfig,
+} from "axios";
 
-import axios, { AxiosInstance } from "axios";
 
-/**
- * 🔐 Attach JWT token + global error handling
- */
-const attachToken = (instance: AxiosInstance): AxiosInstance => {
-  // ✅ REQUEST INTERCEPTOR
+
+const attachToken = (
+  instance: AxiosInstance
+): AxiosInstance => {
+
+
   instance.interceptors.request.use(
-    (config) => {
-      if (typeof window !== "undefined") {
-        const token = localStorage.getItem("token");
 
-        if (token) {
-          // ✅ Ensure headers exist
-          config.headers = config.headers || {};
-          config.headers.Authorization = `Bearer ${token}`;
+    (
+      config: InternalAxiosRequestConfig
+    ) => {
+
+
+      if(
+        typeof window !== "undefined"
+      ){
+
+        const token =
+          localStorage.getItem("token");
+
+
+        console.log(
+          "TOKEN SENT:",
+          token ? "YES" : "NO"
+        );
+
+
+        if(token){
+
+          config.headers =
+            config.headers || {};
+
+
+          config.headers.Authorization =
+            `Bearer ${token}`;
+
         }
+
       }
+
+
+
+      console.log(
+        "🚀 API REQUEST:",
+        `${config.baseURL}${config.url}`
+      );
+
 
       return config;
+
     },
-    (error) => Promise.reject(error)
+
+    error =>
+      Promise.reject(error)
+
   );
 
-  // ✅ RESPONSE INTERCEPTOR
+
+
+
   instance.interceptors.response.use(
-    (response) => response,
-    (error) => {
-      // 🔴 Auto logout on 401 (token expired/invalid)
-      if (error.response?.status === 401) {
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("token");
-          window.location.href = "/login";
+
+    response =>
+      response,
+
+
+    error => {
+
+
+      console.error(
+        "❌ API ERROR:",
+        error.message,
+        error.response?.status,
+        error.response?.data
+      );
+
+
+
+      if(
+        error.response?.status === 401
+      ){
+
+        if(
+          typeof window !== "undefined"
+        ){
+
+          localStorage.removeItem(
+            "token"
+          );
+
+          localStorage.removeItem(
+            "user"
+          );
+
+
+          window.location.href =
+            "/login";
+
         }
+
       }
 
+
       return Promise.reject(error);
+
     }
+
   );
+
+
 
   return instance;
+
 };
 
-/**
- * 🏗️ Helper to create service clients
- */
-const createApi = (baseURL?: string): AxiosInstance => {
+
+
+
+
+
+const createApi = (
+  url:string
+)=>{
+
+
   return attachToken(
+
     axios.create({
-      baseURL,
-      headers: {
-        "Content-Type": "application/json",
-      },
+
+      baseURL:url,
+
+      timeout:30000,
+
+      headers:{
+
+        "Content-Type":
+          "application/json"
+
+      }
+
     })
+
   );
+
 };
 
-// ================= SERVICES =================
 
-// 🔑 AUTH SERVICE (3001)
-export const authApi = createApi(
-  process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:3001"
+
+
+
+
+
+export const authApi =
+createApi(
+ process.env.NEXT_PUBLIC_AUTH_API_URL ||
+ "http://127.0.0.1:3001"
 );
 
-// 👤 USER SERVICE (3015)
-export const userApi = createApi(
-  process.env.NEXT_PUBLIC_USER_API_URL || "http://localhost:3015"
+
+
+export const userApi =
+createApi(
+ process.env.NEXT_PUBLIC_USER_API_URL ||
+ "http://127.0.0.1:3015"
 );
 
-// 🛍️ PRODUCT SERVICE (3003)
-export const productApi = createApi(
-  process.env.NEXT_PUBLIC_PRODUCT_API_URL || "http://localhost:3003"
+
+
+export const productApi =
+createApi(
+ process.env.NEXT_PUBLIC_PRODUCT_API_URL ||
+ "http://127.0.0.1:3003"
 );
 
-// 🛒 CART SERVICE (3005)
-export const cartApi = createApi(
-  process.env.NEXT_PUBLIC_CART_API_URL || "http://localhost:3005"
+
+
+export const cartApi =
+createApi(
+ process.env.NEXT_PUBLIC_CART_API_URL ||
+ "http://127.0.0.1:3005"
 );
 
-// 📦 ORDER SERVICE (3006)
-export const orderApi = createApi(
-  process.env.NEXT_PUBLIC_ORDER_API_URL || "http://localhost:3006"
+
+
+export const orderApi =
+createApi(
+ process.env.NEXT_PUBLIC_ORDER_API_URL ||
+ "http://127.0.0.1:3006"
 );
 
-// 💳 PAYMENT SERVICE (3007)
-export const paymentApi = createApi(
-  process.env.NEXT_PUBLIC_PAYMENT_API_URL || "http://localhost:3007"
+
+
+
+export const paymentApi =
+createApi(
+ process.env.NEXT_PUBLIC_PAYMENT_API_URL ||
+ "http://127.0.0.1:3007"
 );
 
-// 🔁 REFUND SERVICE (3016)
-export const refundApi = createApi(
-  process.env.NEXT_PUBLIC_REFUND_API_URL || "http://localhost:3016"
+
+
+
+export const vendorApi =
+createApi(
+ process.env.NEXT_PUBLIC_VENDOR_API_URL ||
+ "http://127.0.0.1:3012"
 );
 
-// 🏪 VENDOR SERVICE (3012)
-export const vendorApi = createApi(
-  process.env.NEXT_PUBLIC_VENDOR_API_URL || "http://localhost:3012"
+
+
+
+export const searchApi =
+createApi(
+ process.env.NEXT_PUBLIC_SEARCH_API_URL ||
+ "http://127.0.0.1:3013"
 );
 
-// 🔍 SEARCH SERVICE (3013)
-export const searchApi = createApi(
-  process.env.NEXT_PUBLIC_SEARCH_API_URL || "http://localhost:3013"
+
+
+
+export const shippingApi =
+createApi(
+ process.env.NEXT_PUBLIC_SHIPPING_API_URL ||
+ "http://127.0.0.1:3014"
 );
 
-// 🚚 SHIPPING SERVICE (3014)
-export const shippingApi = createApi(
-  process.env.NEXT_PUBLIC_SHIPPING_API_URL || "http://localhost:3014"
+
+
+
+export const ratingApi =
+createApi(
+ process.env.NEXT_PUBLIC_RATING_API_URL ||
+ "http://127.0.0.1:3008"
 );
 
-// ⭐ RATING SERVICE (3008)
-export const ratingApi = createApi(
-  process.env.NEXT_PUBLIC_RATING_API_URL || "http://localhost:3008"
+
+
+
+export const analyticsApi =
+createApi(
+ process.env.NEXT_PUBLIC_ANALYTICS_API_URL ||
+ "http://127.0.0.1:3011"
 );
 
-// 📊 ANALYTICS SERVICE (3011)
-export const analyticsApi = createApi(
-  process.env.NEXT_PUBLIC_ANALYTICS_API_URL || "http://localhost:3011"
+
+
+
+
+
+/*
+===========================
+INVOICE SERVICE
+===========================
+*/
+
+
+export const invoiceApi =
+createApi(
+
+ process.env.NEXT_PUBLIC_INVOICE_API_URL ||
+
+ "http://127.0.0.1:3010"
+
 );
 
-// 📄 INVOICE SERVICE (3010)
-export const invoiceApi = createApi(
-  process.env.NEXT_PUBLIC_INVOICE_API_URL || "http://localhost:3010"
+
+
+invoiceApi.interceptors.request.use(
+
+(config)=>{
+
+
+ console.log(
+   "📄 INVOICE REQUEST:",
+   `${config.baseURL}${config.url}`
+ );
+
+
+ return config;
+
+}
+
 );
 
-// 🔔 NOTIFICATION SERVICE (3018)
-export const notificationApi = createApi(
-  process.env.NEXT_PUBLIC_NOTIFICATION_API_URL || "http://localhost:3018"
+
+
+
+
+invoiceApi.interceptors.response.use(
+
+(response)=>{
+
+
+ console.log(
+   "📄 INVOICE RESPONSE:",
+   response.status
+ );
+
+
+ return response;
+
+},
+
+
+(error)=>{
+
+
+ console.error(
+
+   "📄 INVOICE RESPONSE ERROR:",
+
+   error.message,
+
+   error.response?.status,
+
+   error.response?.data
+
+ );
+
+
+ return Promise.reject(error);
+
+}
+
 );
+
+
+
+
+
+
+
+export const refundApi =
+createApi(
+ process.env.NEXT_PUBLIC_REFUND_API_URL ||
+ "http://127.0.0.1:3016"
+);
+
+
+
+
+
+export const notificationApi =
+createApi(
+ process.env.NEXT_PUBLIC_NOTIFICATION_API_URL ||
+ "http://127.0.0.1:3018"
+);
+
+
+
+
+
+
+
+const apiClient = {
+
+
+ authApi,
+
+ userApi,
+
+ productApi,
+
+ cartApi,
+
+ orderApi,
+
+ paymentApi,
+
+ vendorApi,
+
+ searchApi,
+
+ shippingApi,
+
+ ratingApi,
+
+ analyticsApi,
+
+ invoiceApi,
+
+ refundApi,
+
+ notificationApi
+
+
+};
+
+
+
+export default apiClient;

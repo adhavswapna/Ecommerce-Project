@@ -15,7 +15,7 @@ const router = Router();
 router.post("/", authMiddleware, createOrder);
 
 /* ================= GET MY ORDERS ================= */
-router.get("/user", authMiddleware, getMyOrders);
+router.get("/my", authMiddleware, getMyOrders);
 
 /* ================= GET ORDER BY ID ================= */
 router.get("/:orderId", authMiddleware, getOrderByIdController);

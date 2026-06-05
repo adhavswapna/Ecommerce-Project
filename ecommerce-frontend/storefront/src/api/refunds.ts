@@ -1,6 +1,27 @@
-import { refundApi } from "./apiClient";
+import {
+  refundApi,
+} from "@/api/apiClient";
 
-export const createRefund = async (data: any) => {
-  const res = await refundApi.post("/refunds", data);
-  return res.data;
-};
+export const getRefunds =
+  async () => {
+    const response =
+      await refundApi.get(
+        "/refunds"
+      );
+
+    return response.data;
+  };
+
+export const createRefund =
+  async (payload: {
+    orderId: string;
+    reason: string;
+  }) => {
+    const response =
+      await refundApi.post(
+        "/refunds",
+        payload
+      );
+
+    return response.data;
+  };

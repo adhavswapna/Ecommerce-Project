@@ -1,27 +1,188 @@
 import { orderApi } from "./apiClient";
 
-/* ================= GET MY ORDERS ================= */
-export const getUserOrders = async () => {
-  const res = await orderApi.get("/orders/user"); // ✅ fixed
-  return res.data;
+import {
+  CreateOrderPayload,
+  Order,
+  OrderResponse,
+  OrdersResponse,
+} from "@/types/order";
+
+
+
+/**
+ * CREATE ORDER
+ */
+export const createOrder =
+async (
+  payload: CreateOrderPayload
+): Promise<Order> => {
+
+  const response =
+    await orderApi.post<OrderResponse>(
+      "/orders",
+      payload
+    );
+
+
+  return (
+    response.data.data ??
+    response.data
+  );
+
 };
 
-/* ================= GET ORDER BY ID ================= */
-export const getOrderById = async (orderId: string) => {
-  const res = await orderApi.get(`/orders/${orderId}`);
-  return res.data;
+
+
+
+
+/**
+ * GET MY ORDERS
+ */
+export const getMyOrders =
+async (): Promise<Order[]> => {
+
+
+  const response =
+    await orderApi.get(
+      "/orders/my"
+    );
+
+
+  console.log(
+    "MY ORDERS RESPONSE",
+    response.data
+  );
+
+
+  return (
+    response.data.data ??
+    response.data ??
+    []
+  );
+
 };
 
-/* ================= CONFIRM ORDER ================= */
-export const confirmOrder = async (orderId: string) => {
-  const res = await orderApi.post(`/orders/confirm/${orderId}`);
-  return res.data;
+
+
+
+
+
+/**
+ * GET ORDER BY ID
+ */
+export const getOrderById =
+async (
+  id:string
+):Promise<Order> => {
+
+
+  const response =
+    await orderApi.get<OrderResponse>(
+      `/orders/${id}`
+    );
+
+
+  console.log(
+    "ORDER BY ID",
+    response.data
+  );
+
+
+  return (
+    response.data.data ??
+    response.data
+  );
+
 };
 
-/* ================= REFUND ================= */
-export const requestRefund = async (orderId: string) => {
-  const res = await orderApi.post(`/refunds`, {
-    orderId,
-  });
-  return res.data;
+
+
+
+
+
+
+/**
+ * CONFIRM ORDER
+ *
+ * backend:
+ * POST /orders/confirm/:orderId
+ */
+export const confirmOrder =
+async (
+  orderId:string
+):Promise<Order> => {
+
+
+  const response =
+    await orderApi.post<OrderResponse>(
+      `/orders/confirm/${orderId}`
+    );
+
+
+  return (
+    response.data.data ??
+    response.data
+  );
+
+};
+
+
+
+
+
+
+
+
+/**
+ * CANCEL ORDER
+ *
+ * backend:
+ * DELETE /orders/cancel/:orderId
+ */
+export const cancelOrder =
+async (
+  orderId:string
+):Promise<Order> => {
+
+
+  const response =
+    await orderApi.delete<OrderResponse>(
+      `/orders/cancel/${orderId}`
+    );
+
+
+  return (
+    response.data.data ??
+    response.data
+  );
+
+};
+
+
+
+
+
+
+
+
+/**
+ * ADMIN ORDERS
+ *
+ * keep only if backend has admin route
+ */
+export const getOrders =
+async ():Promise<Order[]> => {
+
+
+  const response =
+    await orderApi.get<OrdersResponse>(
+      "/orders"
+    );
+
+
+  return (
+    response.data.data ??
+    []
+  );
+
 };

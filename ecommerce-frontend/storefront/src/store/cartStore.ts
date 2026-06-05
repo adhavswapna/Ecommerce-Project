@@ -1,131 +1,304 @@
+// src/store/cartStore.ts
+
 "use client";
 
 import { create } from "zustand";
-import { cartApi } from "@/api/apiClient";
+import toast from "react-hot-toast";
 
-type CartItem = {
-  id: string;
-  productId: string;
-  quantity: number;
-  price: number;
-};
+import {
+  addToCart,
+  clearCart,
+  getCart,
+  removeFromCart,
+  updateCartItem,
+  CartItem,
+} from "@/api/cart";
 
-type CartState = {
+interface CartState {
   cartItems: CartItem[];
+
   loading: boolean;
 
-  // 🔥 derived values
-  cartCount: number;
-  totalAmount: number;
-
-  // actions
   fetchCart: () => Promise<void>;
-  addToCart: (productId: string, quantity?: number) => Promise<void>;
-  increaseQty: (id: string) => Promise<void>;
-  decreaseQty: (id: string) => Promise<void>;
-  removeItem: (id: string) => Promise<void>;
 
-  getItemByProductId: (productId: string) => CartItem | undefined;
-};
+  addItem: (
+    productId: string,
+    quantity?: number,
+    price?: number
+  ) => Promise<void>;
 
-export const useCartStore = create<CartState>((set, get) => ({
-  cartItems: [],
-  loading: false,
+  updateItem: (
+    itemId: string,
+    quantity: number
+  ) => Promise<void>;
 
-  cartCount: 0,
-  totalAmount: 0,
+  removeItem: (
+    itemId: string
+  ) => Promise<void>;
 
-  // 🛒 FETCH CART
-  fetchCart: async () => {
-    set({ loading: true });
+  clear: () => Promise<void>;
 
-    try {
-      const res = await cartApi.get("/cart");
+  cartTotal: () => number;
 
-      const items = res.data || [];
+  cartCount: () => number;
+}
 
-      // 🔥 calculate values
-      const cartCount = items.reduce(
-        (acc: number, item: CartItem) => acc + item.quantity,
-        0
-      );
+export const useCartStore =
+  create<CartState>(
+    (set, get) => ({
+      cartItems: [],
 
-      const totalAmount = items.reduce(
-        (acc: number, item: CartItem) => acc + item.quantity * item.price,
-        0
-      );
+      loading: false,
 
-      set({
-        cartItems: items,
-        cartCount,
-        totalAmount,
-      });
-    } catch (err) {
-      console.error("Cart fetch error:", err);
-    } finally {
-      set({ loading: false });
-    }
-  },
+      /**
+       * 📦 FETCH CART
+       */
+      fetchCart: async () => {
+        try {
+          console.log(
+            "FETCH CART START"
+          );
 
-  // ➕ ADD TO CART (supports quantity)
-  addToCart: async (productId, quantity = 1) => {
-    try {
-      await cartApi.post("/cart/add", {
+          set({
+            loading: true,
+          });
+
+          const items =
+            await getCart();
+
+          console.log(
+            "GET CART RESULT:",
+            items
+          );
+
+          set({
+            cartItems:
+              Array.isArray(
+                items
+              )
+                ? items
+                : [],
+          });
+
+          console.log(
+            "STORE UPDATED:",
+            get()
+              .cartItems
+          );
+        } catch (
+          error
+        ) {
+          console.error(
+            "FETCH CART ERROR:",
+            error
+          );
+
+          toast.error(
+            "Failed to load cart"
+          );
+        } finally {
+          set({
+            loading: false,
+          });
+        }
+      },
+
+      /**
+       * ➕ ADD ITEM
+       */
+      addItem: async (
         productId,
-        quantity,
-      });
+        quantity = 1,
+        price = 0
+      ) => {
+        try {
+          console.log(
+            "STEP 1 - START ADD ITEM"
+          );
 
-      await get().fetchCart(); // 🔥 refresh globally
-    } catch (err) {
-      console.error("Add to cart failed:", err);
-      throw err;
-    }
-  },
+          const result =
+            await addToCart({
+              productId,
+              quantity,
+              price,
+            });
 
-  // 🔼 INCREASE
-  increaseQty: async (id) => {
-    const item = get().cartItems.find((i) => i.id === id);
-    if (!item) return;
+          console.log(
+            "STEP 2 - ADD SUCCESS",
+            result
+          );
 
-    try {
-      await cartApi.put(`/cart/update/${id}`, {
-        quantity: item.quantity + 1,
-      });
+          console.log(
+            "STEP 3 - FETCHING CART"
+          );
 
-      await get().fetchCart();
-    } catch (err) {
-      console.error("Increase qty failed:", err);
-    }
-  },
+          await get().fetchCart();
 
-  // 🔽 DECREASE
-  decreaseQty: async (id) => {
-    const item = get().cartItems.find((i) => i.id === id);
-    if (!item || item.quantity <= 1) return;
+          console.log(
+            "STEP 4 - FETCH COMPLETE"
+          );
 
-    try {
-      await cartApi.put(`/cart/update/${id}`, {
-        quantity: item.quantity - 1,
-      });
+          console.log(
+            "CURRENT CART:",
+            get()
+              .cartItems
+          );
 
-      await get().fetchCart();
-    } catch (err) {
-      console.error("Decrease qty failed:", err);
-    }
-  },
+          toast.success(
+            "Added to cart"
+          );
+        } catch (
+          error
+        ) {
+          console.error(
+            "ADD ITEM ERROR:",
+            error
+          );
 
-  // ❌ REMOVE
-  removeItem: async (id) => {
-    try {
-      await cartApi.delete(`/cart/remove/${id}`);
-      await get().fetchCart();
-    } catch (err) {
-      console.error("Remove failed:", err);
-    }
-  },
+          toast.error(
+            "Failed to add to cart"
+          );
+        }
+      },
 
-  // 🔍 FIND ITEM
-  getItemByProductId: (productId) => {
-    return get().cartItems.find((i) => i.productId === productId);
-  },
-}));
+      /**
+       * ✏️ UPDATE ITEM
+       */
+      updateItem: async (
+        itemId,
+        quantity
+      ) => {
+        try {
+          console.log(
+            "UPDATE ITEM:",
+            itemId,
+            quantity
+          );
+
+          await updateCartItem(
+            itemId,
+            quantity
+          );
+
+          await get().fetchCart();
+
+          toast.success(
+            "Cart updated"
+          );
+        } catch (
+          error
+        ) {
+          console.error(
+            "UPDATE CART ERROR:",
+            error
+          );
+
+          toast.error(
+            "Failed to update cart"
+          );
+        }
+      },
+
+      /**
+       * ❌ REMOVE ITEM
+       */
+      removeItem: async (
+        itemId
+      ) => {
+        try {
+          console.log(
+            "REMOVE ITEM:",
+            itemId
+          );
+
+          await removeFromCart(
+            itemId
+          );
+
+          await get().fetchCart();
+
+          toast.success(
+            "Item removed"
+          );
+        } catch (
+          error
+        ) {
+          console.error(
+            "REMOVE CART ERROR:",
+            error
+          );
+
+          toast.error(
+            "Failed to remove item"
+          );
+        }
+      },
+
+      /**
+       * 🧹 CLEAR CART
+       */
+      clear: async () => {
+        try {
+          console.log(
+            "CLEAR CART START"
+          );
+
+          await clearCart();
+
+          set({
+            cartItems: [],
+          });
+
+          console.log(
+            "CART CLEARED"
+          );
+
+          toast.success(
+            "Cart cleared"
+          );
+        } catch (
+          error
+        ) {
+          console.error(
+            "CLEAR CART ERROR:",
+            error
+          );
+
+          toast.error(
+            "Failed to clear cart"
+          );
+        }
+      },
+
+      /**
+       * 💰 TOTAL
+       */
+      cartTotal: () => {
+        return get().cartItems.reduce(
+          (
+            total,
+            item
+          ) =>
+            total +
+            item.price *
+              item.quantity,
+          0
+        );
+      },
+
+      /**
+       * 🔢 COUNT
+       */
+      cartCount: () => {
+        return get().cartItems.reduce(
+          (
+            total,
+            item
+          ) =>
+            total +
+            item.quantity,
+          0
+        );
+      },
+    })
+  );

@@ -1,17 +1,35 @@
 "use client";
 
-import React from "react";
+import WishlistItemCard from "./WishlistItem";
 
-interface Props {
-  children: React.ReactNode;
-  title?: string;
-}
+import { useWishlist } from "@/hooks/useWishlist";
 
-export default function WishlistContainer({ children, title = "My Wishlist" }: Props) {
+export default function WishlistContainer() {
+  const {
+    wishlist,
+    loading,
+    remove,
+    moveToCart,
+  } = useWishlist();
+
+  if (loading) {
+    return (
+      <div>
+        Loading wishlist...
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-3xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">{title}</h1>
-      <div className="flex flex-col gap-2">{children}</div>
+    <div className="space-y-4">
+      {wishlist.map((item) => (
+        <WishlistItemCard
+          key={item.id}
+          item={item}
+          onRemove={remove}
+          onMove={moveToCart}
+        />
+      ))}
     </div>
   );
 }

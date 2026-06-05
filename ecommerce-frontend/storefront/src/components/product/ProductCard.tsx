@@ -1,65 +1,40 @@
 "use client";
 
-import { useCartStore } from "@/store/cartStore";
-import { useWishlistStore } from "@/store/wishlistStore";
-import toast from "react-hot-toast";
+import Link from "next/link";
+import { Product } from "@/types/product";
 
-export default function ProductCard({ product }: any) {
-  const {
-    addItem,
-    increaseQty,
-    decreaseQty,
-    removeItem,
-    getItemByProductId,
-  } = useCartStore();
+interface Props {
+  product: Product;
+}
 
-  const {
-    addItem: addWishlist,
-    removeItem: removeWishlist,
-    isWishlisted,
-    items,
-  } = useWishlistStore();
-
-  const cartItem = getItemByProductId(product.id);
-  const wishItem = items.find((i) => i.productId === product.id);
-  const liked = isWishlisted(product.id);
-
-  const handleWishlist = async () => {
-    if (liked && wishItem) {
-      await removeWishlist(wishItem.id);
-      toast("Removed from wishlist");
-    } else {
-      await addWishlist(product.id);
-      toast.success("Added to wishlist ❤️");
-    }
-  };
-
+export default function ProductCard({ product }: Props) {
   return (
-    <div className="bg-white p-4 rounded-xl shadow">
-
-      <h2>{product.name}</h2>
-      <p>₹{product.price}</p>
-
-      {/* ❤️ Wishlist */}
-      <button onClick={handleWishlist}>
-        {liked ? "❤️" : "🤍"}
-      </button>
-
-      {/* 🛒 Cart */}
-      {!cartItem ? (
-        <button onClick={() => addItem(product.id)}>
-          Add to Cart
-        </button>
-      ) : (
-        <div>
-          <button onClick={() => decreaseQty(cartItem.id)}>-</button>
-          {cartItem.quantity}
-          <button onClick={() => increaseQty(cartItem.id)}>+</button>
-          <button onClick={() => removeItem(cartItem.id)}>
-            Remove
-          </button>
+    <Link href={`/products/${product.id}`}>
+      <div className="border rounded-xl p-4 shadow hover:shadow-lg transition cursor-pointer">
+        <div className="h-48 bg-gray-100 rounded-lg mb-4 flex items-center justify-center">
+          <span className="text-gray-400">
+            No Image
+          </span>
         </div>
-      )}
-    </div>
+
+        <h2 className="text-lg font-semibold">
+          {product.name}
+        </h2>
+
+        <p className="text-sm text-gray-500 mt-1">
+          {product.description}
+        </p>
+
+        <div className="mt-3 flex items-center justify-between">
+          <span className="font-bold text-xl">
+            ₹{product.price}
+          </span>
+
+          <span className="text-sm text-gray-500">
+            Stock: {product.stock}
+          </span>
+        </div>
+      </div>
+    </Link>
   );
 }

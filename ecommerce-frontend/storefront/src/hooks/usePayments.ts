@@ -1,36 +1,87 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getUserPayments } from "@/api/payments";
+import {
+  useState,
+} from "react";
 
-export interface Payment {
-  id: string;
-  orderId: string;
-  amount: number;
-  status: "PENDING" | "SUCCESS" | "FAILED";
-  createdAt: string;
-}
+import {
+  createPayment,
+  getPaymentByOrder,
+} from "@/api/payments";
 
-export const usePayments = (userId: string) => {
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export const usePayments =
+  () => {
+    const [
+      payment,
+      setPayment,
+    ] = useState<any>(
+      null
+    );
 
-  const fetchPayments = async () => {
-    setLoading(true);
-    try {
-      const data = await getUserPayments(userId);
-      setPayments(data);
-    } catch (err) {
-      setError("Failed to fetch payments");
-    } finally {
-      setLoading(false);
-    }
+    const [
+      loading,
+      setLoading,
+    ] = useState(false);
+
+    const pay =
+      async (
+        payload: {
+          orderId: string;
+          amount: number;
+        }
+      ) => {
+        try {
+          setLoading(true);
+
+          const data =
+            await createPayment(
+              payload
+            );
+
+          setPayment(data);
+
+          return data;
+        } catch (
+          error
+        ) {
+          console.error(
+            error
+          );
+
+          return null;
+        } finally {
+          setLoading(false);
+        }
+      };
+
+    const fetchPayment =
+      async (
+        orderId: string
+      ) => {
+        try {
+          setLoading(true);
+
+          const data =
+            await getPaymentByOrder(
+              orderId
+            );
+
+          setPayment(data);
+        } catch (
+          error
+        ) {
+          console.error(
+            error
+          );
+        } finally {
+          setLoading(false);
+        }
+      };
+
+    return {
+      payment,
+      loading,
+      pay,
+      fetchPayment,
+    };
   };
-
-  useEffect(() => {
-    if (userId) fetchPayments();
-  }, [userId]);
-
-  return { payments, loading, error, refetch: fetchPayments };
-};

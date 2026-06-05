@@ -1,6 +1,60 @@
+// src/api/payments.ts
+
 import { paymentApi } from "./apiClient";
 
-export const createPayment = async (data: any) => {
-  const res = await paymentApi.post("/payments", data);
-  return res.data;
+
+interface PaymentPayload {
+
+  userId: string;
+
+  orderId: string;
+
+  amount: number;
+
+  provider: string;
+
+  currency: string;
+
+}
+
+
+export const createPayment =
+async (
+  data: PaymentPayload
+) => {
+
+
+  try {
+
+
+    console.log(
+      "💳 PAYMENT PAYLOAD",
+      data
+    );
+
+
+    const response =
+      await paymentApi.post(
+        "/payments",
+        data
+      );
+
+
+    return response.data;
+
+
+  } catch(error:any){
+
+
+    console.error(
+      "PAYMENT ERROR",
+      error.response?.data ||
+      error.message
+    );
+
+
+    throw error;
+
+  }
+
 };
