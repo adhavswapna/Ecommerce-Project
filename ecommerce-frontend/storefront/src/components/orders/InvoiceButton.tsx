@@ -1,70 +1,58 @@
 "use client";
 
 import { useState } from "react";
-
-import { useInvoice } from "@/hooks/useInvoice";
+import {
+  createInvoice,
+  downloadInvoice,
+} from "@/api/invoice.api";
 
 interface Props {
   orderId: string;
-
   amount: number;
 }
 
-export default function InvoiceButton({
-  orderId,
-  amount,
-}: Props) {
-  const {
-    loading,
-    generateInvoice,
-  } = useInvoice();
+export default function InvoiceButton({ orderId, amount }: Props) {
+  const [loading, setLoading] = useState(false);
 
-  const [invoiceUrl, setInvoiceUrl] =
-    useState("");
+  const handleDownload = async () => {
+    try {
+      setLoading(true);
 
-  const handleGenerate =
-    async () => {
-      try {
-        const invoice =
-          await generateInvoice({
-            orderId,
-            amount,
-          });
+      // 1. Always create invoice first (safe fallback)
+      const invoice = await createInvoice({
+        orderId,
+        amount,
+      });
 
-        setInvoiceUrl(
-          invoice.fileUrl
-        );
-      } catch (error) {
-        console.error(error);
+      if (!invoice?.id) {
+        throw new Error("Invoice creation failed");
       }
-    };
+
+      // 2. Download directly using invoice ID
+      await downloadInvoice(invoice.id);
+    } catch (error) {
+      console.error("Invoice error:", error);
+      alert("Invoice not available or backend missing route");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div>
-      <button
-        onClick={
-          handleGenerate
-        }
-        disabled={loading}
-        className="bg-black text-white px-6 py-3 rounded-xl hover:opacity-90"
-      >
-        {loading
-          ? "Generating..."
-          : "Generate Invoice"}
-      </button>
-
-      {invoiceUrl && (
-        <div className="mt-4">
-          <p className="text-green-600 font-medium">
-            Invoice generated
-            successfully
-          </p>
-
-          <p className="text-sm text-gray-500 mt-2 break-all">
-            {invoiceUrl}
-          </p>
-        </div>
-      )}
-    </div>
+    <button
+      onClick={handleDownload}
+      disabled={loading}
+      className="
+        bg-black
+        text-white
+        px-6
+        py-3
+        rounded-xl
+        hover:bg-gray-800
+        disabled:opacity-50
+      "
+    >
+      {loading ? "Generating Invoice..." : "Download Invoice"}
+    </button>
   );
 }

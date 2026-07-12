@@ -1,60 +1,57 @@
-// src/api/payments.ts
-
-import { paymentApi } from "./apiClient";
+import { apiClient } from "./apiClient";
 
 
-interface PaymentPayload {
 
-  userId: string;
-
-  orderId: string;
-
-  amount: number;
-
-  provider: string;
-
-  currency: string;
-
-}
-
-
-export const createPayment =
-async (
-  data: PaymentPayload
+export const createPayment = async (
+  payload: any
 ) => {
 
-
-  try {
-
-
-    console.log(
-      "💳 PAYMENT PAYLOAD",
-      data
+  const res =
+    await apiClient.post(
+      "/payment/create",
+      payload
     );
 
 
-    const response =
-      await paymentApi.post(
-        "/payments",
-        data
-      );
+  return res.data;
+};
 
 
-    return response.data;
 
 
-  } catch(error:any){
 
+export const initiatePayment = async (
+  orderId: string
+) => {
 
-    console.error(
-      "PAYMENT ERROR",
-      error.response?.data ||
-      error.message
+  const res =
+    await apiClient.post(
+      "/payment/initiate",
+      {
+        orderId,
+      }
     );
 
 
-    throw error;
+  return res.data;
+};
 
-  }
 
+
+
+
+export const verifyPayment = async (
+  paymentId: string
+) => {
+
+  const res =
+    await apiClient.post(
+      "/payment/verify",
+      {
+        paymentId,
+      }
+    );
+
+
+  return res.data;
 };

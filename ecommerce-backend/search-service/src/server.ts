@@ -1,13 +1,13 @@
 import dotenv from "dotenv";
-dotenv.config();
 
+dotenv.config();
 
 import app from "./app";
 
 
-const PORT = process.env.PORT || 3012;
+const PORT = Number(process.env.PORT) || 3013;
 
 
 app.listen(PORT, () => {
-console.log(`🔍 Search Service running on port ${PORT}`);
+  console.log(`🔍 Search Service running on port ${PORT}`);
 });

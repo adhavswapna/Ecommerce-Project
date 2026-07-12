@@ -1,151 +1,121 @@
-// src/api/cart.ts
+import { apiClient } from "./apiClient";
 
-import { cartApi } from "./apiClient";
+/* ======================================================
+   GET CART
+====================================================== */
 
-export interface CartItem {
-  id: string;
-  productId: string;
-  quantity: number;
-  price: number;
+export const getCart = async () => {
+  const res = await apiClient.get("/cart/");
+  return res.data;
+};
 
-  product?: {
-    id: string;
-    name: string;
-    image?: string;
-    price: number;
-  };
-}
+/* ======================================================
+   ADD TO CART
+====================================================== */
 
-/**
- * 📦 GET CART
- */
-export const getCart =
-  async (): Promise<CartItem[]> => {
-    const response =
-      await cartApi.get("/cart");
+export const addToCart = async (payload: any) => {
+  const res = await apiClient.post(
+    "/cart/add",
+    payload
+  );
 
-    console.log(
-      "GET CART RESPONSE:",
-      response.data
-    );
+  return res.data;
+};
 
-    const data =
-      response.data;
+/* ======================================================
+   UPDATE CART ITEM
+====================================================== */
 
-    if (Array.isArray(data)) {
-      return data;
-    }
+export const updateCartItem = async (
+  id: string,
+  payload: any
+) => {
+  const res = await apiClient.put(
+    `/cart/update/${id}`,
+    payload
+  );
 
-    if (
-      data?.data &&
-      Array.isArray(data.data)
-    ) {
-      return data.data;
-    }
+  return res.data;
+};
 
-    if (
-      data?.items &&
-      Array.isArray(data.items)
-    ) {
-      return data.items;
-    }
+/* ======================================================
+   REMOVE CART ITEM
+====================================================== */
 
-    if (
-      data?.cart?.items &&
-      Array.isArray(
-        data.cart.items
-      )
-    ) {
-      return data.cart.items;
-    }
+export const removeCartItem = async (
+  id: string
+) => {
+  const res = await apiClient.delete(
+    `/cart/remove/${id}`
+  );
 
-    if (
-      data?.data?.items &&
-      Array.isArray(
-        data.data.items
-      )
-    ) {
-      return data.data.items;
-    }
+  return res.data;
+};
 
-    return [];
-  };
+/* ======================================================
+   CLEAR CART
+====================================================== */
 
-/**
- * ➕ ADD TO CART
- */
-export const addToCart =
-  async (data: {
-    productId: string;
-    quantity: number;
-    price?: number;
-  }): Promise<CartItem> => {
-    const response =
-      await cartApi.post(
-        "/cart/add",
-        data
-      );
+export const clearCart = async () => {
+  const res = await apiClient.delete(
+    "/cart/clear"
+  );
 
-    console.log(
-      "ADD CART RESPONSE:",
-      response.data
-    );
+  return res.data;
+};
 
-    return response.data;
-  };
+/* ======================================================
+   WISHLIST
+====================================================== */
 
-/**
- * ✏️ UPDATE CART ITEM
- */
-export const updateCartItem =
-  async (
-    itemId: string,
-    quantity: number
-  ): Promise<void> => {
-    const response =
-      await cartApi.put(
-        `/cart/update/${itemId}`,
-        {
-          quantity,
-        }
-      );
+export const getWishlist = async () => {
+  const res = await apiClient.get("/cart/wishlist");
+  return res.data;
+};
 
-    console.log(
-      "UPDATE CART RESPONSE:",
-      response.data
-    );
-  };
+export const addToWishlist = async (payload: any) => {
+  const res = await apiClient.post(
+    "/cart/wishlist/add",
+    payload
+  );
 
-/**
- * ❌ REMOVE ITEM
- */
-export const removeFromCart =
-  async (
-    itemId: string
-  ): Promise<void> => {
-    const response =
-      await cartApi.delete(
-        `/cart/remove/${itemId}`
-      );
+  return res.data;
+};
 
-    console.log(
-      "REMOVE CART RESPONSE:",
-      response.data
-    );
-  };
+export const removeWishlistItem = async (
+  id: string
+) => {
+  const res = await apiClient.delete(
+    `/cart/wishlist/remove/${id}`
+  );
 
-/**
- * 🧹 CLEAR CART
- */
-export const clearCart =
-  async (): Promise<void> => {
-    const response =
-      await cartApi.delete(
-        "/cart/clear"
-      );
+  return res.data;
+};
 
-    console.log(
-      "CLEAR CART RESPONSE:",
-      response.data
-    );
-  };
+export const clearWishlist = async () => {
+  const res = await apiClient.delete(
+    "/cart/wishlist/clear"
+  );
+
+  return res.data;
+};
+
+export const moveToWishlist = async (
+  id: string
+) => {
+  const res = await apiClient.put(
+    `/cart/move-to-wishlist/${id}`
+  );
+
+  return res.data;
+};
+
+export const moveToCart = async (
+  id: string
+) => {
+  const res = await apiClient.put(
+    `/cart/wishlist/move-to-cart/${id}`
+  );
+
+  return res.data;
+};

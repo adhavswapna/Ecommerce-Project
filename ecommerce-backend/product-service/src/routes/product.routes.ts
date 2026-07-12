@@ -10,6 +10,19 @@ import {
 
 const router = Router();
 
+
+/* =========================================
+   HEALTH CHECK
+   MUST BE BEFORE /:id
+========================================= */
+
+router.get("/health", (_req, res) => {
+  res.status(200).json({
+    status: "product-service running",
+  });
+});
+
+
 /* =========================================
    PRODUCT ROUTES
 ========================================= */
@@ -17,19 +30,26 @@ const router = Router();
 // Get all products
 router.get("/", getAllProducts);
 
-// Get product by ID
-router.get("/:id", getProduct);
 
 // Create product
 router.post("/", addProduct);
 
+
 // Update product
 router.put("/:id", editProduct);
+
 
 // Delete product
 router.delete("/:id", removeProduct);
 
+
 // Check stock
 router.get("/:id/stock", getStock);
+
+
+// Get product by ID
+// KEEP THIS LAST
+router.get("/:id", getProduct);
+
 
 export default router;

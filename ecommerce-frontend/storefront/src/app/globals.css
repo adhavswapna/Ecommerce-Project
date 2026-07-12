@@ -1,9 +1,316 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ------------------------------------------------ */
+/* RESET */
+/* ------------------------------------------------ */
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  font-family: Arial, sans-serif;
+  background: #f6f8fa;
+  color: #111827;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+
+  min-height: 100vh;
+}
+
+/* ------------------------------------------------ */
+/* SCROLLBAR */
+/* ------------------------------------------------ */
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f3f4f6;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ------------------------------------------------ */
+/* LINKS */
+/* ------------------------------------------------ */
+
+a {
+  text-decoration: none;
+}
+
+button,
+a {
+  transition: all 0.25s ease;
+}
+
+/* ------------------------------------------------ */
+/* INPUTS */
+/* ------------------------------------------------ */
+
+input,
+textarea,
+select {
+  outline: none;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: #f59e0b;
+}
+
+/* ------------------------------------------------ */
+/* CONTAINER */
+/* ------------------------------------------------ */
+
+.container {
+  max-width: 1440px;
+  margin: auto;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+/* ------------------------------------------------ */
+/* PRODUCT CARD */
+/* ------------------------------------------------ */
+
+.product-card {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+
+  border: 1px solid #e5e7eb;
+
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-6px);
+
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.08);
+}
+
+/* ------------------------------------------------ */
+/* GLASS EFFECT */
+/* ------------------------------------------------ */
+
+.glass {
+  backdrop-filter: blur(12px);
+
+  background:
+    rgba(255, 255, 255, 0.7);
+
+  border:
+    1px solid rgba(
+      255,
+      255,
+      255,
+      0.2
+    );
+}
+
+/* ------------------------------------------------ */
+/* ECOMMERCE BADGES */
+/* ------------------------------------------------ */
+
+.badge-sale {
+  background: #dc2626;
+  color: white;
+}
+
+.badge-stock {
+  background: #16a34a;
+  color: white;
+}
+
+.badge-warning {
+  background: #f59e0b;
+  color: white;
+}
+
+.badge-info {
+  background: #2563eb;
+  color: white;
+}
+
+/* ------------------------------------------------ */
+/* BUTTONS */
+/* ------------------------------------------------ */
+
+.btn-primary {
+  background: #facc15;
+  color: black;
+  font-weight: 700;
+
+  border-radius: 12px;
+
+  transition: 0.25s;
+}
+
+.btn-primary:hover {
+  background: #eab308;
+}
+
+.btn-secondary {
+  background: #f97316;
+  color: white;
+  font-weight: 700;
+
+  border-radius: 12px;
+}
+
+.btn-secondary:hover {
+  background: #ea580c;
+}
+
+/* ------------------------------------------------ */
+/* LOADING SHIMMER */
+/* ------------------------------------------------ */
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #e5e7eb;
+}
+
+.skeleton::after {
+  content: "";
+
+  position: absolute;
+
+  inset: 0;
+
+  transform: translateX(-100%);
+
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      rgba(
+        255,
+        255,
+        255,
+        0.7
+      ),
+      transparent
+    );
+
+  animation:
+    shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform:
+      translateX(100%);
+  }
+}
+
+/* ------------------------------------------------ */
+/* LOADER */
+/* ------------------------------------------------ */
+
+.loader {
+  width: 48px;
+  height: 48px;
+
+  border-radius: 50%;
+
+  border: 4px solid #e5e7eb;
+
+  border-top-color: #f59e0b;
+
+  animation:
+    spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform:
+      rotate(360deg);
+  }
+}
+
+/* ------------------------------------------------ */
+/* HERO GRADIENT */
+/* ------------------------------------------------ */
+
+.hero-gradient {
+  background:
+    linear-gradient(
+      135deg,
+      #0f172a,
+      #1d4ed8,
+      #2563eb
+    );
+}
+
+/* ------------------------------------------------ */
+/* AMAZON STYLE HOVER */
+/* ------------------------------------------------ */
+
+.hover-lift:hover {
+  transform:
+    translateY(-4px);
+}
+
+.hover-scale:hover {
+  transform:
+    scale(1.05);
+}
+
+/* ------------------------------------------------ */
+/* IMAGE ZOOM */
+/* ------------------------------------------------ */
+
+.zoom-image {
+  transition:
+    transform 0.4s ease;
+}
+
+.zoom-image:hover {
+  transform:
+    scale(1.08);
+}
+
+/* ------------------------------------------------ */
+/* MOBILE */
+/* ------------------------------------------------ */
+
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+
+  .container {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
 }

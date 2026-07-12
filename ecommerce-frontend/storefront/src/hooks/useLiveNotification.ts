@@ -6,128 +6,330 @@ import { useNotificationStore } from "@/store/notification.store";
 import toast from "react-hot-toast";
 
 export const useLiveNotification = () => {
-  const user = useAuthStore((state) => state.user);
-  const addNotification = useNotificationStore((state) => state.addNotification);
 
-  const wsRef = useRef<WebSocket | null>(null);
-  const retryRef = useRef<NodeJS.Timeout | null>(null);
+  const user = useAuthStore(
+    (state) => state.user
+  );
+
+  const token = useAuthStore(
+    (state) => state.token
+  );
+
+
+  const addNotification =
+    useNotificationStore(
+      (state) => state.addNotification
+    );
+
+
+  const wsRef =
+    useRef<WebSocket | null>(null);
+
+
+  const retryRef =
+    useRef<NodeJS.Timeout | null>(null);
+
+
 
   useEffect(() => {
-    if (!user?.id) return;
+
+    if (!user?.id || !token) return;
+
 
     let active = true;
+
     let retryCount = 0;
+
     const MAX_RETRY = 5;
+
+
 
     const API_URL =
       process.env.NEXT_PUBLIC_NOTIFICATION_API_URL ||
       "http://localhost:3018";
 
+
+
     const WS_URL =
       process.env.NEXT_PUBLIC_NOTIFICATION_WS_URL ||
-      "ws://localhost:3018/ws";
+      "ws://localhost:8080";
 
-    // =========================
-    // SAFE FETCH (NO CRASH)
-    // =========================
+
+
+
+    /*
+    =========================
+    FETCH NOTIFICATIONS
+    =========================
+    */
+
+
     const fetchNotifications = async () => {
-      try {
-        const res = await fetch(`${API_URL}/notifications/${user.id}`);
 
-        if (!res.ok) {
-          console.warn("⚠️ Notification API error:", res.status);
+      try {
+
+
+        const res =
+          await fetch(
+            `${API_URL}/notifications/${user.id}`,
+            {
+              method:"GET",
+
+              headers:{
+                "Content-Type":
+                  "application/json",
+
+                Authorization:
+                  `Bearer ${token}`
+              },
+
+              credentials:"include"
+            }
+          );
+
+
+
+        if(!res.ok){
+
+          console.warn(
+            "Notification API failed:",
+            res.status
+          );
+
           return;
         }
 
-        const data = await res.json();
 
-        if (Array.isArray(data)) {
-          data.forEach((n) => addNotification(n));
+
+        const data =
+          await res.json();
+
+
+
+        console.log(
+          "🔔 Notifications:",
+          data
+        );
+
+
+
+        if(Array.isArray(data)){
+
+          data.forEach(
+            (n)=>addNotification(n)
+          );
+
         }
-      } catch (err) {
-        console.warn("⚠️ Notification fetch failed (ignored):", err);
+
+
+      } catch(err){
+
+        console.error(
+          "❌ Notification fetch error:",
+          err
+        );
+
       }
+
     };
 
-    // =========================
-    // WS CONNECT
-    // =========================
-    const connectWS = () => {
-      if (!active) return;
 
-      if (
+
+
+
+    /*
+    =========================
+    WEBSOCKET
+    =========================
+    */
+
+
+    const connectWS = () => {
+
+
+      if(!active) return;
+
+
+
+      if(
         wsRef.current &&
-        (wsRef.current.readyState === WebSocket.OPEN ||
-          wsRef.current.readyState === WebSocket.CONNECTING)
-      ) {
+        (
+          wsRef.current.readyState === WebSocket.OPEN ||
+          wsRef.current.readyState === WebSocket.CONNECTING
+        )
+      ){
         return;
       }
 
-      const url = `${WS_URL}?userId=${user.id}`;
 
-      try {
-        const ws = new WebSocket(url);
-        wsRef.current = ws;
 
-        ws.onopen = () => {
-          console.log("✅ WebSocket connected");
-          retryCount = 0;
-        };
+      const url =
+        `${WS_URL}?userId=${user.id}`;
 
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
 
-            addNotification({
-              id: crypto.randomUUID(),
-              type: data.type || "INFO",
-              message: data.message || "Notification",
-              createdAt: new Date().toISOString(),
-            });
 
-            toast.success(data.message || "New notification");
-          } catch (err) {
-            console.warn("Invalid WS message:", err);
-          }
-        };
+      console.log(
+        "🔌 WS:",
+        url
+      );
 
-        ws.onerror = () => {
-          console.warn("❌ WebSocket connection failed:", url);
-        };
 
-        ws.onclose = () => {
-          wsRef.current = null;
 
-          if (!active) return;
+      const ws =
+        new WebSocket(url);
 
-          if (retryCount >= MAX_RETRY) {
-            console.warn("❌ WS max retry reached");
-            return;
-          }
 
-          retryCount++;
 
-          retryRef.current = setTimeout(() => {
-            connectWS();
-          }, 3000);
-        };
-      } catch (err) {
-        console.warn("WS init error:", err);
-      }
+      wsRef.current = ws;
+
+
+
+      ws.onopen = ()=>{
+
+        console.log(
+          "✅ WebSocket connected"
+        );
+
+        retryCount=0;
+
+      };
+
+
+
+
+      ws.onmessage =
+      (event)=>{
+
+
+        try{
+
+
+          const data =
+            JSON.parse(
+              event.data
+            );
+
+
+          const notification = {
+
+            id:
+              crypto.randomUUID(),
+
+            type:
+              data.type || "INFO",
+
+            message:
+              data.message ||
+              "Notification",
+
+            createdAt:
+              new Date()
+              .toISOString()
+
+          };
+
+
+
+          addNotification(
+            notification
+          );
+
+
+          toast.success(
+            notification.message
+          );
+
+
+        }catch(err){
+
+          console.warn(
+            "Invalid WS data",
+            err
+          );
+
+        }
+
+      };
+
+
+
+
+      ws.onerror = (err)=>{
+
+        console.warn(
+          "WS error",
+          err
+        );
+
+      };
+
+
+
+
+      ws.onclose = ()=>{
+
+
+        wsRef.current=null;
+
+
+
+        if(!active) return;
+
+
+
+        if(retryCount >= MAX_RETRY)
+          return;
+
+
+
+        retryCount++;
+
+
+
+        retryRef.current =
+          setTimeout(
+            connectWS,
+            3000
+          );
+
+      };
+
+
     };
+
+
+
 
     fetchNotifications();
+
     connectWS();
 
-    return () => {
-      active = false;
+
+
+    return ()=>{
+
+
+      active=false;
+
 
       wsRef.current?.close();
-      wsRef.current = null;
 
-      if (retryRef.current) {
-        clearTimeout(retryRef.current);
+
+      if(retryRef.current){
+
+        clearTimeout(
+          retryRef.current
+        );
+
       }
+
     };
-  }, [user?.id, addNotification]);
+
+
+  },[
+    user?.id,
+    token,
+    addNotification
+  ]);
+
 };

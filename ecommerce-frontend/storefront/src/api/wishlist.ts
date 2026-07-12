@@ -1,96 +1,75 @@
-// src/api/wishlist.ts
+import { apiClient } from "./apiClient";
 
-import { cartApi } from "./apiClient";
 
 export interface WishlistItem {
   id: string;
-
   cartId: string;
-
   productId: string;
-
   quantity: number;
-
   price: number;
-
-  type?: string;
 
   product?: {
     id: string;
-
     name: string;
-
     image?: string;
-
     price: number;
   };
 }
 
-/**
- * ❤️ GET WISHLIST
- */
-export const getWishlist =
-  async (): Promise<
-    WishlistItem[]
-  > => {
-    const response =
-      await cartApi.get(
-        "/cart/wishlist"
-      );
-
-    console.log(
-      "GET WISHLIST RESPONSE:",
-      response.data
-    );
-
-    return (
-      response.data?.items ||
-      response.data?.wishlist ||
-      response.data?.data?.items ||
-      response.data ||
-      []
-    );
-  };
 
 /**
- * ❤️ ADD TO WISHLIST
+ * GET WISHLIST
  */
-export const addToWishlist =
-  async (data: {
+export const getWishlist = async (): Promise<WishlistItem[]> => {
+
+  const response =
+    await apiClient.get(
+      "/cart/wishlist"
+    );
+
+  return (
+    response.data?.items ||
+    response.data?.wishlist ||
+    response.data?.data?.items ||
+    response.data ||
+    []
+  );
+};
+
+
+
+/**
+ * ADD TO WISHLIST
+ */
+export const addToWishlist = async (
+  data: {
     productId: string;
-
     quantity?: number;
-
     price?: number;
-  }): Promise<WishlistItem> => {
-    const response =
-      await cartApi.post(
-        "/cart/wishlist/add",
-        data
-      );
+  }
+): Promise<WishlistItem> => {
 
-    console.log(
-      "ADD WISHLIST RESPONSE:",
-      response.data
+  const response =
+    await apiClient.post(
+      "/cart/wishlist/add",
+      data
     );
 
-    return response.data;
-  };
+  return response.data;
+
+};
+
+
 
 /**
- * ❌ REMOVE WISHLIST ITEM
+ * REMOVE FROM WISHLIST
  */
-export const removeFromWishlist =
-  async (
-    itemId: string
-  ): Promise<void> => {
-    const response =
-      await cartApi.delete(
-        `/cart/wishlist/remove/${itemId}`
-      );
+export const removeFromWishlist = async (
+  itemId: string
+): Promise<void> => {
 
-    console.log(
-      "REMOVE WISHLIST RESPONSE:",
-      response.data
-    );
-  };
+  await apiClient.delete(
+    `/cart/wishlist/remove/${itemId}`
+  );
+
+};

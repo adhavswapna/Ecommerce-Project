@@ -1,4 +1,5 @@
 import { Router } from "express";
+
 import {
   addItemController,
   addToWishlist,
@@ -8,35 +9,86 @@ import {
   removeItemController,
   clearItems,
   clearWishlist,
-  moveItemToCart,
   moveItemToWishlist,
+  moveItemToCart,
 } from "../controllers/cart.controller";
 
 import { authMiddleware } from "../middlewares/auth.middleware";
 
 const router = Router();
 
-/* ================= CART ================= */
+/* ======================================================
+   CART
+====================================================== */
 
-router.post("/add", authMiddleware, addItemController);
-router.get("/", authMiddleware, getCartItems);
+router.post(
+  "/add",
+  authMiddleware,
+  addItemController
+);
 
-router.put("/update/:itemId", authMiddleware, updateItem);
-router.delete("/remove/:itemId", authMiddleware, removeItemController);
-router.delete("/clear", authMiddleware, clearItems);
+router.get(
+  "/",
+  authMiddleware,
+  getCartItems
+);
 
-/* ================= WISHLIST ================= */
+router.put(
+  "/update/:itemId",
+  authMiddleware,
+  updateItem
+);
 
-router.post("/wishlist/add", authMiddleware, addToWishlist);
-router.get("/wishlist", authMiddleware, getWishlistItems);
+router.delete(
+  "/remove/:itemId",
+  authMiddleware,
+  removeItemController
+);
 
-router.delete("/wishlist/remove/:itemId", authMiddleware, removeItemController);
-router.delete("/wishlist/clear", authMiddleware, clearWishlist);
+router.delete(
+  "/clear",
+  authMiddleware,
+  clearItems
+);
 
-// ✅ CART → WISHLIST
-router.put("/wishlist/move/:itemId", authMiddleware, moveItemToWishlist);
+/* ======================================================
+   WISHLIST
+====================================================== */
 
-// ✅ WISHLIST → CART
-router.put("/cart/move/:itemId", authMiddleware, moveItemToCart);
+router.post(
+  "/wishlist/add",
+  authMiddleware,
+  addToWishlist
+);
+
+router.get(
+  "/wishlist",
+  authMiddleware,
+  getWishlistItems
+);
+
+router.delete(
+  "/wishlist/remove/:itemId",
+  authMiddleware,
+  removeItemController
+);
+
+router.delete(
+  "/wishlist/clear",
+  authMiddleware,
+  clearWishlist
+);
+
+router.put(
+  "/wishlist/move-to-cart/:itemId",
+  authMiddleware,
+  moveItemToCart
+);
+
+router.put(
+  "/move-to-wishlist/:itemId",
+  authMiddleware,
+  moveItemToWishlist
+);
 
 export default router;

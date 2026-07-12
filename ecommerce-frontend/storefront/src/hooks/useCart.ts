@@ -1,82 +1,33 @@
-// src/hooks/useCart.ts
-
 "use client";
 
 import { useCartStore } from "@/store/cartStore";
 
-export const useCart =
-  () => {
-    const cartItems =
-      useCartStore(
-        (state) =>
-          state.cartItems
-      );
+export const useCart = () => {
+  const items = useCartStore((s) => s.items);
+  const loading = useCartStore((s) => s.loading);
+  const error = useCartStore((s) => s.error);
 
-    const loading =
-      useCartStore(
-        (state) =>
-          state.loading
-      );
+  const fetchCart = useCartStore((s) => s.fetchCart);
+  const addItem = useCartStore((s) => s.addItem);
+  const updateItem = useCartStore((s) => s.updateItem);
+  const removeItem = useCartStore((s) => s.removeItem);
+  const clear = useCartStore((s) => s.clear);
 
-    const fetchCart =
-      useCartStore(
-        (state) =>
-          state.fetchCart
-      );
+  const total = useCartStore((s) => s.cartTotal());
+  const count = useCartStore((s) => s.cartCount());
 
-    const addItem =
-      useCartStore(
-        (state) =>
-          state.addItem
-      );
+  return {
+    items,
+    loading,
+    error,
 
-    const updateItem =
-      useCartStore(
-        (state) =>
-          state.updateItem
-      );
+    fetchCart,
+    addItem,
+    updateItem,
+    removeItem,
+    clear,
 
-    const removeItem =
-      useCartStore(
-        (state) =>
-          state.removeItem
-      );
-
-    const clear =
-      useCartStore(
-        (state) =>
-          state.clear
-      );
-
-    const total =
-      useCartStore(
-        (state) =>
-          state.cartTotal()
-      );
-
-    const count =
-      useCartStore(
-        (state) =>
-          state.cartCount()
-      );
-
-    return {
-      cartItems,
-
-      loading,
-
-      fetchCart,
-
-      addItem,
-
-      updateItem,
-
-      removeItem,
-
-      clear,
-
-      total,
-
-      count,
-    };
+    total,
+    count,
   };
+};

@@ -7,11 +7,11 @@ import authRoutes from "./routes/auth.routes";
 
 const app = express();
 
+
 /* --------------------------------------------------
    GLOBAL MIDDLEWARES
 -------------------------------------------------- */
 
-// ✅ CORS (VERY IMPORTANT for frontend)
 app.use(
   cors({
     origin: [
@@ -22,31 +22,44 @@ app.use(
   })
 );
 
-// Security headers
 app.use(helmet());
 
-// Logging
 app.use(morgan("dev"));
 
-// Body parsing
 app.use(express.json());
+
 app.use(express.urlencoded({ extended: true }));
+
 
 /* --------------------------------------------------
    HEALTH CHECK
 -------------------------------------------------- */
 
+// direct service
+// curl http://localhost:3001/health
 app.get("/health", (_req, res) => {
   res.status(200).json({
     status: "auth-service running",
   });
 });
 
+
+// gateway health
+// curl http://localhost:8081/api/auth/health
+// nginx forwards -> /auth/health
+app.get("/auth/health", (_req, res) => {
+  res.status(200).json({
+    status: "auth-service running",
+  });
+});
+
+
 /* --------------------------------------------------
    ROUTES
 -------------------------------------------------- */
 
 app.use("/auth", authRoutes);
+
 
 /* --------------------------------------------------
    404 HANDLER
@@ -57,6 +70,7 @@ app.use((_req, res) => {
     message: "Route not found",
   });
 });
+
 
 /* --------------------------------------------------
    ERROR HANDLER
@@ -69,6 +83,7 @@ app.use(
     res: express.Response,
     _next: express.NextFunction
   ) => {
+
     console.error("❌ Error:", err);
 
     res.status(err.status || 500).json({
@@ -77,5 +92,5 @@ app.use(
   }
 );
 
-export default app;
 
+export default app;

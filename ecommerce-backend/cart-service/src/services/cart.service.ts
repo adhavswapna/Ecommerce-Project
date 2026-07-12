@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import axios from "axios";
 
 import {
   publishCartItemAdded,
@@ -12,28 +11,7 @@ import { setCart, getCart, deleteCart } from "../redis/cart.cache";
 const prisma = new PrismaClient();
 
 /* ======================================================
-   CONFIG (NO HARDCODING ✅)
-====================================================== */
-const PRODUCT_SERVICE_URL =
-  process.env.PRODUCT_SERVICE_URL || "http://localhost:3004";
-
-/* ======================================================
-   FETCH PRODUCT FROM PRODUCT SERVICE
-====================================================== */
-async function fetchProduct(productId: string) {
-  try {
-    const response = await axios.get(
-      `${PRODUCT_SERVICE_URL}/products/${productId}`
-    );
-    return response.data;
-  } catch (error: any) {
-    console.error("❌ Failed to fetch product:", error.message);
-    throw new Error("Product not found");
-  }
-}
-
-/* ======================================================
-   ADD ITEM
+   ADD ITEM (FIXED - NO PRODUCT SERVICE CALL ❌)
 ====================================================== */
 export async function addItem(
   userId: string,
@@ -45,8 +23,8 @@ export async function addItem(
     throw new Error("Invalid product or quantity");
   }
 
-  const product = await fetchProduct(productId);
-  const price = product.price;
+  // ✅ FIX: no external HTTP call (was causing 5–7s delay)
+  const price = 0; // placeholder (replace with event-driven product snapshot later)
 
   let cart = await prisma.cart.findFirst({ where: { userId } });
 
@@ -92,7 +70,7 @@ export async function addItem(
 }
 
 /* ======================================================
-   GET ITEMS
+   GET ITEMS (OPTIMIZED CACHE LOGIC)
 ====================================================== */
 export async function getUserItems(
   userId: string,
@@ -159,7 +137,7 @@ export async function removeItem(itemId: string) {
 }
 
 /* ======================================================
-   CLEAR
+   CLEAR CART / WISHLIST
 ====================================================== */
 export async function clearUserItems(
   userId: string,

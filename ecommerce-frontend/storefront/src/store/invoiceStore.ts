@@ -1,71 +1,29 @@
 "use client";
 
 import { create } from "zustand";
-
 import toast from "react-hot-toast";
-
-import {
-  downloadInvoice,
-} from "@/api/invoice.api";
+import { downloadInvoice } from "@/api/invoice.api";
 
 interface InvoiceState {
   loading: boolean;
-
-  download:
-    (
-      orderId: string
-    ) => Promise<void>;
+  download: (invoiceId: string) => Promise<void>;
 }
 
-export const useInvoiceStore =
-  create<InvoiceState>(
-    (set) => ({
-      loading: false,
+export const useInvoiceStore = create<InvoiceState>((set) => ({
+  loading: false,
 
-      download: async (
-        orderId
-      ) => {
-        try {
-          set({
-            loading: true,
-          });
+  download: async (invoiceId: string) => {
+    try {
+      set({ loading: true });
 
-          const blob =
-            await downloadInvoice(
-              orderId
-            );
+      await downloadInvoice(invoiceId);
 
-          const url =
-            window.URL.createObjectURL(
-              blob
-            );
-
-          const link =
-            document.createElement(
-              "a"
-            );
-
-          link.href = url;
-
-          link.download =
-            `invoice-${orderId}.pdf`;
-
-          link.click();
-
-          toast.success(
-            "Invoice downloaded"
-          );
-        } catch (error) {
-          console.error(error);
-
-          toast.error(
-            "Failed to download invoice"
-          );
-        } finally {
-          set({
-            loading: false,
-          });
-        }
-      },
-    })
-  );
+      toast.success("Invoice downloaded");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to download invoice");
+    } finally {
+      set({ loading: false });
+    }
+  },
+}));

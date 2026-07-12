@@ -2,23 +2,23 @@
 
 
 import {
-  useCallback,
-  useState,
+ useCallback,
+ useState,
 } from "react";
 
 
 import {
-  createOrder,
-  confirmOrder,
-  getOrderById,
-  getMyOrders,
-  cancelOrder,
+ createOrder,
+ getOrderById,
+ getOrders,
+ cancelOrder,
+ updateOrderStatus,
 } from "@/api/orders";
 
 
 import {
-  CreateOrderPayload,
-  Order,
+ CreateOrderPayload,
+ Order,
 } from "@/types/order";
 
 
@@ -26,264 +26,332 @@ import toast from "react-hot-toast";
 
 
 
+
 export const useOrders = () => {
 
 
-  const [orders,setOrders] =
-    useState<Order[]>([]);
 
+const [orders,setOrders] =
+useState<Order[]>([]);
 
-  const [order,setOrder] =
-    useState<Order | null>(null);
 
 
-  const [loading,setLoading] =
-    useState(false);
+const [order,setOrder] =
+useState<Order|null>(null);
 
 
 
-  /**
-   * CREATE ORDER
-   */
-  const placeOrder =
-    useCallback(
-      async(
-        payload:CreateOrderPayload
-      )=>{
+const [loading,setLoading] =
+useState(false);
 
-        try {
 
-          setLoading(true);
 
 
-          const data =
-            await createOrder(
-              payload
-            );
 
 
-          setOrder(data);
 
+const placeOrder =
+useCallback(
+async(payload:CreateOrderPayload)=>{
 
-          toast.success(
-            "Order placed successfully"
-          );
 
+try{
 
-          return data;
 
+ setLoading(true);
 
-        }catch(error:any){
 
 
-          toast.error(
-            error?.response?.data?.message ||
-            "Failed to place order"
-          );
+ const data =
+ await createOrder(payload);
 
 
-          throw error;
 
+ setOrder(data);
 
-        }finally{
 
-          setLoading(false);
 
-        }
+ toast.success(
+  "Order placed successfully"
+ );
 
-      },[]
-    );
 
 
+ return data;
 
-  /**
-   * FETCH ORDER
-   */
-  const fetchOrder =
-    useCallback(
-      async(
-        id:string
-      )=>{
 
-        try{
 
-          setLoading(true);
+}
+catch(error:any){
 
 
-          const data =
-            await getOrderById(id);
+ toast.error(
+ error?.response?.data?.message
+ ||
+ "Failed to place order"
+ );
 
 
-          setOrder(data);
+ throw error;
 
 
-          return data;
+}
+finally{
 
 
-        }catch(error:any){
+ setLoading(false);
 
 
-          toast.error(
-            "Failed to fetch order"
-          );
+}
 
 
-          throw error;
 
+},[]);
 
-        }finally{
 
-          setLoading(false);
 
-        }
 
 
-      },[]
-    );
 
 
 
 
-  /**
-   * FETCH USER ORDERS
-   */
-  const fetchOrders =
-    useCallback(
-      async()=>{
 
-        try{
+const fetchOrder =
+useCallback(
+async(id:string)=>{
 
-          setLoading(true);
 
+try{
 
-          const data =
-            await getMyOrders();
 
+ setLoading(true);
 
-          setOrders(data);
 
 
-          return data;
+ const data =
+ await getOrderById(id);
 
 
-        }catch(error:any){
 
+ setOrder(data);
 
-          toast.error(
-            "Failed to fetch orders"
-          );
 
 
-          throw error;
+ return data;
 
 
-        }finally{
 
-          setLoading(false);
+}
+catch(error:any){
 
-        }
 
+toast.error(
+ "Failed to fetch order"
+);
 
-      },[]
-    );
 
 
+throw error;
 
 
+}
+finally{
 
-  /**
-   * CONFIRM
-   */
-  const confirm =
-    useCallback(
-      async(
-        id:string
-      )=>{
 
-        try{
+setLoading(false);
 
-          setLoading(true);
 
+}
 
-          const data =
-            await confirmOrder(id);
 
 
-          setOrder(data);
+},[]);
 
 
-          return data;
 
 
-        }finally{
 
-          setLoading(false);
 
-        }
 
-      },[]
-    );
 
 
+const fetchOrders =
+useCallback(
+async()=>{
 
 
-  /**
-   * CANCEL
-   */
-  const cancel =
-    useCallback(
-      async(
-        id:string
-      )=>{
+try{
 
-        try{
 
-          setLoading(true);
+setLoading(true);
 
 
-          const data =
-            await cancelOrder(id);
 
+const data =
+await getOrders();
 
-          setOrder(data);
 
 
-          return data;
+setOrders(
+ Array.isArray(data)
+ ? data
+ : data.orders || []
+);
 
 
-        }finally{
 
-          setLoading(false);
+return data;
 
-        }
 
 
-      },[]
-    );
+}
+catch(error:any){
 
 
+toast.error(
+ "Failed to fetch orders"
+);
 
 
 
-  return {
+throw error;
 
-    orders,
 
-    order,
+}
+finally{
 
-    loading,
 
+setLoading(false);
 
-    placeOrder,
 
-    fetchOrder,
+}
 
-    fetchOrders,
 
-    confirm,
 
-    cancel,
+},[]);
 
-  };
+
+
+
+
+
+
+
+
+const cancel =
+useCallback(
+async(id:string)=>{
+
+
+try{
+
+
+setLoading(true);
+
+
+
+const data =
+await cancelOrder(id);
+
+
+
+setOrder(data);
+
+
+
+return data;
+
+
+
+}
+catch(error:any){
+
+
+toast.error(
+ "Cancel failed"
+);
+
+
+throw error;
+
+
+}
+finally{
+
+
+setLoading(false);
+
+
+}
+
+
+
+},[]);
+
+
+
+
+
+
+
+
+
+const updateStatus =
+useCallback(
+async(
+ id:string,
+ status:string
+)=>{
+
+
+const data =
+await updateOrderStatus(
+ id,
+ status
+);
+
+
+
+setOrder(data);
+
+
+
+return data;
+
+
+
+},[]);
+
+
+
+
+
+
+
+
+return {
+
+
+ orders,
+
+ order,
+
+ loading,
+
+
+ placeOrder,
+
+ fetchOrder,
+
+ fetchOrders,
+
+ cancel,
+
+ updateStatus,
+
+
+};
+
 
 };

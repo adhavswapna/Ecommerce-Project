@@ -6,28 +6,60 @@ import {
 } from "../kafka/user.producer";
 
 export class UserController {
+
+  /**
+   * 🔥 CREATE USER
+   */
+  static async createUser(req: Request, res: Response) {
+    try {
+      const { id, name, email, role } = req.body;
+
+      const user = await UserService.createUser({
+        id,
+        name,
+        email,
+        role,
+      });
+
+      return res.status(201).json(user);
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  /**
+   * GET USER BY ID
+   */
   static async getById(req: Request, res: Response) {
     try {
       const user = await UserService.getById(req.params.id);
 
-      if (!user) return res.status(404).json({ message: "User not found" });
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
 
-      res.json(user);
+      return res.json(user);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      return res.status(500).json({ error: err.message });
     }
   }
 
+  /**
+   * CURRENT LOGGED-IN USER
+   */
   static async getMe(req: Request, res: Response) {
     try {
       const user = await UserService.getById(req.user!.userId);
 
-      res.json(user);
+      return res.json(user);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      return res.status(500).json({ error: err.message });
     }
   }
 
+  /**
+   * UPDATE PROFILE
+   */
   static async updateProfile(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -41,12 +73,15 @@ export class UserController {
         email: user.email,
       });
 
-      res.json(user);
+      return res.json(user);
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      return res.status(500).json({ error: err.message });
     }
   }
 
+  /**
+   * DELETE USER
+   */
   static async deleteUser(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -58,9 +93,9 @@ export class UserController {
         email: user.email,
       });
 
-      res.json({ message: "User deleted" });
+      return res.json({ message: "User deleted" });
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      return res.status(500).json({ error: err.message });
     }
   }
 }

@@ -1,281 +1,343 @@
-// src/store/auth.store.ts
-
 "use client";
 
-import { create } from "zustand";
 
-/* =========================================
- * 👤 USER TYPE
- * ========================================= */
-export interface User {
-  id: string;
+import {create} from "zustand";
 
-  name?: string;
+import type {
+ User,
+ JwtUserPayload
+} from "@/types/user";
 
-  email: string;
+import {
+ decodeJwtUser
+} from "@/types/user";
 
-  role?: string;
-}
 
-/* =========================================
- * 🧠 AUTH STATE
- * ========================================= */
+
 interface AuthState {
-  token: string | null;
 
-  user: User | null;
 
-  isAuthenticated: boolean;
+ token:string|null;
 
-  hydrated: boolean;
+ user:User|null;
 
-  setAuth: (
-    token: string,
-    user: User
-  ) => void;
+ jwtUser:JwtUserPayload|null;
 
-  logout: () => void;
 
-  hydrate: () => void;
+ isAuthenticated:boolean;
+
+ hydrated:boolean;
+
+
+
+ setAuth:
+ (
+  token:string,
+  user:User
+ )=>void;
+
+
+
+ logout:
+ ()=>void;
+
+
+
+ hydrate:
+ ()=>void;
+
 }
 
-/* =========================================
- * 🔐 STORAGE KEYS
- * ========================================= */
-const TOKEN_KEY = "token";
 
-const USER_KEY = "user";
 
-/* =========================================
- * ✅ SAFE TOKEN PARSER
- * ========================================= */
-const getStoredToken =
-  (): string | null => {
-    if (
-      typeof window ===
-      "undefined"
-    ) {
-      return null;
-    }
+const TOKEN_KEY="token";
 
-    try {
-      const token =
-        localStorage.getItem(
-          TOKEN_KEY
-        );
+const USER_KEY="user";
 
-      if (
-        !token ||
-        token ===
-          "undefined" ||
-        token ===
-          "null"
-      ) {
-        return null;
-      }
 
-      /**
-       * ✅ CHECK JWT FORMAT
-       */
-      const parts =
-        token.split(".");
 
-      if (
-        parts.length !== 3
-      ) {
-        localStorage.removeItem(
-          TOKEN_KEY
-        );
 
-        return null;
-      }
+const getStoredToken=()=>{
 
-      /**
-       * ✅ DECODE PAYLOAD
-       */
-      const payload =
-        JSON.parse(
-          atob(parts[1])
-        );
 
-      /**
-       * ✅ CHECK EXPIRY
-       */
-      if (
-        payload.exp &&
-        payload.exp * 1000 <
-          Date.now()
-      ) {
-        localStorage.removeItem(
-          TOKEN_KEY
-        );
+ if(
+  typeof window==="undefined"
+ )
+ return null;
 
-        localStorage.removeItem(
-          USER_KEY
-        );
 
-        return null;
-      }
 
-      return token;
-    } catch (
-      error
-    ) {
-      console.error(
-        "❌ Invalid token:",
-        error
-      );
+ const token =
+ localStorage.getItem(
+  TOKEN_KEY
+ );
 
-      localStorage.removeItem(
-        TOKEN_KEY
-      );
 
-      return null;
-    }
-  };
 
-/* =========================================
- * ✅ SAFE USER PARSER
- * ========================================= */
-const getStoredUser =
-  (): User | null => {
-    if (
-      typeof window ===
-      "undefined"
-    ) {
-      return null;
-    }
+ if(
+ !token ||
+ token==="null" ||
+ token==="undefined"
+ )
+ return null;
 
-    try {
-      const user =
-        localStorage.getItem(
-          USER_KEY
-        );
 
-      if (
-        !user ||
-        user ===
-          "undefined" ||
-        user === "null"
-      ) {
-        return null;
-      }
 
-      return JSON.parse(
-        user
-      );
-    } catch (
-      error
-    ) {
-      console.error(
-        "❌ Invalid user:",
-        error
-      );
 
-      localStorage.removeItem(
-        USER_KEY
-      );
+ try{
 
-      return null;
-    }
-  };
 
-/* =========================================
- * 🏪 AUTH STORE
- * ========================================= */
+  const payload =
+   JSON.parse(
+    atob(
+     token.split(".")[1]
+    )
+   );
+
+
+
+  if(
+   payload.exp &&
+   payload.exp*1000 <
+   Date.now()
+  ){
+
+    localStorage.removeItem(
+     TOKEN_KEY
+    );
+
+    localStorage.removeItem(
+     USER_KEY
+    );
+
+
+    return null;
+  }
+
+
+
+  return token;
+
+
+
+ }catch{
+
+
+ return null;
+
+
+ }
+
+};
+
+
+
+
+
+const getStoredUser=()=>{
+
+
+ if(
+ typeof window==="undefined"
+ )
+ return null;
+
+
+
+ try{
+
+
+ const user =
+ localStorage.getItem(
+  USER_KEY
+ );
+
+
+
+ if(!user)
+ return null;
+
+
+
+ return JSON.parse(user);
+
+
+
+ }catch{
+
+
+ return null;
+
+
+ }
+
+};
+
+
+
+
+
+
 export const useAuthStore =
-  create<AuthState>(
-    (set) => ({
-      token: null,
+create<AuthState>((set)=>(
 
-      user: null,
+{
 
-      isAuthenticated:
-        false,
 
-      hydrated: false,
+ token:null,
 
-      /* =========================================
-       * 💧 HYDRATE STORE
-       * ========================================= */
-      hydrate: () => {
-        const token =
-          getStoredToken();
+ user:null,
 
-        const user =
-          getStoredUser();
+ jwtUser:null,
 
-        set({
-          token,
 
-          user,
+ isAuthenticated:false,
 
-          hydrated: true,
+ hydrated:false,
 
-          isAuthenticated:
-            !!token,
-        });
-      },
 
-      /* =========================================
-       * ✅ SET AUTH
-       * ========================================= */
-      setAuth: (
-        token,
-        user
-      ) => {
-        if (
-          typeof window !==
-          "undefined"
-        ) {
-          localStorage.setItem(
-            TOKEN_KEY,
-            token
-          );
 
-          localStorage.setItem(
-            USER_KEY,
-            JSON.stringify(
-              user
-            )
-          );
-        }
 
-        set({
-          token,
 
-          user,
+ hydrate:()=>{
 
-          isAuthenticated:
-            true,
-        });
-      },
 
-      /* =========================================
-       * 🚪 LOGOUT
-       * ========================================= */
-      logout: () => {
-        if (
-          typeof window !==
-          "undefined"
-        ) {
-          localStorage.removeItem(
-            TOKEN_KEY
-          );
+ const token =
+ getStoredToken();
 
-          localStorage.removeItem(
-            USER_KEY
-          );
-        }
 
-        set({
-          token: null,
+ const user =
+ getStoredUser();
 
-          user: null,
 
-          isAuthenticated:
-            false,
-        });
-      },
-    })
-  );
+
+ set({
+
+ token,
+
+ user,
+
+ jwtUser:
+ decodeJwtUser(token),
+
+
+ isAuthenticated:
+ !!token,
+
+
+ hydrated:true
+
+ });
+
+
+ },
+
+
+
+
+
+
+
+ setAuth:
+ (
+ token,
+ user
+ )=>{
+
+
+ if(
+ typeof window!=="undefined"
+ ){
+
+
+ localStorage.setItem(
+  TOKEN_KEY,
+  token
+ );
+
+
+ localStorage.setItem(
+  USER_KEY,
+  JSON.stringify(user)
+ );
+
+
+ }
+
+
+
+ set({
+
+ token,
+
+ user,
+
+
+ jwtUser:
+ decodeJwtUser(token),
+
+
+ isAuthenticated:true,
+
+
+ hydrated:true
+
+ });
+
+
+ },
+
+
+
+
+
+
+
+
+ logout:()=>{
+
+
+ if(
+ typeof window!=="undefined"
+ ){
+
+
+ localStorage.removeItem(
+  TOKEN_KEY
+ );
+
+
+ localStorage.removeItem(
+  USER_KEY
+ );
+
+
+ }
+
+
+
+
+ set({
+
+ token:null,
+
+ user:null,
+
+ jwtUser:null,
+
+
+ isAuthenticated:false,
+
+
+ hydrated:true
+
+ });
+
+
+ }
+
+
+
+}
+
+));

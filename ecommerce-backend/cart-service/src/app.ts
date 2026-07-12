@@ -6,50 +6,35 @@ import routes from "./routes/cart.routes";
 
 const app = express();
 
-/* ---------------- GLOBAL MIDDLEWARES ---------------- */
-
+/**
+ * ✅ FIXED CORS CONFIG
+ * MUST match frontend (http://localhost:3000)
+ * MUST NOT use "*" because withCredentials=true is used in frontend
+ */
 app.use(
   cors({
-    origin: [
-      "http://127.0.0.1:3000",
-      "http://localhost:3000",
-    ],
+    origin: "http://localhost:3000",
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
 app.use(helmet());
 app.use(morgan("dev"));
-
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-/* ---------------- HEALTH CHECK ---------------- */
-
+/* ✅ HEALTH */
 app.get("/health", (_req, res) => {
-  res.status(200).json({
-    status: "cart-service running",
-  });
+  res.json({ status: "cart-service running" });
 });
 
-/* ---------------- ROUTES ---------------- */
+/* Routes */
+app.use("/", routes);
 
-app.use("/cart", routes);
-
-/* ---------------- 404 ---------------- */
-
+/* 404 */
 app.use((_req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
-/* ---------------- ERROR HANDLER ---------------- */
-
-app.use((err: any, _req: any, res: any, _next: any) => {
-  console.error("❌ Cart Error:", err);
-  res.status(err.status || 500).json({
-    message: err.message || "Internal Server Error",
-  });
-});
-
 export default app;
-

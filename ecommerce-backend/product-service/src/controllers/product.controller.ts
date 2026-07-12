@@ -8,9 +8,7 @@ import {
   checkStock,
 } from "../services/product.service";
 
-/* =========================================
-   GET ALL PRODUCTS
-========================================= */
+/* GET ALL PRODUCTS */
 export async function getAllProducts(req: Request, res: Response) {
   try {
     const products = await listProducts();
@@ -21,9 +19,7 @@ export async function getAllProducts(req: Request, res: Response) {
   }
 }
 
-/* =========================================
-   GET PRODUCT BY ID
-========================================= */
+/* GET PRODUCT */
 export async function getProduct(req: Request, res: Response) {
   try {
     const { id } = req.params;
@@ -41,19 +37,25 @@ export async function getProduct(req: Request, res: Response) {
   }
 }
 
-/* =========================================
-   CREATE PRODUCT
-========================================= */
+/* CREATE PRODUCT */
 export async function addProduct(req: Request, res: Response) {
   try {
-    const { name, price, description, stock, vendorId } = req.body;
+    const {
+      name,
+      price,
+      description,
+      stock,
+      vendorId,
+      images, // NEW
+    } = req.body;
 
     const product = await createProduct(
       name,
       Number(price),
       description ?? null,
       Number(stock),
-      vendorId
+      vendorId,
+      images || []
     );
 
     return res.status(201).json(product);
@@ -63,9 +65,7 @@ export async function addProduct(req: Request, res: Response) {
   }
 }
 
-/* =========================================
-   UPDATE PRODUCT
-========================================= */
+/* UPDATE PRODUCT */
 export async function editProduct(req: Request, res: Response) {
   try {
     const { id } = req.params;
@@ -85,9 +85,7 @@ export async function editProduct(req: Request, res: Response) {
   }
 }
 
-/* =========================================
-   DELETE PRODUCT
-========================================= */
+/* DELETE PRODUCT */
 export async function removeProduct(req: Request, res: Response) {
   try {
     const { id } = req.params;
@@ -104,9 +102,7 @@ export async function removeProduct(req: Request, res: Response) {
   }
 }
 
-/* =========================================
-   CHECK STOCK
-========================================= */
+/* STOCK */
 export async function getStock(req: Request, res: Response) {
   try {
     const { id } = req.params;

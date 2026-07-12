@@ -1,45 +1,32 @@
-import { invoiceApi } from "./apiClient";
+import { apiClient } from "./apiClient";
 
-import { Invoice } from "@/types/invoice";
+import {
+  Invoice,
+} from "@/types/invoice";
+
+
 
 
 
 /*
 =====================================================
-📄 CREATE INVOICE
+CREATE INVOICE
 =====================================================
 */
 
 export async function createInvoice(
-  payload: any
-): Promise<Invoice> {
-
-  try {
-
-    const { data } =
-      await invoiceApi.post(
-        "/invoices",
-        payload
-      );
+  payload:any
+):Promise<Invoice>{
 
 
-    return data;
-
-
-  } catch (error: any) {
-
-
-    console.error(
-      "❌ CREATE INVOICE ERROR",
-      error?.response?.data ||
-      error.message ||
-      error
+  const {data} =
+    await apiClient.post(
+      "/invoices",
+      payload
     );
 
 
-    throw error;
-
-  }
+  return data;
 
 }
 
@@ -47,43 +34,45 @@ export async function createInvoice(
 
 
 
+
+
 /*
 =====================================================
-📄 GET INVOICE BY ORDER ID
+GET BY ORDER ID
 =====================================================
 */
 
 export async function getInvoiceByOrderId(
-  orderId: string
-): Promise<Invoice | null> {
+ orderId:string
+):Promise<Invoice|null>{
 
 
-  try {
+ try {
 
 
-    const { data } =
-      await invoiceApi.get(
-        `/invoices/order/${orderId}`
-      );
-
-
-    return data;
-
-
-  } catch (error: any) {
-
-
-    console.error(
-      "❌ GET INVOICE ERROR",
-      error?.response?.data ||
-      error.message ||
-      error
+  const {data} =
+    await apiClient.get(
+      `/invoices/order/${orderId}`
     );
 
 
-    return null;
+  return data;
 
-  }
+
+ }
+ catch(error:any){
+
+
+  console.error(
+    "GET INVOICE ERROR",
+    error?.response?.data
+  );
+
+
+  return null;
+
+
+ }
 
 }
 
@@ -91,43 +80,46 @@ export async function getInvoiceByOrderId(
 
 
 
+
+
+
 /*
 =====================================================
-📄 GET INVOICE BY ID
+GET INVOICE
 =====================================================
 */
 
 export async function getInvoice(
-  invoiceId: string
-): Promise<Invoice | null> {
+ invoiceId:string
+):Promise<Invoice|null>{
 
 
-  try {
+ try {
 
 
-    const { data } =
-      await invoiceApi.get(
-        `/invoices/${invoiceId}`
-      );
+ const {data} =
+ await apiClient.get(
+  `/invoices/${invoiceId}`
+ );
 
 
-    return data;
+ return data;
 
 
-  } catch (error: any) {
+ }
+ catch(error:any){
 
 
-    console.error(
-      "❌ GET INVOICE FAILED",
-      error?.response?.data ||
-      error.message ||
-      error
-    );
+ console.error(
+  "GET INVOICE ERROR",
+  error?.response?.data
+ );
 
 
-    return null;
+ return null;
 
-  }
+
+ }
 
 }
 
@@ -135,77 +127,66 @@ export async function getInvoice(
 
 
 
+
+
+
 /*
 =====================================================
-⬇ DOWNLOAD PDF
+DOWNLOAD PDF
 =====================================================
 */
 
 export async function downloadInvoice(
-  invoiceId: string
-) {
+ invoiceId:string
+){
 
 
-  try {
+ const response =
+ await apiClient.get(
 
+   `/invoices/${invoiceId}/download`,
 
-    const response =
-      await invoiceApi.get(
-        `/invoices/${invoiceId}/download`,
-        {
-          responseType: "blob"
-        }
-      );
+   {
+    responseType:"blob"
+   }
 
-
-
-    const blob =
-      new Blob(
-        [response.data],
-        {
-          type: "application/pdf"
-        }
-      );
+ );
 
 
 
-    const url =
-      window.URL.createObjectURL(blob);
-
-
-
-    const link =
-      document.createElement("a");
-
-
-    link.href = url;
-
-
-    link.download =
-      `invoice-${invoiceId}.pdf`;
-
-
-    link.click();
-
-
-
-    window.URL.revokeObjectURL(url);
-
-
-
-  } catch (error: any) {
-
-
-    console.error(
-      "❌ DOWNLOAD INVOICE ERROR",
-      error?.response?.data ||
-      error.message ||
-      error
-    );
-
-
-    throw error;
-
+ const blob =
+ new Blob(
+  [
+   response.data
+  ],
+  {
+   type:"application/pdf"
   }
+ );
+
+
+
+ const url =
+ window.URL.createObjectURL(blob);
+
+
+
+ const link =
+ document.createElement("a");
+
+
+ link.href=url;
+
+
+ link.download =
+ `invoice-${invoiceId}.pdf`;
+
+
+
+ link.click();
+
+
+
+ window.URL.revokeObjectURL(url);
 
 }

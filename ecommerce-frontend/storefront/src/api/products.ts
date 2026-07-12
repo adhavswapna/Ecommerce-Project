@@ -1,44 +1,114 @@
-import { productApi } from "./apiClient";
 
-import { Product } from "@/types/product";
+import axios from "axios";
 
-export const getProducts =
-  async (): Promise<Product[]> => {
-    const response =
-      await productApi.get(
-        "/products"
-      );
+const API_URL = "http://localhost:8081/api";
 
-    return response.data;
-  };
+export const getProducts = async () => {
+  try {
+    console.group("📦 GET PRODUCTS (Plain Axios)");
 
-export const getProductById =
-  async (
-    id: string
-  ): Promise<Product> => {
-    const response =
-      await productApi.get(
-        `/products/${id}`
-      );
+    console.log("Calling GET /products...");
 
-    return response.data;
-  };
+    const res = await axios.get(`${API_URL}/products/`, {
+      timeout: 30000,
+      withCredentials: false,
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    });
 
-export const createProduct =
-  async (
-    data: {
-      name: string;
-      price: number;
-      stock: number;
-      description?: string;
-      vendorId: string;
-    }
-  ): Promise<Product> => {
-    const response =
-      await productApi.post(
-        "/products",
-        data
-      );
+    console.log("Status:", res.status);
+    console.log("Headers:", res.headers);
+    console.log("Data:", res.data);
 
-    return response.data;
-  };
+    console.groupEnd();
+
+    return res.data;
+  } catch (error: any) {
+    console.group("❌ GET PRODUCTS FAILED");
+
+    console.log("Message:", error.message);
+    console.log("Code:", error.code);
+    console.log("Request URL:", error.config?.url);
+    console.log("Response:", error.response);
+    console.log("Full Error:", error);
+
+    console.groupEnd();
+
+    throw error;
+  }
+};
+
+export const getProductById = async (id: string) => {
+  try {
+    console.group("📦 GET PRODUCT");
+
+    console.log("Product ID:", id);
+
+    const res = await axios.get(`${API_URL}/products/${id}`, {
+      timeout: 30000,
+      withCredentials: false,
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    });
+
+    console.log("Status:", res.status);
+    console.log("Data:", res.data);
+
+    console.groupEnd();
+
+    return res.data;
+  } catch (error: any) {
+    console.group("❌ GET PRODUCT FAILED");
+
+    console.log("Message:", error.message);
+    console.log("Code:", error.code);
+    console.log("Response:", error.response);
+    console.log("Full Error:", error);
+
+    console.groupEnd();
+
+    throw error;
+  }
+};
+
+export const searchProducts = async (query: string) => {
+  try {
+    console.group("🔍 SEARCH PRODUCTS");
+
+    console.log("Query:", query);
+
+    const res = await axios.get(`${API_URL}/search/`, {
+      timeout: 30000,
+      withCredentials: false,
+      params: {
+        q: query,
+      },
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    });
+
+    console.log("Status:", res.status);
+    console.log("Data:", res.data);
+
+    console.groupEnd();
+
+    return res.data;
+  } catch (error: any) {
+    console.group("❌ SEARCH PRODUCTS FAILED");
+
+    console.log("Message:", error.message);
+    console.log("Code:", error.code);
+    console.log("Response:", error.response);
+    console.log("Full Error:", error);
+
+    console.groupEnd();
+
+    throw error;
+  }
+};

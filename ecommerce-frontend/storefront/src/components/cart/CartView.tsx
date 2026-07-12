@@ -4,35 +4,29 @@ import CartItemCard from "./CartItem";
 import { useCart } from "@/hooks/useCart";
 
 export default function CartView() {
-  const {
-    cart,
-    loading,
-    remove,
-    update,
-  } = useCart();
+  const { items, loading, removeItem, updateItem, total } =
+    useCart();
 
   if (loading) {
+    return <div>Loading cart...</div>;
+  }
+
+  if (!items.length) {
     return (
-      <div>
-        Loading cart...
+      <div className="text-center text-gray-500 p-10">
+        Your cart is empty
       </div>
     );
   }
 
-  const total = cart.reduce(
-    (acc, item) =>
-      acc + item.price * item.quantity,
-    0
-  );
-
   return (
     <div className="space-y-4">
-      {cart.map((item) => (
+      {items.map((item) => (
         <CartItemCard
           key={item.id}
           item={item}
-          onRemove={remove}
-          onUpdate={update}
+          onRemove={removeItem}
+          onUpdate={updateItem}
         />
       ))}
 

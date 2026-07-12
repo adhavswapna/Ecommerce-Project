@@ -1,397 +1,115 @@
+// src/api/apiClient.ts
+
 import axios, {
+  AxiosError,
   AxiosInstance,
   InternalAxiosRequestConfig,
 } from "axios";
 
+import { useAuthStore } from "@/store/auth.store";
 
+/*
+|--------------------------------------------------------------------------
+| API BASE URL
+|--------------------------------------------------------------------------
+|
+| Prefer NEXT_PUBLIC_API_URL.
+| Fallback to the current browser origin so the frontend and API use
+| the same host instead of hardcoded localhost.
+|
+*/
 
-const attachToken = (
-  instance: AxiosInstance
-): AxiosInstance => {
+const BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ??
+  `${window.location.protocol}//${window.location.hostname}:8081/api`;
 
+console.log("========================================");
+console.log("API BASE URL:", BASE_URL);
+console.log("========================================");
 
-  instance.interceptors.request.use(
+function createApiClient(prefix = ""): AxiosInstance {
+  return axios.create({
+    baseURL: `${BASE_URL}${prefix}`,
+    timeout: 30000,
+    withCredentials: true,
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+  });
+}
 
-    (
-      config: InternalAxiosRequestConfig
-    ) => {
+export const apiClient = createApiClient();
 
+export const authApi = createApiClient("/auth");
 
-      if(
-        typeof window !== "undefined"
-      ){
+export const userApi = createApiClient("/users");
 
-        const token =
-          localStorage.getItem("token");
+function addInterceptor(client: AxiosInstance) {
+  client.interceptors.request.use(
+    (config: InternalAxiosRequestConfig) => {
+      const token = useAuthStore.getState().token;
 
-
-        console.log(
-          "TOKEN SENT:",
-          token ? "YES" : "NO"
-        );
-
-
-        if(token){
-
-          config.headers =
-            config.headers || {};
-
-
-          config.headers.Authorization =
-            `Bearer ${token}`;
-
-        }
-
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
       }
 
+      console.group("🚀 API REQUEST");
 
+      console.log("Method :", config.method?.toUpperCase());
 
       console.log(
-        "🚀 API REQUEST:",
+        "URL :",
         `${config.baseURL}${config.url}`
       );
 
+      console.log("Headers :", config.headers);
+
+      console.groupEnd();
 
       return config;
+    }
+  );
 
+  client.interceptors.response.use(
+    (response) => {
+      console.group("✅ API RESPONSE");
+
+      console.log("Status :", response.status);
+
+      console.log("URL :", response.config.url);
+
+      console.groupEnd();
+
+      return response;
     },
 
-    error =>
-      Promise.reject(error)
+    (error: AxiosError) => {
+      console.group("❌ API ERROR");
 
-  );
+      console.log("Message :", error.message);
 
+      console.log("Code :", error.code);
 
+      console.log("Request :", error.config?.url);
 
+      console.log("Base URL :", error.config?.baseURL);
 
-  instance.interceptors.response.use(
+      console.log("Response :", error.response);
 
-    response =>
-      response,
+      console.log("Full Error :", error);
 
+      console.groupEnd();
 
-    error => {
-
-
-      console.error(
-        "❌ API ERROR:",
-        error.message,
-        error.response?.status,
-        error.response?.data
-      );
-
-
-
-      if(
-        error.response?.status === 401
-      ){
-
-        if(
-          typeof window !== "undefined"
-        ){
-
-          localStorage.removeItem(
-            "token"
-          );
-
-          localStorage.removeItem(
-            "user"
-          );
-
-
-          window.location.href =
-            "/login";
-
-        }
-
+      if (error.response?.status === 401) {
+        useAuthStore.getState().logout();
       }
-
 
       return Promise.reject(error);
-
     }
-
   );
-
-
-
-  return instance;
-
-};
-
-
-
-
-
-
-const createApi = (
-  url:string
-)=>{
-
-
-  return attachToken(
-
-    axios.create({
-
-      baseURL:url,
-
-      timeout:30000,
-
-      headers:{
-
-        "Content-Type":
-          "application/json"
-
-      }
-
-    })
-
-  );
-
-};
-
-
-
-
-
-
-
-export const authApi =
-createApi(
- process.env.NEXT_PUBLIC_AUTH_API_URL ||
- "http://127.0.0.1:3001"
-);
-
-
-
-export const userApi =
-createApi(
- process.env.NEXT_PUBLIC_USER_API_URL ||
- "http://127.0.0.1:3015"
-);
-
-
-
-export const productApi =
-createApi(
- process.env.NEXT_PUBLIC_PRODUCT_API_URL ||
- "http://127.0.0.1:3003"
-);
-
-
-
-export const cartApi =
-createApi(
- process.env.NEXT_PUBLIC_CART_API_URL ||
- "http://127.0.0.1:3005"
-);
-
-
-
-export const orderApi =
-createApi(
- process.env.NEXT_PUBLIC_ORDER_API_URL ||
- "http://127.0.0.1:3006"
-);
-
-
-
-
-export const paymentApi =
-createApi(
- process.env.NEXT_PUBLIC_PAYMENT_API_URL ||
- "http://127.0.0.1:3007"
-);
-
-
-
-
-export const vendorApi =
-createApi(
- process.env.NEXT_PUBLIC_VENDOR_API_URL ||
- "http://127.0.0.1:3012"
-);
-
-
-
-
-export const searchApi =
-createApi(
- process.env.NEXT_PUBLIC_SEARCH_API_URL ||
- "http://127.0.0.1:3013"
-);
-
-
-
-
-export const shippingApi =
-createApi(
- process.env.NEXT_PUBLIC_SHIPPING_API_URL ||
- "http://127.0.0.1:3014"
-);
-
-
-
-
-export const ratingApi =
-createApi(
- process.env.NEXT_PUBLIC_RATING_API_URL ||
- "http://127.0.0.1:3008"
-);
-
-
-
-
-export const analyticsApi =
-createApi(
- process.env.NEXT_PUBLIC_ANALYTICS_API_URL ||
- "http://127.0.0.1:3011"
-);
-
-
-
-
-
-
-/*
-===========================
-INVOICE SERVICE
-===========================
-*/
-
-
-export const invoiceApi =
-createApi(
-
- process.env.NEXT_PUBLIC_INVOICE_API_URL ||
-
- "http://127.0.0.1:3010"
-
-);
-
-
-
-invoiceApi.interceptors.request.use(
-
-(config)=>{
-
-
- console.log(
-   "📄 INVOICE REQUEST:",
-   `${config.baseURL}${config.url}`
- );
-
-
- return config;
-
 }
 
-);
-
-
-
-
-
-invoiceApi.interceptors.response.use(
-
-(response)=>{
-
-
- console.log(
-   "📄 INVOICE RESPONSE:",
-   response.status
- );
-
-
- return response;
-
-},
-
-
-(error)=>{
-
-
- console.error(
-
-   "📄 INVOICE RESPONSE ERROR:",
-
-   error.message,
-
-   error.response?.status,
-
-   error.response?.data
-
- );
-
-
- return Promise.reject(error);
-
-}
-
-);
-
-
-
-
-
-
-
-export const refundApi =
-createApi(
- process.env.NEXT_PUBLIC_REFUND_API_URL ||
- "http://127.0.0.1:3016"
-);
-
-
-
-
-
-export const notificationApi =
-createApi(
- process.env.NEXT_PUBLIC_NOTIFICATION_API_URL ||
- "http://127.0.0.1:3018"
-);
-
-
-
-
-
-
-
-const apiClient = {
-
-
- authApi,
-
- userApi,
-
- productApi,
-
- cartApi,
-
- orderApi,
-
- paymentApi,
-
- vendorApi,
-
- searchApi,
-
- shippingApi,
-
- ratingApi,
-
- analyticsApi,
-
- invoiceApi,
-
- refundApi,
-
- notificationApi
-
-
-};
-
-
-
-export default apiClient;
+addInterceptor(apiClient);
+addInterceptor(authApi);
+addInterceptor(userApi);

@@ -1,39 +1,101 @@
-// src/hooks/useWishlist.ts
-
 "use client";
 
+
 import {
-  useEffect,
+ useEffect,
 } from "react";
 
+
 import {
-  useWishlistStore,
+ useWishlistStore,
 } from "@/store/wishlistStore";
 
-export const useWishlist =
-  () => {
-    const {
-      wishlist,
-      loading,
-      fetchWishlist,
-      addItem,
-      removeItem,
-      clearAll,
-      isWishlisted,
-    } =
-      useWishlistStore();
 
-    useEffect(() => {
-      fetchWishlist();
-    }, [fetchWishlist]);
 
-    return {
-      wishlist,
-      loading,
-      fetchWishlist,
-      addItem,
-      removeItem,
-      clearAll,
-      isWishlisted,
-    };
-  };
+export const useWishlist = () => {
+
+
+
+const wishlist =
+useWishlistStore(
+ s=>s.wishlist
+);
+
+
+
+const loading =
+useWishlistStore(
+ s=>s.loading
+);
+
+
+
+const fetchWishlist =
+useWishlistStore(
+ s=>s.fetchWishlist
+);
+
+
+
+const addItem =
+useWishlistStore(
+ s=>s.addItem
+);
+
+
+
+const removeItem =
+useWishlistStore(
+ s=>s.removeItem
+);
+
+
+
+const clear =
+useWishlistStore(
+ s=>s.clear
+);
+
+
+
+const isWishlisted =
+useWishlistStore(
+ s=>s.isWishlisted
+);
+
+
+
+
+
+useEffect(()=>{
+
+
+ fetchWishlist();
+
+
+},[fetchWishlist]);
+
+
+
+
+
+return {
+
+ wishlist,
+
+ loading,
+
+ fetchWishlist,
+
+ addItem,
+
+ removeItem,
+
+ clear,
+
+ isWishlisted,
+
+};
+
+
+};

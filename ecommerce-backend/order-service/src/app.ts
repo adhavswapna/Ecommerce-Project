@@ -1,10 +1,11 @@
 import express from "express";
-import cors from "cors"; // ✅ ADD THIS
+import cors from "cors";
 import orderRoutes from "./routes/order.routes";
 
 const app = express();
 
-// ✅ ADD THIS BLOCK (VERY IMPORTANT)
+/* ================= MIDDLEWARE ================= */
+
 app.use(
   cors({
     origin: "http://localhost:3000",
@@ -13,19 +14,38 @@ app.use(
   })
 );
 
-// ✅ Handle preflight (important for PUT/DELETE/headers)
 app.options("*", cors());
 
 app.use(express.json());
 
-// ✅ Routes
-app.use("/orders", orderRoutes);
+/* ================= HEALTH CHECK (IMPORTANT - MUST BE FIRST) ================= */
 
-// ✅ Health
 app.get("/health", (_req, res) => {
-  res.json({
+  return res.status(200).json({
     status: "UP",
     service: "Order Service",
+  });
+});
+
+/* ================= ROUTES ================= */
+
+app.use("/orders", orderRoutes);
+
+/* ================= 404 HANDLER (MUST BE LAST) ================= */
+
+app.use((_req, res) => {
+  return res.status(404).json({
+    message: "Order not found",
+  });
+});
+
+/* ================= ERROR HANDLER ================= */
+
+app.use((err: any, _req: any, res: any, _next: any) => {
+  console.error("❌ Order Service Error:", err);
+
+  return res.status(err.status || 500).json({
+    message: err.message || "Internal Server Error",
   });
 });
 

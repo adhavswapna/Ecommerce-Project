@@ -1,196 +1,266 @@
-// src/app/cart/page.tsx
-
 "use client";
 
 import { useEffect } from "react";
-
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { useCartStore } from "@/store/cartStore";
 
 export default function CartPage() {
+  const router = useRouter();
+
   const {
-    cartItems,
-    loading,
+    items,
     fetchCart,
     updateItem,
     removeItem,
-    clear,
     cartTotal,
   } = useCartStore();
-
-  const totalPrice =
-    cartTotal();
 
   useEffect(() => {
     fetchCart();
   }, [fetchCart]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen text-2xl font-semibold">
-        Loading cart...
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
+    <main
+      className="
+      max-w-7xl
+      mx-auto
+      p-6
+      "
+    >
+      <h1
+        className="
+        text-3xl
+        font-bold
+        mb-8
+        "
+      >
+        Shopping Cart
+      </h1>
 
-      {/* Heading */}
-      <div className="flex items-center justify-between mb-8">
-
-        <h1 className="text-4xl font-bold">
-          Shopping Cart
-        </h1>
-
-        {cartItems.length > 0 && (
-          <button
-            onClick={clear}
-            className="bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded-xl transition"
+      {items.length === 0 ? (
+        <div
+          className="
+          bg-white
+          border
+          rounded-2xl
+          p-10
+          text-center
+          "
+        >
+          <h2
+            className="
+            text-xl
+            font-bold
+            "
           >
-            Clear Cart
-          </button>
-        )}
-
-      </div>
-
-      {/* Empty Cart */}
-      {cartItems.length === 0 ? (
-        <div className="bg-gray-100 rounded-2xl p-12 text-center">
-
-          <h2 className="text-2xl font-semibold mb-3">
-            Your cart is empty 🛒
+            Your cart is empty
           </h2>
 
-          <p className="text-gray-600">
-            Add some products to your cart.
-          </p>
-
+          <button
+            onClick={() =>
+              router.push("/products")
+            }
+            className="
+            mt-5
+            bg-yellow-400
+            px-8
+            py-3
+            rounded-full
+            font-bold
+            "
+          >
+            Continue Shopping
+          </button>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div
+          className="
+          grid
+          lg:grid-cols-3
+          gap-8
+          "
+        >
+          {/* ITEMS */}
 
-          {/* Cart Items */}
-          {cartItems.map((item) => (
+          <div
+            className="
+            lg:col-span-2
+            space-y-5
+            "
+          >
+            {items.map((item) => (
+              <div
+                key={item.id}
+                className="
+                bg-white
+                border
+                rounded-2xl
+                p-5
+                flex
+                justify-between
+                items-center
+                shadow-sm
+                "
+              >
+                <div>
+                  <h2
+                    className="
+                    font-bold
+                    text-lg
+                    "
+                  >
+                    {item.product?.name ||
+                      "Product"}
+                  </h2>
+
+                  <p
+                    className="
+                    text-gray-500
+                    "
+                  >
+                    ID: {item.productId}
+                  </p>
+
+                  <p
+                    className="
+                    text-xl
+                    font-bold
+                    mt-2
+                    "
+                  >
+                    ₹{item.price}
+                  </p>
+                </div>
+
+                <div
+                  className="
+                  text-right
+                  "
+                >
+                  <div
+                    className="
+                    flex
+                    items-center
+                    gap-3
+                    "
+                  >
+                    <input
+                      type="number"
+                      min={1}
+                      value={
+                        item.quantity
+                      }
+                      onChange={(e) =>
+                        updateItem(
+                          item.id,
+                          Number(
+                            e.target.value
+                          )
+                        )
+                      }
+                      className="
+                      border
+                      rounded
+                      w-20
+                      p-2
+                      "
+                    />
+
+                    <button
+                      onClick={() =>
+                        removeItem(
+                          item.id
+                        )
+                      }
+                      className="
+                      text-red-600
+                      "
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* SUMMARY */}
+
+          <div
+            className="
+            bg-white
+            border
+            rounded-2xl
+            p-6
+            h-fit
+            shadow
+            "
+          >
+            <h2
+              className="
+              text-xl
+              font-bold
+              "
+            >
+              Order Summary
+            </h2>
+
             <div
-              key={item.id}
-              className="border rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-6"
+              className="
+              flex
+              justify-between
+              mt-5
+              "
             >
+              <span>
+                Items
+              </span>
 
-              {/* Product Details */}
-              <div className="space-y-2">
-
-                <h2 className="text-2xl font-semibold">
-                  {item.product?.name ||
-                    item.productId}
-                </h2>
-
-                <p className="text-gray-600 text-lg">
-                  Price: ₹
-                  {item.price}
-                </p>
-
-                <p className="text-gray-600 text-lg">
-                  Quantity:
-                  {" "}
-                  {item.quantity}
-                </p>
-
-                <p className="font-bold text-xl mt-2">
-                  Total: ₹
-                  {item.price *
-                    item.quantity}
-                </p>
-
-              </div>
-
-              {/* Actions */}
-              <div className="flex flex-wrap items-center gap-3">
-
-                {/* Increase */}
-                <button
-                  onClick={() =>
-                    updateItem(
-                      item.id,
-                      item.quantity + 1
-                    )
-                  }
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl text-lg transition"
-                >
-                  +
-                </button>
-
-                {/* Decrease */}
-                <button
-                  onClick={() => {
-                    if (
-                      item.quantity > 1
-                    ) {
-                      updateItem(
-                        item.id,
-                        item.quantity - 1
-                      );
-                    }
-                  }}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-5 py-3 rounded-xl text-lg transition"
-                >
-                  -
-                </button>
-
-                {/* Remove */}
-                <button
-                  onClick={() =>
-                    removeItem(
-                      item.id
-                    )
-                  }
-                  className="bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded-xl transition"
-                >
-                  Remove
-                </button>
-
-              </div>
-            </div>
-          ))}
-
-          {/* Total Section */}
-          <div className="bg-black text-white rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between gap-4">
-
-            <div>
-
-              <h2 className="text-3xl font-bold">
-                Grand Total
-              </h2>
-
-              <p className="text-gray-300 mt-2">
-                Total items:
-                {" "}
-                {cartItems.length}
-              </p>
-
+              <span>
+                {items.length}
+              </span>
             </div>
 
-            <div className="text-4xl font-bold">
-              ₹{totalPrice}
-            </div>
-
-          </div>
-
-          {/* Checkout */}
-          <div className="flex justify-end">
-
-            <Link
-              href="/checkout"
-              className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-2xl text-xl font-semibold transition"
+            <div
+              className="
+              border-t
+              mt-5
+              pt-5
+              flex
+              justify-between
+              text-2xl
+              font-bold
+              "
             >
-              Proceed to Checkout
-            </Link>
+              Total
 
+              <span>
+                ₹{cartTotal()}
+              </span>
+            </div>
+
+            <button
+              onClick={() =>
+                router.push(
+                  "/checkout"
+                )
+              }
+              className="
+              w-full
+              mt-6
+              bg-yellow-400
+              hover:bg-yellow-500
+              py-3
+              rounded-full
+              font-bold
+              "
+            >
+              Proceed To Checkout
+            </button>
           </div>
-
         </div>
       )}
-    </div>
+    </main>
   );
 }

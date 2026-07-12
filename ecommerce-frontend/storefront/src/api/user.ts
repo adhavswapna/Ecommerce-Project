@@ -1,13 +1,16 @@
 import { authApi, userApi } from "./apiClient";
 
 
+
 /* =====================================================
-   👤 GET CURRENT USER (AUTH SERVICE)
+   👤 GET CURRENT USER
+   Auth service:
+   /auth/me
 ===================================================== */
+
 export async function getMe() {
 
   try {
-
 
     const token =
       typeof window !== "undefined"
@@ -21,32 +24,27 @@ export async function getMe() {
     );
 
 
-    if(!token){
+    if (!token) {
 
       console.log(
         "NO TOKEN FOUND"
       );
 
       return null;
-
     }
 
 
 
     const { data } =
       await authApi.get(
-        "/auth/me",
+        "/me",
         {
-          headers:{
-
+          headers: {
             Authorization:
               `Bearer ${token}`
-
           }
-
         }
       );
-
 
 
     console.log(
@@ -56,19 +54,20 @@ export async function getMe() {
 
 
 
-    // save user for checkout
-    localStorage.setItem(
-      "user",
-      JSON.stringify(data)
-    );
+    if (typeof window !== "undefined") {
 
+      localStorage.setItem(
+        "user",
+        JSON.stringify(data)
+      );
+
+    }
 
 
     return data;
 
 
-
-  } catch(error:any){
+  } catch (error:any) {
 
 
     console.error(
@@ -99,37 +98,39 @@ export async function getMe() {
 
 
 /* =====================================================
-   👤 GET USER PROFILE BY ID
+   👤 GET USER PROFILE
+   User service:
+   /users/:id
 ===================================================== */
 
 export async function getUserProfile(
- userId:string
-){
+  userId:string
+) {
 
- try{
+  try {
 
 
-  const {data} =
-    await userApi.get(
-      `/users/${userId}`
+    const { data } =
+      await userApi.get(
+        `/${userId}`
+      );
+
+
+    return data;
+
+
+  } catch(error) {
+
+
+    console.error(
+      "getUserProfile error",
+      error
     );
 
 
-  return data;
+    return null;
 
-
- }
- catch(error){
-
-  console.error(
-    "getUserProfile error",
-    error
-  );
-
-
-  return null;
-
- }
+  }
 
 }
 
@@ -139,46 +140,47 @@ export async function getUserProfile(
 
 /* =====================================================
    ✏ UPDATE USER
+   /users/:id
 ===================================================== */
 
 export async function updateUserProfile(
 
- userId:string,
+  userId:string,
 
- payload:{
-  name?:string;
-  phone?:string;
-  address?:string;
- }
+  payload:{
+    name?:string;
+    phone?:string;
+    address?:string;
+  }
 
-){
-
-
- try{
+) {
 
 
-  const {data} =
-    await userApi.put(
-      `/users/${userId}`,
-      payload
+  try {
+
+
+    const { data } =
+      await userApi.put(
+        `/${userId}`,
+        payload
+      );
+
+
+    return data;
+
+
+  } catch(error) {
+
+
+    console.error(
+      "updateUserProfile error",
+      error
     );
 
 
-  return data;
+    return null;
 
-
- }
- catch(error){
-
-  console.error(
-    "updateUserProfile error",
-    error
-  );
-
-
-  return null;
-
- }
+  }
 
 }
 
@@ -187,35 +189,36 @@ export async function updateUserProfile(
 
 
 /* =====================================================
-   📋 ALL USERS
+   📋 GET ALL USERS
+   /users
 ===================================================== */
 
-export async function getAllUsers(){
+export async function getAllUsers() {
+
+  try {
 
 
- try{
+    const { data } =
+      await userApi.get(
+        "/"
+      );
 
 
-  const {data} =
-    await userApi.get(
-      "/users"
+    return data;
+
+
+  } catch(error) {
+
+
+    console.error(
+      "getAllUsers error",
+      error
     );
 
 
-  return data;
+    return [];
 
-
- }
- catch(error){
-
-  console.error(
-    error
-  );
-
-
-  return [];
-
- }
+  }
 
 }
 
@@ -224,35 +227,37 @@ export async function getAllUsers(){
 
 
 /* =====================================================
-   DELETE USER
+   🗑 DELETE USER
+   /users/:id
 ===================================================== */
 
 export async function deleteUser(
- userId:string
-){
+  userId:string
+) {
 
- try{
+  try {
 
 
-  const {data} =
-    await userApi.delete(
-      `/users/${userId}`
+    const { data } =
+      await userApi.delete(
+        `/${userId}`
+      );
+
+
+    return data;
+
+
+  } catch(error) {
+
+
+    console.error(
+      "deleteUser error",
+      error
     );
 
 
-  return data;
+    return null;
 
-
- }
- catch(error){
-
-  console.error(
-    error
-  );
-
-
-  return null;
-
- }
+  }
 
 }

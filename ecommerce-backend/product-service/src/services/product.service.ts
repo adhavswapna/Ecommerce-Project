@@ -1,5 +1,6 @@
 import { prisma } from "../db/prisma/prisma";
 import { redis } from "../redis/redis-client";
+
 import {
   publishProductCreated,
   publishProductUpdated,
@@ -9,20 +10,29 @@ import {
 const PRODUCT_CACHE_KEY = "products:all";
 
 /**
- * List all products
+ * LIST PRODUCTS
  */
 export async function listProducts() {
   try {
     const cached = await redis.get(PRODUCT_CACHE_KEY);
 
     if (cached) {
-      console.log("⚡ Products fetched from Redis cache");
+      console.log("⚡ Products fetched from Redis");
       return JSON.parse(cached);
     }
 
-    const products = await prisma.product.findMany();
+    const products = await prisma.product.findMany({
+      include: {
+        images: true,
+      },
+    });
 
-    await redis.set(PRODUCT_CACHE_KEY, JSON.stringify(products), "EX", 60);
+    await redis.set(
+      PRODUCT_CACHE_KEY,
+      JSON.stringify(products),
+      "EX",
+      60
+    );
 
     return products;
   } catch (error) {
@@ -32,12 +42,15 @@ export async function listProducts() {
 }
 
 /**
- * Get product by ID
+ * GET PRODUCT BY ID
  */
 export async function getProductById(id: string) {
   try {
     return await prisma.product.findUnique({
       where: { id },
+      include: {
+        images: true,
+      },
     });
   } catch (error) {
     console.error("Error fetching product:", error);
@@ -46,7 +59,7 @@ export async function getProductById(id: string) {
 }
 
 /**
- * Check stock
+ * CHECK STOCK
  */
 export async function checkStock(id: string) {
   try {
@@ -62,19 +75,17 @@ export async function checkStock(id: string) {
 }
 
 /**
- * CREATE PRODUCT (IMAGE REMOVED ✅)
+ * CREATE PRODUCT
  */
 export async function createProduct(
   name: string,
   price: number,
   description: string | null,
   stock: number,
-  vendorId: string
+  vendorId: string,
+  images: string[] = []
 ) {
   try {
-    if (!vendorId) throw new Error("Vendor ID is required");
-    if (!name || !price || stock < 0) throw new Error("Invalid product data");
-
     const product = await prisma.product.create({
       data: {
         name,
@@ -82,6 +93,17 @@ export async function createProduct(
         description,
         stock,
         vendorId,
+
+        // images stored as clean URLs
+        images: {
+          create: images.map((url) => ({
+            url: normalizeImageUrl(url),
+          })),
+        },
+      },
+
+      include: {
+        images: true,
       },
     });
 
@@ -105,7 +127,7 @@ export async function createProduct(
 }
 
 /**
- * UPDATE PRODUCT (NO IMAGES)
+ * UPDATE PRODUCT
  */
 export async function updateProduct(
   id: string,
@@ -114,16 +136,41 @@ export async function updateProduct(
     price?: number;
     description?: string;
     stock?: number;
+    images?: string[];
   }
 ) {
   try {
-    const existing = await prisma.product.findUnique({ where: { id } });
+    const existing = await prisma.product.findUnique({
+      where: { id },
+    });
 
-    if (!existing) throw new Error("Product not found");
+    if (!existing) {
+      throw new Error("Product not found");
+    }
+
+    const { images, ...productData } = data;
 
     const product = await prisma.product.update({
       where: { id },
-      data,
+
+      data: {
+        ...productData,
+
+        // SAFE image replacement
+        ...(images && {
+          images: {
+            deleteMany: {},
+
+            create: images.map((url) => ({
+              url: normalizeImageUrl(url),
+            })),
+          },
+        }),
+      },
+
+      include: {
+        images: true,
+      },
     });
 
     await redis.del(PRODUCT_CACHE_KEY);
@@ -148,11 +195,17 @@ export async function updateProduct(
  */
 export async function deleteProduct(id: string) {
   try {
-    const existing = await prisma.product.findUnique({ where: { id } });
+    const existing = await prisma.product.findUnique({
+      where: { id },
+    });
 
-    if (!existing) throw new Error("Product not found");
+    if (!existing) {
+      throw new Error("Product not found");
+    }
 
-    const product = await prisma.product.delete({ where: { id } });
+    const product = await prisma.product.delete({
+      where: { id },
+    });
 
     await redis.del(PRODUCT_CACHE_KEY);
 
@@ -166,4 +219,22 @@ export async function deleteProduct(id: string) {
     console.error("Error deleting product:", error);
     throw new Error("Failed to delete product");
   }
+}
+
+/**
+ * ======================================
+ * 🔥 IMAGE NORMALIZER (IMPORTANT FIX)
+ * ======================================
+ *
+ * Fixes:
+ * - duplicate /products/products/
+ * - broken URLs
+ * - inconsistent uploads
+ */
+function normalizeImageUrl(url: string): string {
+  if (!url) return url;
+
+  return url
+    .replace(/\/products\/products\//g, "/products/")
+    .replace(/([^:]\/)\/+/g, "$1");
 }

@@ -1,361 +1,291 @@
-// src/components/Navbar.tsx
-
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-
-import {
-  usePathname,
-  useRouter,
-} from "next/navigation";
-
-import {
-  useAuthStore,
-} from "@/store/auth.store";
-
-import {
-  useCartStore,
-} from "@/store/cartStore";
+import { useAuthStore } from "@/store/auth.store";
+import { useCartStore } from "@/store/cartStore";
+import { useWishlistStore } from "@/store/wishlistStore";
 
 import NotificationDropdown from "@/components/notifications/NotificationDropdown";
 
 export default function Navbar() {
-  const pathname =
-    usePathname();
+  const router = useRouter();
 
-  const router =
-    useRouter();
+  const { token, user, logout } = useAuthStore();
 
-  const {
-    token,
-    logout,
-  } = useAuthStore();
+  const items = useCartStore((s) => s.items);
+  const wishlist = useWishlistStore((s) => s.wishlist);
 
-  /**
-   * 🛒 CART STATE
-   */
-  const cartItems =
-    useCartStore(
-      (state) =>
-        state.cartItems
-    ) || [];
+  const fetchCart = useCartStore((s) => s.fetchCart);
+  const fetchWishlist = useWishlistStore(
+    (s) => s.fetchWishlist
+  );
 
-  /**
-   * 🔢 CART COUNT
-   */
-  const cartCount =
-    cartItems.reduce(
-      (
-        total,
-        item
-      ) =>
-        total +
-        item.quantity,
-      0
-    );
+  const [mounted, setMounted] = useState(false);
+  const [search, setSearch] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  const [mounted, setMounted] =
-    useState(false);
+  const menuRef =
+    useRef<HTMLDivElement | null>(null);
 
-  const [
-    showDropdown,
-    setShowDropdown,
-  ] = useState(false);
-
-  const dropdownRef =
-    useRef<HTMLDivElement | null>(
-      null
-    );
+  const cartCount = items.reduce(
+    (total, item) => total + item.quantity,
+    0
+  );
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    setShowDropdown(false);
-  }, [pathname]);
-
-  /**
-   * 🛒 FETCH CART ON LOAD
-   */
-  const fetchCart =
-    useCartStore(
-      (state) =>
-        state.fetchCart
-    );
-
-  useEffect(() => {
     if (token) {
       fetchCart();
-    }
-  }, [token, fetchCart]);
-
-  /**
-   * 👇 CLOSE DROPDOWN
-   */
-  useEffect(() => {
-    const handleClickOutside =
-      (
-        event: MouseEvent
-      ) => {
-        if (
-          dropdownRef.current &&
-          !dropdownRef.current.contains(
-            event.target as Node
-          )
-        ) {
-          setShowDropdown(
-            false
-          );
-        }
-      };
-
-    document.addEventListener(
-      "mousedown",
-      handleClickOutside
-    );
-
-    return () => {
-      document.removeEventListener(
-        "mousedown",
-        handleClickOutside
-      );
-    };
-  }, []);
-
-  /**
-   * 👤 USER FROM JWT
-   */
-  const user = useMemo(() => {
-    if (!token) {
-      return null;
-    }
-
-    try {
-      return JSON.parse(
-        atob(
-          token.split(".")[1]
-        )
-      );
-    } catch {
-      return null;
+      fetchWishlist();
     }
   }, [token]);
 
-  /**
-   * 🚪 LOGOUT
-   */
-  const handleLogout =
-    () => {
-      logout();
-
-      router.push(
-        "/login"
-      );
+  useEffect(() => {
+    const close = (e: MouseEvent) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(
+          e.target as Node
+        )
+      ) {
+        setMenuOpen(false);
+      }
     };
 
-  /**
-   * 🎨 ACTIVE LINK
-   */
-  const isActive = (
-    path: string
-  ) =>
-    pathname === path
-      ? "font-semibold text-blue-600"
-      : "text-gray-600 hover:text-blue-600";
+    document.addEventListener(
+      "mousedown",
+      close
+    );
 
-  if (!mounted) {
-    return null;
-  }
+    return () =>
+      document.removeEventListener(
+        "mousedown",
+        close
+      );
+  }, []);
+
+  const handleSearch = (
+    e: React.FormEvent
+  ) => {
+    e.preventDefault();
+
+    if (!search.trim()) return;
+
+    router.push(
+      `/products?search=${encodeURIComponent(
+        search
+      )}`
+    );
+  };
+
+  if (!mounted) return null;
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-white shadow-sm">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+    <header className="sticky top-0 z-50 shadow-lg">
+      {/* TOP BAR */}
 
-        {/* LOGO */}
-        <Link
-          href="/"
-          className="text-2xl font-bold text-blue-600"
-        >
-          ShopSphere
-        </Link>
+      <div className="bg-[#131921] text-white">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
 
-        {/* NAVIGATION */}
-        <nav className="flex items-center gap-6 text-sm">
+          {/* LOGO */}
 
-          {!token ? (
-            <>
-              <Link
-                href="/"
-                className={isActive(
-                  "/"
-                )}
-              >
-                Home
-              </Link>
+          <Link
+            href="/"
+            className="text-2xl font-bold text-yellow-400 whitespace-nowrap"
+          >
+            ShopSphere
+          </Link>
 
-              <Link
-                href="/products"
-                className={isActive(
-                  "/products"
-                )}
-              >
-                Products
-              </Link>
+          {/* SEARCH */}
 
-              <Link
-                href="/login"
-                className={isActive(
-                  "/login"
-                )}
-              >
-                Login
-              </Link>
+          <form
+            onSubmit={handleSearch}
+            className="flex flex-1 h-11"
+          >
+            <input
+              value={search}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
+              placeholder="Search products..."
+              className="flex-1 px-4 text-black rounded-l-md outline-none"
+            />
 
-              <Link
-                href="/register"
-                className="bg-black text-white px-4 py-2 rounded-xl hover:opacity-90"
-              >
-                Register
-              </Link>
-            </>
-          ) : (
-            <>
-              <Link
-                href="/products"
-                className={isActive(
-                  "/products"
-                )}
-              >
-                Products
-              </Link>
+            <button
+              type="submit"
+              className="bg-yellow-400 text-black px-5 rounded-r-md font-bold"
+            >
+              🔍
+            </button>
+          </form>
 
-              {/* CART */}
-              <Link
-                href="/cart"
-                className={`${isActive(
-                  "/cart"
-                )} relative`}
-              >
-                🛒 Cart
+          {/* DESKTOP LINKS */}
 
-                {cartCount >
-                  0 && (
-                  <span className="absolute -top-2 -right-3 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                    {
-                      cartCount
-                    }
-                  </span>
-                )}
-              </Link>
+          <div className="hidden md:flex items-center gap-6">
 
-              {/* ORDERS */}
-              <Link
-                href="/orders"
-                className={isActive(
-                  "/orders"
-                )}
-              >
-                📦 Orders
-              </Link>
+            <Link
+              href="/products"
+              className="hover:text-yellow-400"
+            >
+              Products
+            </Link>
 
-              {/* WISHLIST */}
-              <Link
-                href="/wishlist"
-                className={isActive(
-                  "/wishlist"
-                )}
-              >
-                ❤️ Wishlist
-              </Link>
+            <Link
+              href="/orders"
+              className="hover:text-yellow-400"
+            >
+              Orders
+            </Link>
 
-              {/* NOTIFICATIONS */}
-              <NotificationDropdown />
+            <Link
+              href="/wishlist"
+              className="relative hover:text-yellow-400"
+            >
+              ❤️ Wishlist
 
-              {/* USER MENU */}
+              {wishlist.length > 0 && (
+                <span className="absolute -top-2 -right-4 bg-red-500 text-xs px-2 rounded-full">
+                  {wishlist.length}
+                </span>
+              )}
+            </Link>
+
+            <Link
+              href="/cart"
+              className="relative hover:text-yellow-400"
+            >
+              🛒 Cart
+
+              {cartCount > 0 && (
+                <span className="absolute -top-2 -right-4 bg-red-500 text-xs px-2 rounded-full">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
+
+            <NotificationDropdown />
+
+            {token ? (
               <div
                 className="relative"
-                ref={
-                  dropdownRef
-                }
+                ref={menuRef}
               >
                 <button
                   onClick={() =>
-                    setShowDropdown(
-                      (
-                        prev
-                      ) =>
-                        !prev
-                    )
+                    setMenuOpen(!menuOpen)
                   }
-                  className="font-medium hover:text-blue-600"
+                  className="font-semibold"
                 >
                   Hello,{" "}
-                  {user?.name ||
-                    "User"}{" "}
-                  ▼
+                  {user?.name || "User"} ▼
                 </button>
 
-                {showDropdown && (
-                  <div className="absolute right-0 mt-3 w-52 bg-white border rounded-2xl shadow-xl overflow-hidden">
-
-                    <div className="px-4 py-3 border-b">
-                      <p className="font-semibold">
-                        {
-                          user?.name
-                        }
-                      </p>
-
-                      <p className="text-xs text-gray-500 break-all">
-                        {
-                          user?.email
-                        }
-                      </p>
-                    </div>
+                {menuOpen && (
+                  <div className="absolute right-0 mt-3 bg-white text-black rounded-xl shadow-xl w-60 overflow-hidden">
 
                     <Link
                       href="/profile"
-                      className="block px-4 py-3 hover:bg-gray-100"
+                      className="block p-4 hover:bg-gray-100"
                     >
-                      Profile
-                    </Link>
-
-                    <Link
-                      href="/orders"
-                      className="block px-4 py-3 hover:bg-gray-100"
-                    >
-                      Orders
+                      👤 Profile
                     </Link>
 
                     <Link
                       href="/wishlist"
-                      className="block px-4 py-3 hover:bg-gray-100"
+                      className="block p-4 hover:bg-gray-100"
                     >
-                      Wishlist
+                      ❤️ Wishlist
+                    </Link>
+
+                    <Link
+                      href="/orders"
+                      className="block p-4 hover:bg-gray-100"
+                    >
+                      📦 Orders
                     </Link>
 
                     <button
-                      onClick={
-                        handleLogout
-                      }
-                      className="w-full text-left px-4 py-3 text-red-500 hover:bg-gray-100"
+                      onClick={() => {
+                        logout();
+                        router.push("/login");
+                      }}
+                      className="w-full text-left p-4 text-red-600 hover:bg-red-50"
                     >
                       Logout
                     </button>
-
                   </div>
                 )}
               </div>
-            </>
-          )}
-        </nav>
+            ) : (
+              <>
+                <Link href="/login">
+                  Login
+                </Link>
+
+                <Link
+                  href="/register"
+                  className="bg-yellow-400 text-black px-4 py-2 rounded-md font-bold"
+                >
+                  Register
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* CATEGORY BAR */}
+
+      <div className="hidden md:block bg-[#232f3e] text-white">
+        <div className="max-w-7xl mx-auto px-4 py-2 flex gap-8 text-sm">
+
+          <Link href="/products">
+            All Products
+          </Link>
+
+          <Link href="/products?category=electronics">
+            Electronics
+          </Link>
+
+          <Link href="/products?category=fashion">
+            Fashion
+          </Link>
+
+          <Link href="/products?category=home">
+            Home
+          </Link>
+
+          <Link href="/products?category=beauty">
+            Beauty
+          </Link>
+
+          <Link href="/products?category=sports">
+            Sports
+          </Link>
+        </div>
+      </div>
+
+      {/* MOBILE MENU */}
+
+      <div className="md:hidden bg-[#232f3e] text-white px-4 py-3 flex justify-between">
+
+        <Link href="/products">
+          Products
+        </Link>
+
+        <Link href="/wishlist">
+          ❤️ {wishlist.length}
+        </Link>
+
+        <Link href="/cart">
+          🛒 {cartCount}
+        </Link>
       </div>
     </header>
   );
