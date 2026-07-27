@@ -1,8 +1,5 @@
-import { orderApi } from "@/api/apiClient";
 
-/* =========================================
-   CHECKOUT SERVICE (Amazon-style abstraction)
-========================================= */
+import { orderApi } from "@/api/apiClient";
 
 export interface CheckoutPayload {
   userId: string;
@@ -29,14 +26,12 @@ export interface CheckoutPayload {
 export const createCheckoutOrder = async (
   payload: CheckoutPayload
 ) => {
-  const { data } = await orderApi.post("/orders", payload);
+  const { data } = await orderApi.post("/", payload);
   return data;
 };
 
 /* CONFIRM ORDER */
 export const confirmOrder = async (orderId: string) => {
-  const { data } = await orderApi.post(
-    `/orders/confirm/${orderId}`
-  );
+  const { data } = await orderApi.post(`/confirm/${orderId}`);
   return data;
 };

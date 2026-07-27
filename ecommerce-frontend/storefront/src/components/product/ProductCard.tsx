@@ -105,7 +105,7 @@ export default function ProductCard({
         <div
           className="
             relative
-            h-72
+            h-56
             overflow-hidden
             bg-gray-50
           "
@@ -113,16 +113,16 @@ export default function ProductCard({
           <SafeImage
             src={image}
             alt={product.name}
-            width={600}
-            height={600}
+            width={300}
+            height={300}
             className="
               h-full
               w-full
               object-contain
-              p-5
+              p-3
               transition-transform
               duration-500
-              group-hover:scale-110
+              group-hover:scale-105
             "
           />
         </div>
