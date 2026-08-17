@@ -1,13 +1,16 @@
-import axios from "axios";
+import apiClient from "./client";
 
-const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8080",
-});
+export const getVendors = async () => {
+  const { data } = await apiClient.get("/vendors");
+  return data;
+};
 
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
+export const approveVendor = async (id: string) => {
+  const { data } = await apiClient.post(`/vendors/${id}/approve`);
+  return data;
+};
 
-export default apiClient;
+export const rejectVendor = async (id: string) => {
+  const { data } = await apiClient.post(`/vendors/${id}/reject`);
+  return data;
+};

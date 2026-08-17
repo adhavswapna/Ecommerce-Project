@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { VendorController } from "../controllers/vendor-controller";
+import { VendorController } from "../controllers/vendor.controller";
 
 const router = Router();
 
@@ -13,43 +13,22 @@ router.post(
 );
 
 // =====================================================
-// GET VENDOR BY USER ID
-// =====================================================
-//
-// GET /api/vendors/user/:userId
-//
-// IMPORTANT:
-// This route must come before /:id.
-//
-// =====================================================
-
-router.get(
-  "/user/:userId",
-  VendorController.getVendorByUserId
-);
-
-// =====================================================
-// GET VENDOR BY VENDOR ID
-// =====================================================
-//
-// GET /api/vendors/:id
-//
-// Used by Product.vendorId
-//
-// =====================================================
-
-router.get(
-  "/:id",
-  VendorController.getVendorById
-);
-
-// =====================================================
 // GET ALL VENDORS
 // =====================================================
 
 router.get(
   "/",
   VendorController.getVendors
+);
+
+// =====================================================
+// GET VENDOR BY USER ID
+// MUST BE BEFORE /status/:id
+// =====================================================
+
+router.get(
+  "/user/:userId",
+  VendorController.getVendorByUserId
 );
 
 // =====================================================

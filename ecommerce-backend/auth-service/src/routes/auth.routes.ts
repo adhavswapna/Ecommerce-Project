@@ -6,35 +6,75 @@ import { Role } from "../constants/role.enum";
 
 const router = Router();
 
-/* =========================
-   PUBLIC ROUTES
-========================= */
+// =====================================================
+// PUBLIC ROUTES
+// =====================================================
 
-// 🔐 Local Login / Register
-router.post("/login", AuthController.login);
-router.post("/register", AuthController.registerUser);
+// Login
+router.post(
+  "/login",
+  AuthController.login
+);
 
-// 🔐 Password Recovery
-router.post("/forgot-password", AuthController.forgotPassword);
-router.post("/reset-password", AuthController.resetPassword);
+// Normal customer registration
+router.post(
+  "/register",
+  AuthController.registerUser
+);
 
-// 🔥 GOOGLE OAUTH LOGIN
-router.get("/google", AuthController.googleLogin);
-router.get("/google/callback", AuthController.googleCallback);
+// Password recovery
+router.post(
+  "/forgot-password",
+  AuthController.forgotPassword
+);
 
+router.post(
+  "/reset-password",
+  AuthController.resetPassword
+);
 
-/* =========================
-   AUTHENTICATED USER ROUTES
-========================= */
+// Google OAuth
+router.get(
+  "/google",
+  AuthController.googleLogin
+);
 
-router.get("/me", authMiddleware, AuthController.me);
+router.get(
+  "/google/callback",
+  AuthController.googleCallback
+);
 
+// =====================================================
+// AUTHENTICATED USER
+// =====================================================
 
-/* =========================
-   ADMIN ONLY ROUTES
-========================= */
+router.get(
+  "/me",
+  authMiddleware,
+  AuthController.me
+);
 
-// Register Vendor (Admin Only)
+// =====================================================
+// ADMIN ONLY
+// =====================================================
+
+// Create Vendor Authentication Account
+//
+// Admin provides:
+// name
+// email
+// password
+// phone
+// address
+//
+// Auth Service creates AuthUser with:
+// role = VENDOR
+//
+// Then returns:
+// userId
+// token
+// user
+
 router.post(
   "/register/vendor",
   authMiddleware,
@@ -42,7 +82,11 @@ router.post(
   AuthController.registerVendor
 );
 
-// Register Admin (Admin Only)
+// =====================================================
+// ADMIN ONLY
+// =====================================================
+
+// Create another Admin
 router.post(
   "/register/admin",
   authMiddleware,

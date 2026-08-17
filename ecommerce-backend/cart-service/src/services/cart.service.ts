@@ -17,15 +17,14 @@ export async function addItem(
   userId: string,
   productId: string,
   quantity: number,
+  price: number,
   type: "CART" | "WISHLIST" = "CART"
 ) {
   if (!productId || quantity <= 0) {
     throw new Error("Invalid product or quantity");
   }
 
-  // ✅ FIX: no external HTTP call (was causing 5–7s delay)
-  const price = 0; // placeholder (replace with event-driven product snapshot later)
-
+  
   let cart = await prisma.cart.findFirst({ where: { userId } });
 
   if (!cart) {

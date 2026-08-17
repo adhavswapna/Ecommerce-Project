@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+
 import { login } from "@/api/auth";
 import { useAuthStore } from "@/store/auth.store";
+import { decodeJwtUser, UserRole } from "@/types/user";
+
 import GoogleLoginButton from "./GoogleLoginButton";
 
 export default function LoginForm() {
@@ -33,18 +36,64 @@ export default function LoginForm() {
     setLoading(true);
 
     try {
+      console.log("🔐 Login started");
+
       const res = await login(email, password);
 
-      // Save token + role in store
-      setAuth(res.token, res.role);
+      console.log("✅ Login response:", res);
 
-      // Redirect after login
+      if (!res?.token) {
+        throw new Error("Login successful but token was not returned");
+      }
+
+      /*
+       * Backend returns:
+       *
+       * {
+       *   token: "JWT..."
+       * }
+       *
+       * The JWT itself contains:
+       * userId, name, email and role.
+       */
+
+      const jwtUser = decodeJwtUser(res.token);
+
+      console.log("🔑 Decoded JWT user:", jwtUser);
+
+      if (!jwtUser?.userId) {
+        throw new Error("Invalid login token");
+      }
+
+      /*
+       * Create the User object expected by auth.store.ts
+       */
+      const user = {
+        id: jwtUser.userId,
+        name: jwtUser.name,
+        email: jwtUser.email,
+        role: jwtUser.role as UserRole,
+        phone: null,
+        address: null,
+      };
+
+      console.log("👤 User created:", user);
+
+      /*
+       * Store BOTH token and user.
+       */
+      setAuth(res.token, user);
+
+      console.log("✅ Authentication stored");
+
       router.push("/");
     } catch (err: any) {
+      console.error("❌ Login error:", err);
+
       setError(
         err?.response?.data?.message ||
-        err?.message ||
-        "Login failed"
+          err?.message ||
+          "Login failed"
       );
     } finally {
       setLoading(false);
@@ -60,7 +109,7 @@ export default function LoginForm() {
         gap: "1rem",
       }}
     >
-      <h1>Login</h1>
+      <h2>Login</h2>
 
       {/* EMAIL */}
       <input
@@ -69,11 +118,17 @@ export default function LoginForm() {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
-        style={{ padding: "0.6rem" }}
+        style={{
+          padding: "0.6rem",
+        }}
       />
 
       {/* PASSWORD */}
-      <div style={{ position: "relative" }}>
+      <div
+        style={{
+          position: "relative",
+        }}
+      >
         <input
           type={showPassword ? "text" : "password"}
           placeholder="Password"
@@ -87,7 +142,9 @@ export default function LoginForm() {
         />
 
         <span
-          onClick={() => setShowPassword(!showPassword)}
+          onClick={() =>
+            setShowPassword(!showPassword)
+          }
           style={{
             position: "absolute",
             right: "10px",
@@ -110,7 +167,9 @@ export default function LoginForm() {
           cursor: "pointer",
         }}
       >
-        {loading ? "Logging in..." : "Login"}
+        {loading
+          ? "Logging in..."
+          : "Login"}
       </button>
 
       {/* ERROR MESSAGE */}
@@ -132,3 +191,5 @@ export default function LoginForm() {
     </form>
   );
 }
+
+

@@ -1,57 +1,53 @@
-import { apiClient } from "./apiClient";
+import { paymentApi } from "./apiClient";
 
+// ========================
+// CREATE PAYMENT
+// ========================
+export const createPayment = async (payload: any) => {
+const res = await paymentApi.post("/", payload);
 
-
-export const createPayment = async (
-  payload: any
-) => {
-
-  const res =
-    await apiClient.post(
-      "/payment/create",
-      payload
-    );
-
-
-  return res.data;
+return res.data;
 };
 
+// ========================
+// INITIATE PAYMENT
+// ========================
+export const initiatePayment = async (payload: any) => {
+const res = await paymentApi.post("/", payload);
 
-
-
-
-export const initiatePayment = async (
-  orderId: string
-) => {
-
-  const res =
-    await apiClient.post(
-      "/payment/initiate",
-      {
-        orderId,
-      }
-    );
-
-
-  return res.data;
+return res.data;
 };
 
+// ========================
+// VERIFY PAYMENT
+// ========================
+export const verifyPayment = async (paymentId: string) => {
+const res = await paymentApi.post(
+`/verify/${paymentId}`
+);
 
-
-
-
-export const verifyPayment = async (
-  paymentId: string
-) => {
-
-  const res =
-    await apiClient.post(
-      "/payment/verify",
-      {
-        paymentId,
-      }
-    );
-
-
-  return res.data;
+return res.data;
 };
+
+// ========================
+// GET PAYMENT STATUS
+// ========================
+export const getPaymentStatus = async (orderId: string) => {
+const res = await paymentApi.get(
+`/status/${orderId}`
+);
+
+return res.data;
+};
+
+// ========================
+// REFUND PAYMENT
+// ========================
+export const refundPayment = async (orderId: string) => {
+const res = await paymentApi.post(
+`/refund/${orderId}`
+);
+
+return res.data;
+};
+

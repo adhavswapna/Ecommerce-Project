@@ -1,5 +1,4 @@
-import { Request, Response } from "express";
-import {
+import { Request, Response } from "express"; import {
   addItem,
   getUserItems,
   updateItemQuantity,
@@ -15,13 +14,13 @@ import {
 export async function addItemController(req: Request, res: Response) {
   try {
     const userId = (req as any).user.userId;
-    const { productId, quantity } = req.body;
+    const { productId, quantity, price } = req.body;
 
     if (!productId) {
       return res.status(400).json({ message: "productId is required" });
     }
 
-    const item = await addItem(userId, productId, quantity);
+    const item = await addItem(userId, productId, quantity, price);
 
     res.status(201).json(item);
   } catch (error) {

@@ -1,4 +1,9 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -6,60 +11,68 @@ import Products from "./pages/Products";
 import Orders from "./pages/Orders";
 import Analytics from "./pages/Analytics";
 
-import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
+import ProtectedRoute from "./components/ProtectedRoute";
+
+function ProtectedLayout() {
+  return (
+    <ProtectedRoute>
+      <Layout>
+        <Routes>
+          <Route
+            path="/dashboard"
+            element={<Dashboard />}
+          />
+
+          <Route
+            path="/products"
+            element={<Products />}
+          />
+
+          <Route
+            path="/orders"
+            element={<Orders />}
+          />
+
+          <Route
+            path="/analytics"
+            element={<Analytics />}
+          />
+
+          <Route
+            path="*"
+            element={
+              <Navigate
+                to="/dashboard"
+                replace
+              />
+            }
+          />
+        </Routes>
+      </Layout>
+    </ProtectedRoute>
+  );
+}
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* PUBLIC */}
-        <Route path="/login" element={<Login />} />
 
-        {/* PROTECTED */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <Dashboard />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
+        {/* Vendor Login */}
 
         <Route
-          path="/products"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <Products />
-              </Layout>
-            </ProtectedRoute>
-          }
+          path="/login"
+          element={<Login />}
         />
 
-        <Route
-          path="/orders"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <Orders />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
+        {/* Protected Vendor Dashboard */}
 
         <Route
-          path="/analytics"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <Analytics />
-              </Layout>
-            </ProtectedRoute>
-          }
+          path="/*"
+          element={<ProtectedLayout />}
         />
+
       </Routes>
     </BrowserRouter>
   );
