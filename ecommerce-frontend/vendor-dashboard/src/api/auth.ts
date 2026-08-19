@@ -1,26 +1,24 @@
-import apiClient from "./client";
+import API from "../services/api";
 
 export const login = async (
   email: string,
   password: string
 ) => {
-  const { data } =
-    await apiClient.post(
-      "/auth/login",
-      {
-        email,
-        password,
-      }
-    );
-
-  // IMPORTANT:
-  // client.ts reads vendorToken
-  localStorage.setItem(
-    "vendorToken",
-    data.token
+  const { data } = await API.post(
+    "/auth/login",
+    {
+      email,
+      password,
+    }
   );
 
-  // Optional but useful
+  if (data.token) {
+    localStorage.setItem(
+      "vendorToken",
+      data.token
+    );
+  }
+
   if (data.user) {
     localStorage.setItem(
       "vendorUser",

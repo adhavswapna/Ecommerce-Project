@@ -10,9 +10,7 @@ export default function Login() {
 
   const [loading, setLoading] = useState(false);
 
-  const submit = async (
-    e: React.FormEvent
-  ) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!email || !password) {
@@ -23,21 +21,17 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const response = await API.post(
-        "/auth/login",
-        {
-          email,
-          password,
-        }
-      );
+      /*
+       * Login request
+       */
+      const response = await API.post("/auth/login", {
+        email,
+        password,
+      });
 
-      console.log(
-        "Vendor login response:",
-        response.data
-      );
+      console.log("Vendor login response:", response.data);
 
-      const token =
-        response.data?.token;
+      const token = response.data?.token;
 
       if (!token) {
         throw new Error(
@@ -51,24 +45,28 @@ export default function Login() {
       let payload: any;
 
       try {
+        const base64Payload = token.split(".")[1];
+
+        if (!base64Payload) {
+          throw new Error("Invalid JWT structure");
+        }
+
         payload = JSON.parse(
-          atob(token.split(".")[1])
+          atob(
+            base64Payload
+              .replace(/-/g, "+")
+              .replace(/_/g, "/")
+          )
         );
       } catch (error) {
-        console.error(
-          "JWT decode error:",
-          error
-        );
+        console.error("JWT decode error:", error);
 
         throw new Error(
           "Invalid authentication token."
         );
       }
 
-      console.log(
-        "Vendor JWT payload:",
-        payload
-      );
+      console.log("Vendor JWT payload:", payload);
 
       /*
        * Make sure account is actually VENDOR
@@ -94,9 +92,16 @@ export default function Login() {
         JSON.stringify(payload)
       );
 
-      alert(
-        "Vendor login successful!"
+      console.log(
+        "Vendor token saved successfully."
       );
+
+      console.log(
+        "Vendor user saved:",
+        payload
+      );
+
+      alert("Vendor login successful!");
 
       navigate("/dashboard");
     } catch (err: any) {
@@ -128,32 +133,35 @@ export default function Login() {
     >
       <h2>Vendor Login</h2>
 
-      <p>
-        Login using your approved vendor account.
-      </p>
-
       <form onSubmit={submit}>
-
         <div
           style={{
             marginBottom: "15px",
           }}
         >
-          <label>Email</label>
-
-          <br />
+          <label
+            htmlFor="email"
+            style={{
+              display: "block",
+              marginBottom: "5px",
+            }}
+          >
+            Email
+          </label>
 
           <input
+            id="email"
             type="email"
-            placeholder="Vendor Email"
             value={email}
             onChange={(e) =>
               setEmail(e.target.value)
             }
-            disabled={loading}
+            placeholder="Enter vendor email"
+            autoComplete="email"
             style={{
               width: "100%",
-              padding: "8px",
+              padding: "10px",
+              boxSizing: "border-box",
             }}
           />
         </div>
@@ -163,21 +171,29 @@ export default function Login() {
             marginBottom: "15px",
           }}
         >
-          <label>Password</label>
-
-          <br />
+          <label
+            htmlFor="password"
+            style={{
+              display: "block",
+              marginBottom: "5px",
+            }}
+          >
+            Password
+          </label>
 
           <input
+            id="password"
             type="password"
-            placeholder="Vendor Password"
             value={password}
             onChange={(e) =>
               setPassword(e.target.value)
             }
-            disabled={loading}
+            placeholder="Enter password"
+            autoComplete="current-password"
             style={{
               width: "100%",
-              padding: "8px",
+              padding: "10px",
+              boxSizing: "border-box",
             }}
           />
         </div>
@@ -186,7 +202,11 @@ export default function Login() {
           type="submit"
           disabled={loading}
           style={{
-            padding: "10px 20px",
+            width: "100%",
+            padding: "12px",
+            cursor: loading
+              ? "not-allowed"
+              : "pointer",
           }}
         >
           {loading

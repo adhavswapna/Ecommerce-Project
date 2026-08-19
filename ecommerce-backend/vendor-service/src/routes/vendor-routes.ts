@@ -12,6 +12,21 @@ router.post(
   VendorController.createVendor
 );
 
+
+// =====================================================
+// GET ALL VENDORS
+// =====================================================
+//
+// GET /api/vendors
+//
+// =====================================================
+
+router.get(
+  "/",
+  VendorController.getVendors
+);
+
+
 // =====================================================
 // GET VENDOR BY USER ID
 // =====================================================
@@ -21,12 +36,54 @@ router.post(
 // IMPORTANT:
 // This route must come before /:id.
 //
-// =====================================================
 
 router.get(
   "/user/:userId",
   VendorController.getVendorByUserId
 );
+
+
+// =====================================================
+// APPROVE VENDOR
+// =====================================================
+//
+// POST /api/vendors/:id/approve
+//
+// =====================================================
+
+router.post(
+  "/:id/approve",
+  VendorController.approveVendor
+);
+
+
+// =====================================================
+// REJECT VENDOR
+// =====================================================
+//
+// POST /api/vendors/:id/reject
+//
+// =====================================================
+
+router.post(
+  "/:id/reject",
+  VendorController.rejectVendor
+);
+
+
+// =====================================================
+// UPDATE VENDOR STATUS
+// =====================================================
+//
+// PUT /api/vendors/status/:id
+//
+// =====================================================
+
+router.put(
+  "/status/:id",
+  VendorController.updateStatus
+);
+
 
 // =====================================================
 // GET VENDOR BY VENDOR ID
@@ -34,31 +91,14 @@ router.get(
 //
 // GET /api/vendors/:id
 //
-// Used by Product.vendorId
+// IMPORTANT:
+// Keep this AFTER /approve and /reject.
 //
-// =====================================================
 
 router.get(
   "/:id",
   VendorController.getVendorById
 );
 
-// =====================================================
-// GET ALL VENDORS
-// =====================================================
-
-router.get(
-  "/",
-  VendorController.getVendors
-);
-
-// =====================================================
-// UPDATE VENDOR STATUS
-// =====================================================
-
-router.put(
-  "/status/:id",
-  VendorController.updateStatus
-);
 
 export default router;

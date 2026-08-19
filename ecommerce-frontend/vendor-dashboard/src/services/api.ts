@@ -1,6 +1,6 @@
 import axios from "axios";
 
-export const API = axios.create({
+const API = axios.create({
   baseURL:
     import.meta.env.VITE_API_BASE_URL ||
     "http://localhost:8081/api",
@@ -8,18 +8,19 @@ export const API = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+
+  timeout: 15000,
 });
 
-/*
- * Automatically attach vendor JWT
- * to every API request.
- */
 API.interceptors.request.use(
   (config) => {
     const token =
       localStorage.getItem("vendorToken");
 
     if (token) {
+      config.headers =
+        config.headers || {};
+
       config.headers.Authorization =
         `Bearer ${token}`;
     }
@@ -31,11 +32,10 @@ API.interceptors.request.use(
   }
 );
 
-/*
- * Handle unauthorized responses.
- */
 API.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    return response;
+  },
 
   (error) => {
     if (error.response?.status === 401) {
@@ -47,8 +47,7 @@ API.interceptors.response.use(
         "vendorUser"
       );
 
-      window.location.href =
-        "/login";
+      window.location.href = "/login";
     }
 
     return Promise.reject(error);

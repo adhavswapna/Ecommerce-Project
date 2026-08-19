@@ -1,101 +1,96 @@
 import { prisma } from "../db/prisma/prisma";
-import { redis } from "../redis/redis-client";
 
-import {
-  publishProductCreated,
-  publishProductUpdated,
-  publishProductDeleted,
-} from "../kafka/product.producer";
+/**
+ * =========================================================
+ * VENDOR SERVICE URL
+ * =========================================================
+ *
+ * Product Service talks directly to Vendor Service.
+ *
+ * Vendor Service:
+ * http://localhost:3012
+ *
+ * Vendor routes:
+ * /vendors/user/:userId
+ *
+ * Therefore:
+ *
+ * http://localhost:3012/vendors/user/:userId
+ *
+ * We use an environment variable when available.
+ * Otherwise we use the local development URL.
+ */
 
-const PRODUCT_CACHE_KEY = "products:all";
-
-// Vendor service through API Gateway
 const VENDOR_SERVICE_URL =
   process.env.VENDOR_SERVICE_URL ||
-  "http://localhost:8081/api/vendors";
+  "http://localhost:3012/vendors";
 
 /**
- * =====================================================
- * LIST ALL PRODUCTS
- * =====================================================
- */
-
-export async function listProducts() {
-  try {
-    const cached =
-      await redis.get(PRODUCT_CACHE_KEY);
-
-    if (cached) {
-      console.log(
-        "⚡ Products fetched from Redis"
-      );
-
-      return JSON.parse(cached);
-    }
-
-    const products =
-      await prisma.product.findMany({
-        include: {
-          images: true,
-        },
-      });
-
-    await redis.set(
-      PRODUCT_CACHE_KEY,
-      JSON.stringify(products),
-      "EX",
-      60
-    );
-
-    return products;
-  } catch (error) {
-    console.error(
-      "Error listing products:",
-      error
-    );
-
-    throw new Error(
-      "Failed to fetch products"
-    );
-  }
-}
-
-/**
- * =====================================================
- * LIST PRODUCTS FOR CURRENT VENDOR
- * =====================================================
+ * =========================================================
+ * GET APPROVED + ACTIVE VENDOR FOR CURRENT USER
+ * =========================================================
  *
- * JWT gives us:
- *
- * userId
- *
- * Then:
- *
- * userId
- *   ↓
+ * JWT userId
+ *     ↓
  * Vendor Service
- *   ↓
- * vendorId
- *   ↓
- * Product Service
- *   ↓
- * products WHERE vendorId = vendor.id
+ *     ↓
+ * Vendor.userId
+ *     ↓
+ * APPROVED + isActive
+ *     ↓
+ * vendor.id
+ *     ↓
+ * Product.vendorId
  *
+ * IMPORTANT:
+ *
+ * Vendor Service returns:
+ *
+ * {
+ *   success: true,
+ *   count: 1,
+ *   data: [...]
+ * }
+ *
+ * Therefore data MUST be treated as an array.
  */
 
-export async function listVendorProducts(
-  userId: string
-) {
+async function getCurrentVendor(userId: string) {
   try {
     console.log(
       "🔎 Finding vendor for userId:",
       userId
     );
 
-    const response = await fetch(
+    if (!userId || userId.trim() === "") {
+      throw new Error(
+        "User ID is required"
+      );
+    }
+
+    const url =
       `${VENDOR_SERVICE_URL}/user/${encodeURIComponent(
         userId
-      )}`
+      )}`;
+
+    console.log(
+      "➡️ Calling Vendor Service:",
+      url
+    );
+
+    const response = await fetch(url);
+
+    console.log(
+      "➡️ Vendor Service status:",
+      response.status
+    );
+
+    const responseText =
+      await response.text();
+
+    console.log(
+      "➡️ Vendor Service raw response:",
+      responseText
     );
 
     if (!response.ok) {
@@ -110,27 +105,132 @@ export async function listVendorProducts(
       );
     }
 
-    const vendorResponse =
-      await response.json();
+    let vendorResponse: any;
+
+    try {
+      vendorResponse =
+        JSON.parse(responseText);
+    } catch {
+      throw new Error(
+        "Vendor Service returned invalid JSON"
+      );
+    }
+
+    if (
+      !vendorResponse ||
+      vendorResponse.success !== true
+    ) {
+      throw new Error(
+        "Invalid Vendor Service response"
+      );
+    }
+
+    const vendors =
+      vendorResponse.data;
+
+    if (!Array.isArray(vendors)) {
+      throw new Error(
+        "Vendor Service returned invalid vendor data"
+      );
+    }
+
+    /**
+     * Find ONLY approved + active vendor.
+     */
 
     const vendor =
-      vendorResponse.data;
+      vendors.find(
+        (item: any) =>
+          item.status === "APPROVED" &&
+          item.isActive === true
+      );
 
     if (!vendor) {
       throw new Error(
-        "Vendor profile not found"
+        "Approved active vendor profile not found for this user"
       );
     }
 
     console.log(
-      "✅ Vendor found:",
-      vendor.id
+      "✅ Selected vendor:",
+      {
+        id: vendor.id,
+        name: vendor.name,
+        email: vendor.email,
+        userId: vendor.userId,
+        status: vendor.status,
+        isActive: vendor.isActive,
+      }
     );
+
+    return vendor;
+
+  } catch (error) {
+    console.error(
+      "❌ Error finding current vendor:",
+      error
+    );
+
+    throw error;
+  }
+}
+
+
+/**
+ * =========================================================
+ * LIST PRODUCTS FOR CURRENT VENDOR
+ * =========================================================
+ */
+
+export async function listVendorProducts(
+  userId: string
+) {
+  try {
+    console.log(
+      "=============================================="
+    );
+
+    console.log(
+      "🔐 LIST VENDOR PRODUCTS"
+    );
+
+    console.log(
+      "🔑 JWT userId:",
+      userId
+    );
+
+    /**
+     * Get approved + active vendor.
+     */
+
+    const vendor =
+      await getCurrentVendor(userId);
+
+    /**
+     * IMPORTANT:
+     *
+     * Product.vendorId stores Vendor.id.
+     *
+     * NEVER use userId directly.
+     */
+
+    const vendorId =
+      vendor.id;
+
+    console.log(
+      "🔥 Using vendorId:",
+      vendorId
+    );
+
+    /**
+     * Fetch ONLY products belonging
+     * to this vendor.
+     */
 
     const products =
       await prisma.product.findMany({
         where: {
-          vendorId: vendor.id,
+          vendorId: vendorId,
         },
 
         include: {
@@ -143,13 +243,54 @@ export async function listVendorProducts(
       });
 
     console.log(
-      `✅ Found ${products.length} products for vendor ${vendor.id}`
+      `✅ Found ${products.length} products for vendor ${vendorId}`
+    );
+
+    console.log(
+      "🔥 Product result:"
+    );
+
+    console.log(
+      products.map(
+        (product) => ({
+          id: product.id,
+          vendorId: product.vendorId,
+          name: product.name,
+        })
+      )
+    );
+
+    /**
+     * Extra ownership validation.
+     */
+
+    const invalidProducts =
+      products.filter(
+        (product) =>
+          product.vendorId !== vendorId
+      );
+
+    if (
+      invalidProducts.length > 0
+    ) {
+      console.error(
+        "🚨 SECURITY ERROR: Products from another vendor detected!"
+      );
+
+      throw new Error(
+        "Product ownership validation failed"
+      );
+    }
+
+    console.log(
+      "=============================================="
     );
 
     return products;
+
   } catch (error) {
     console.error(
-      "Error listing vendor products:",
+      "❌ Error listing vendor products:",
       error
     );
 
@@ -157,94 +298,46 @@ export async function listVendorProducts(
   }
 }
 
-/**
- * =====================================================
- * GET PRODUCT BY ID
- * =====================================================
- */
-
-export async function getProductById(
-  id: string
-) {
-  try {
-    return await prisma.product.findUnique({
-      where: {
-        id,
-      },
-
-      include: {
-        images: true,
-      },
-    });
-  } catch (error) {
-    console.error(
-      "Error fetching product:",
-      error
-    );
-
-    return null;
-  }
-}
 
 /**
- * =====================================================
- * CHECK STOCK
- * =====================================================
- */
-
-export async function checkStock(
-  id: string
-) {
-  try {
-    const product =
-      await prisma.product.findUnique({
-        where: {
-          id,
-        },
-      });
-
-    return product?.stock ?? 0;
-  } catch (error) {
-    console.error(
-      "Error checking stock:",
-      error
-    );
-
-    throw new Error(
-      "Failed to check stock"
-    );
-  }
-}
-
-/**
- * =====================================================
+ * =========================================================
  * CREATE PRODUCT
- * =====================================================
+ * =========================================================
  */
 
 export async function createProduct(
-  name: string,
-  price: number,
-  description: string | null,
-  stock: number,
-  vendorId: string,
-  images: string[] = []
+  data: any,
+  userId: string
 ) {
   try {
+    /**
+     * Get approved + active vendor.
+     */
+
+    const vendor =
+      await getCurrentVendor(userId);
+
+    /**
+     * NEVER trust vendorId from frontend.
+     *
+     * Remove vendorId if frontend sends it.
+     */
+
+    const {
+      vendorId: _ignoredVendorId,
+      ...safeData
+    } = data;
+
+    /**
+     * Create product using the vendor
+     * determined from authenticated user.
+     */
+
     const product =
       await prisma.product.create({
         data: {
-          name,
-          price,
-          description,
-          stock,
-          vendorId,
-
-          images: {
-            create: images.map((url) => ({
-              url: normalizeImageUrl(url),
-            })),
-          },
+          ...safeData,
+          vendorId: vendor.id,
         },
 
         include: {
@@ -252,54 +345,94 @@ export async function createProduct(
         },
       });
 
-    await redis.del(
-      PRODUCT_CACHE_KEY
+    console.log(
+      "✅ Product created:",
+      {
+        id: product.id,
+        vendorId: product.vendorId,
+      }
     );
 
-    await publishProductCreated({
-      productId: product.id,
-      name: product.name,
-      description: product.description,
-      price: product.price,
-      vendorId: product.vendorId,
-      stock: product.stock,
-      createdAt: product.createdAt,
-    });
-
     return product;
+
   } catch (error) {
     console.error(
-      "Error creating product:",
+      "❌ Error creating product:",
       error
     );
 
-    throw new Error(
-      "Failed to create product"
-    );
+    throw error;
   }
 }
 
+
 /**
- * =====================================================
+ * =========================================================
+ * GET PRODUCT BY ID
+ * =========================================================
+ */
+
+export async function getProductById(
+  productId: string
+) {
+  try {
+    const product =
+      await prisma.product.findUnique({
+        where: {
+          id: productId,
+        },
+
+        include: {
+          images: true,
+        },
+      });
+
+    if (!product) {
+      throw new Error(
+        "Product not found"
+      );
+    }
+
+    return product;
+
+  } catch (error) {
+    console.error(
+      "❌ Error getting product:",
+      error
+    );
+
+    throw error;
+  }
+}
+
+
+/**
+ * =========================================================
  * UPDATE PRODUCT
- * =====================================================
+ * =========================================================
  */
 
 export async function updateProduct(
-  id: string,
-  data: {
-    name?: string;
-    price?: number;
-    description?: string;
-    stock?: number;
-    images?: string[];
-  }
+  productId: string,
+  data: any,
+  userId: string
 ) {
   try {
+    /**
+     * Get current approved + active vendor.
+     */
+
+    const vendor =
+      await getCurrentVendor(userId);
+
+    /**
+     * Find existing product.
+     */
+
     const existing =
       await prisma.product.findUnique({
         where: {
-          id,
+          id: productId,
         },
       });
 
@@ -309,33 +442,40 @@ export async function updateProduct(
       );
     }
 
+    /**
+     * Verify ownership.
+     */
+
+    if (
+      existing.vendorId !== vendor.id
+    ) {
+      throw new Error(
+        "You are not authorized to update this product"
+      );
+    }
+
+    /**
+     * NEVER allow frontend to change vendorId.
+     */
+
     const {
-      images,
-      ...productData
+      vendorId: _ignoredVendorId,
+      ...safeData
     } = data;
+
+    /**
+     * Update product.
+     */
 
     const product =
       await prisma.product.update({
         where: {
-          id,
+          id: productId,
         },
 
         data: {
-          ...productData,
-
-          ...(images && {
-            images: {
-              deleteMany: {},
-
-              create: images.map(
-                (url) => ({
-                  url: normalizeImageUrl(
-                    url
-                  ),
-                })
-              ),
-            },
-          }),
+          ...safeData,
+          vendorId: vendor.id,
         },
 
         include: {
@@ -343,45 +483,53 @@ export async function updateProduct(
         },
       });
 
-    await redis.del(
-      PRODUCT_CACHE_KEY
+    console.log(
+      "✅ Product updated:",
+      {
+        id: product.id,
+        vendorId: product.vendorId,
+      }
     );
 
-    await publishProductUpdated({
-      productId: product.id,
-      name: product.name,
-      description: product.description,
-      price: product.price,
-      updatedAt: product.updatedAt,
-    });
-
     return product;
+
   } catch (error) {
     console.error(
-      "Error updating product:",
+      "❌ Error updating product:",
       error
     );
 
-    throw new Error(
-      "Failed to update product"
-    );
+    throw error;
   }
 }
 
+
 /**
- * =====================================================
+ * =========================================================
  * DELETE PRODUCT
- * =====================================================
+ * =========================================================
  */
 
 export async function deleteProduct(
-  id: string
+  productId: string,
+  userId: string
 ) {
   try {
+    /**
+     * Get current approved + active vendor.
+     */
+
+    const vendor =
+      await getCurrentVendor(userId);
+
+    /**
+     * Find product.
+     */
+
     const existing =
       await prisma.product.findUnique({
         where: {
-          id,
+          id: productId,
         },
       });
 
@@ -391,56 +539,48 @@ export async function deleteProduct(
       );
     }
 
-    const product =
-      await prisma.product.delete({
-        where: {
-          id,
-        },
-      });
+    /**
+     * Verify ownership.
+     */
 
-    await redis.del(
-      PRODUCT_CACHE_KEY
-    );
+    if (
+      existing.vendorId !== vendor.id
+    ) {
+      throw new Error(
+        "You are not authorized to delete this product"
+      );
+    }
 
-    await publishProductDeleted({
-      productId: product.id,
-      deletedAt:
-        new Date().toISOString(),
+    /**
+     * Delete product.
+     */
+
+    await prisma.product.delete({
+      where: {
+        id: productId,
+      },
     });
 
-    return product;
+    console.log(
+      "✅ Product deleted:",
+      {
+        productId,
+        vendorId: vendor.id,
+      }
+    );
+
+    return {
+      success: true,
+      message:
+        "Product deleted successfully",
+    };
+
   } catch (error) {
     console.error(
-      "Error deleting product:",
+      "❌ Error deleting product:",
       error
     );
 
-    throw new Error(
-      "Failed to delete product"
-    );
+    throw error;
   }
-}
-
-/**
- * =====================================================
- * IMAGE NORMALIZER
- * =====================================================
- */
-
-function normalizeImageUrl(
-  url: string
-): string {
-  if (!url) {
-    return url;
-  }
-
-  return url
-    .replace(
-      /\/products\/products\//g,
-      "/products/"
-    )
-    .replace(
-      /([^:]\/)\/+/g,
-      "$1"
-    );
 }

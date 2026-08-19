@@ -14,6 +14,7 @@ import {
   AuthenticatedRequest,
 } from "../middlewares/auth.middleware";
 
+
 /* =====================================================
    GET ALL PRODUCTS
 ===================================================== */
@@ -23,9 +24,13 @@ export async function getAllProducts(
   res: Response
 ) {
   try {
-    const products = await listProducts();
+    const products =
+      await listProducts();
 
-    return res.status(200).json(products);
+    return res.status(200).json(
+      products
+    );
+
   } catch (error) {
     console.error(
       "getAllProducts error:",
@@ -33,10 +38,13 @@ export async function getAllProducts(
     );
 
     return res.status(500).json({
-      message: "Failed to fetch products",
+      success: false,
+      message:
+        "Failed to fetch products",
     });
   }
 }
+
 
 /* =====================================================
    GET CURRENT VENDOR PRODUCTS
@@ -47,39 +55,86 @@ export async function getVendorProducts(
   res: Response
 ) {
   try {
-    const userId = req.user?.userId;
+    /**
+     * userId comes from JWT.
+     */
+
+    const userId =
+      req.user?.userId;
 
     if (!userId) {
       return res.status(401).json({
         success: false,
-        message: "User ID missing from token",
+        message:
+          "User ID missing from token",
       });
     }
 
+    console.log(
+      "🔐 Vendor products requested by userId:",
+      userId
+    );
+
+    /**
+     * Product service:
+     *
+     * userId
+     *   ↓
+     * Vendor Service
+     *   ↓
+     * vendor.id
+     *   ↓
+     * Product.vendorId
+     */
+
     const products =
-      await listVendorProducts(userId);
+      await listVendorProducts(
+        userId
+      );
 
     return res.status(200).json({
       success: true,
       count: products.length,
       data: products,
     });
+
   } catch (error: any) {
     console.error(
-      "getVendorProducts error:",
+      "❌ getVendorProducts error:",
       error
     );
 
+    /**
+     * Vendor not found / not approved.
+     */
+
+    if (
+      error.message?.includes(
+        "Approved active vendor"
+      ) ||
+      error.message?.includes(
+        "Vendor profile not found"
+      )
+    ) {
+      return res.status(404).json({
+        success: false,
+        message:
+          error.message,
+      });
+    }
+
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch vendor products",
-      error: error.message,
+      message:
+        error.message ||
+        "Failed to fetch vendor products",
     });
   }
 }
 
+
 /* =====================================================
-   GET PRODUCT
+   GET PRODUCT BY ID
 ===================================================== */
 
 export async function getProduct(
@@ -87,29 +142,50 @@ export async function getProduct(
   res: Response
 ) {
   try {
-    const { id } = req.params;
+    const { id } =
+      req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Product ID is required",
+      });
+    }
 
     const product =
       await getProductById(id);
 
-    if (!product) {
-      return res.status(404).json({
-        message: "Product not found",
-      });
-    }
+    return res.status(200).json({
+      success: true,
+      data: product,
+    });
 
-    return res.status(200).json(product);
-  } catch (error) {
+  } catch (error: any) {
     console.error(
       "getProduct error:",
       error
     );
 
+    if (
+      error.message ===
+      "Product not found"
+    ) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Product not found",
+      });
+    }
+
     return res.status(500).json({
-      message: "Failed to fetch product",
+      success: false,
+      message:
+        "Failed to fetch product",
     });
   }
 }
+
 
 /* =====================================================
    CREATE PRODUCT
@@ -120,130 +196,483 @@ export async function addProduct(
   res: Response
 ) {
   try {
+    /**
+     * Get authenticated userId.
+     */
+
+    const userId =
+      req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "User ID missing from token",
+      });
+    }
+
+    /**
+     * Get fields from frontend.
+     */
+
     const {
       name,
       price,
       description,
       stock,
-      vendorId,
+      priceRange,
       images,
     } = req.body;
 
+    /**
+     * Validate name.
+     */
+
     if (
       !name ||
-      price === undefined ||
-      stock === undefined ||
-      !vendorId
+      typeof name !== "string" ||
+      name.trim() === ""
     ) {
       return res.status(400).json({
         success: false,
         message:
-          "name, price, stock and vendorId are required",
+          "Product name is required",
       });
     }
 
+    /**
+     * Validate price.
+     */
+
+    if (
+      price === undefined ||
+      price === null ||
+      Number.isNaN(Number(price))
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Valid price is required",
+      });
+    }
+
+    /**
+     * Validate stock.
+     */
+
+    if (
+      stock === undefined ||
+      stock === null ||
+      Number.isNaN(Number(stock))
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Valid stock is required",
+      });
+    }
+
+    /**
+     * Build product data.
+     *
+     * vendorId is intentionally NOT taken
+     * from frontend.
+     */
+
+    const productData: any = {
+      name: name.trim(),
+      price: Number(price),
+      description:
+        description ?? null,
+      stock: Number(stock),
+    };
+
+    /**
+     * Add priceRange only if supplied.
+     */
+
+    if (
+      priceRange !== undefined
+    ) {
+      productData.priceRange =
+        priceRange;
+    }
+
+    /**
+     * Images.
+     *
+     * Keep this only if your Prisma
+     * Product model supports images
+     * through nested writes.
+     *
+     * If images are handled by your
+     * upload controller separately,
+     * frontend can omit this field.
+     */
+
+    if (
+      Array.isArray(images)
+    ) {
+      productData.images = {
+        create: images.map(
+          (image: any) => ({
+            url:
+              typeof image === "string"
+                ? image
+                : image.url,
+            altText:
+              typeof image === "string"
+                ? null
+                : image.altText ?? null,
+          })
+        ),
+      };
+    }
+
+    console.log(
+      "🔐 Creating product for userId:",
+      userId
+    );
+
+    /**
+     * Service determines vendor from
+     * authenticated userId.
+     */
+
     const product =
       await createProduct(
-        name,
-        Number(price),
-        description ?? null,
-        Number(stock),
-        vendorId,
-        images || []
+        productData,
+        userId
       );
 
-    return res.status(201).json(product);
-  } catch (error) {
+    console.log(
+      "✅ Product created:",
+      product.id,
+      "vendorId:",
+      product.vendorId
+    );
+
+    return res.status(201).json({
+      success: true,
+      message:
+        "Product created successfully",
+      data: product,
+    });
+
+  } catch (error: any) {
     console.error(
-      "addProduct error:",
+      "❌ addProduct error:",
       error
     );
 
-    return res.status(400).json({
-      message: "Failed to create product",
+    if (
+      error.message?.includes(
+        "Approved active vendor"
+      ) ||
+      error.message?.includes(
+        "Vendor profile not found"
+      )
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          error.message,
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message:
+        error.message ||
+        "Failed to create product",
     });
   }
 }
+
 
 /* =====================================================
    UPDATE PRODUCT
 ===================================================== */
 
 export async function editProduct(
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response
 ) {
   try {
-    const { id } = req.params;
+    const { id } =
+      req.params;
+
+    const userId =
+      req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "User ID missing from token",
+      });
+    }
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Product ID is required",
+      });
+    }
 
     const {
       name,
       price,
       description,
       stock,
-      images,
+      priceRange,
     } = req.body;
 
-    const updated =
-      await updateProduct(id, {
-        name,
-        price:
-          price !== undefined
-            ? Number(price)
-            : undefined,
-        description,
-        stock:
-          stock !== undefined
-            ? Number(stock)
-            : undefined,
-        images,
-      });
+    /**
+     * Build safe update data.
+     *
+     * vendorId is deliberately excluded.
+     */
 
-    return res.status(200).json(updated);
-  } catch (error) {
+    const updateData: any = {};
+
+    if (
+      name !== undefined
+    ) {
+      updateData.name =
+        name;
+    }
+
+    if (
+      price !== undefined
+    ) {
+      const numericPrice =
+        Number(price);
+
+      if (
+        Number.isNaN(
+          numericPrice
+        )
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid price",
+        });
+      }
+
+      updateData.price =
+        numericPrice;
+    }
+
+    if (
+      description !== undefined
+    ) {
+      updateData.description =
+        description;
+    }
+
+    if (
+      stock !== undefined
+    ) {
+      const numericStock =
+        Number(stock);
+
+      if (
+        Number.isNaN(
+          numericStock
+        )
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid stock",
+        });
+      }
+
+      updateData.stock =
+        numericStock;
+    }
+
+    if (
+      priceRange !== undefined
+    ) {
+      updateData.priceRange =
+        priceRange;
+    }
+
+    /**
+     * IMPORTANT:
+     *
+     * Do not accept vendorId from
+     * frontend.
+     */
+
+    delete updateData.vendorId;
+
+    console.log(
+      "🔐 Updating product:",
+      {
+        productId: id,
+        userId,
+      }
+    );
+
+    /**
+     * Service checks ownership.
+     */
+
+    const updated =
+      await updateProduct(
+        id,
+        updateData,
+        userId
+      );
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Product updated successfully",
+      data: updated,
+    });
+
+  } catch (error: any) {
     console.error(
-      "editProduct error:",
+      "❌ editProduct error:",
       error
     );
 
-    return res.status(400).json({
-      message: "Failed to update product",
+    if (
+      error.message ===
+      "Product not found"
+    ) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Product not found",
+      });
+    }
+
+    if (
+      error.message?.includes(
+        "not authorized"
+      )
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          error.message,
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message:
+        error.message ||
+        "Failed to update product",
     });
   }
 }
+
 
 /* =====================================================
    DELETE PRODUCT
 ===================================================== */
 
 export async function removeProduct(
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response
 ) {
   try {
-    const { id } = req.params;
+    const { id } =
+      req.params;
+
+    const userId =
+      req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "User ID missing from token",
+      });
+    }
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Product ID is required",
+      });
+    }
+
+    console.log(
+      "🔐 Deleting product:",
+      {
+        productId: id,
+        userId,
+      }
+    );
+
+    /**
+     * Service checks ownership.
+     */
 
     const deleted =
-      await deleteProduct(id);
+      await deleteProduct(
+        id,
+        userId
+      );
 
     return res.status(200).json({
-      message: "Product deleted successfully",
-      product: deleted,
+      success: true,
+      message:
+        "Product deleted successfully",
+      data: deleted,
     });
-  } catch (error) {
+
+  } catch (error: any) {
     console.error(
-      "removeProduct error:",
+      "❌ removeProduct error:",
       error
     );
 
-    return res.status(400).json({
-      message: "Failed to delete product",
+    if (
+      error.message ===
+      "Product not found"
+    ) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Product not found",
+      });
+    }
+
+    if (
+      error.message?.includes(
+        "not authorized"
+      )
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          error.message,
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message:
+        error.message ||
+        "Failed to delete product",
     });
   }
 }
 
+
 /* =====================================================
-   STOCK
+   CHECK STOCK
 ===================================================== */
 
 export async function getStock(
@@ -251,22 +680,36 @@ export async function getStock(
   res: Response
 ) {
   try {
-    const { id } = req.params;
+    const { id } =
+      req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Product ID is required",
+      });
+    }
 
     const stock =
       await checkStock(id);
 
     return res.status(200).json({
+      success: true,
+      productId: id,
       stock,
     });
-  } catch (error) {
+
+  } catch (error: any) {
     console.error(
       "getStock error:",
       error
     );
 
     return res.status(500).json({
-      message: "Failed to check stock",
+      success: false,
+      message:
+        "Failed to check stock",
     });
   }
 }

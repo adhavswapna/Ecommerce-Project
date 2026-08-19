@@ -1,6 +1,7 @@
-import apiClient from "./client";
+import API from "../services/api";
 
 export const getVendorAnalytics = async () => {
-  const { data } = await apiClient.get("/analytics/vendor");
+  const { data } = await API.get("/analytics/vendor");
+
   return data;
 };

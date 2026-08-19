@@ -1,5 +1,5 @@
 import { useState } from "react";
-import API from "../api/client";
+import { createVendor } from "../api/vendors";
 
 export default function CreateVendor() {
   const [form, setForm] = useState({
@@ -22,100 +22,103 @@ export default function CreateVendor() {
     }));
   };
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (
+    e: React.FormEvent
+  ) => {
     e.preventDefault();
 
-    if (!form.name || !form.email || !form.password) {
-      alert("Name, Email and Password are required");
+    /* =================================================
+       VALIDATION
+    ================================================= */
+
+    if (
+      !form.name.trim() ||
+      !form.email.trim() ||
+      !form.password
+    ) {
+      alert(
+        "Name, Email and Password are required"
+      );
       return;
     }
 
     if (form.password.length < 8) {
-      alert("Password must be at least 8 characters");
+      alert(
+        "Password must be at least 8 characters"
+      );
       return;
     }
 
-    const adminToken = localStorage.getItem("adminToken");
+    /* =================================================
+       CHECK ADMIN LOGIN
+    ================================================= */
+
+    const adminToken =
+      localStorage.getItem("adminToken");
 
     if (!adminToken) {
-      alert("Admin login token not found. Please login as Admin.");
+      alert(
+        "Admin login token not found. Please login as Admin."
+      );
       return;
     }
+
+    /* =================================================
+       START LOADING
+    ================================================= */
 
     setLoading(true);
 
     try {
-      // =====================================================
-      // STEP 1
-      // Create vendor authentication account
-      // =====================================================
-
-      const authResponse = await API.post(
-        "/auth/register/vendor",
-        {
-          name: form.name,
-          email: form.email,
-          password: form.password,
-          phone: form.phone,
-          address: form.address,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${adminToken}`,
-          },
-        }
+      console.log(
+        "=============================================="
       );
 
       console.log(
-        "Auth Service Response:",
-        authResponse.data
+        "🚀 Creating vendor..."
       );
 
-      const userId =
-        authResponse.data?.data?.userId;
+      /* =================================================
+         CREATE AUTH + VENDOR
+      ================================================= */
 
-      if (!userId) {
-        throw new Error(
-          "Vendor authentication account was created, but userId was not returned."
-        );
-      }
+      const result = await createVendor({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        phone: form.phone.trim(),
+        address: form.address.trim(),
+      });
 
-      // =====================================================
-      // STEP 2
-      // Create vendor profile
-      // =====================================================
+      /* =================================================
+         SUCCESS
+      ================================================= */
 
-      const vendorResponse = await API.post(
-        "/vendors/create",
-        {
-          name: form.name,
-          email: form.email,
-          phone: form.phone,
-          address: form.address,
-          userId,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${adminToken}`,
-          },
-        }
+      console.log(
+        "🎉 Vendor creation completed:",
+        result
       );
 
       console.log(
-        "Vendor Service Response:",
-        vendorResponse.data
+        "👤 Auth User ID:",
+        result.userId
       );
 
-      // =====================================================
-      // SUCCESS
-      // =====================================================
+      console.log(
+        "=============================================="
+      );
 
       alert(
         "Vendor created successfully!\n\n" +
         `Name: ${form.name}\n` +
         `Email: ${form.email}\n\n` +
-        "The vendor can now login using this email and password."
+        "The vendor can now login using this email and password.\n\n" +
+        "Vendor status is PENDING until Admin approves the vendor."
       );
+
+      /* =================================================
+         CLEAR FORM
+      ================================================= */
 
       setForm({
         name: "",
@@ -126,16 +129,38 @@ export default function CreateVendor() {
       });
     } catch (err: any) {
       console.error(
-        "Error creating vendor:",
+        "❌ Vendor creation failed:",
         err
+      );
+
+      /* =================================================
+         AXIOS ERROR DETAILS
+      ================================================= */
+
+      console.error(
+        "Response:",
+        err?.response
+      );
+
+      console.error(
+        "Response data:",
+        err?.response?.data
+      );
+
+      console.error(
+        "Status:",
+        err?.response?.status
       );
 
       const message =
         err?.response?.data?.message ||
+        err?.response?.data?.error ||
         err?.message ||
         "Failed to create vendor";
 
-      alert(`Failed to create vendor\n\n${message}`);
+      alert(
+        `Failed to create vendor\n\n${message}`
+      );
     } finally {
       setLoading(false);
     }
@@ -148,17 +173,28 @@ export default function CreateVendor() {
         margin: "20px auto",
       }}
     >
-      <h2>Create Vendor</h2>
+      <h2>
+        Create Vendor
+      </h2>
 
       <p>
-        Create a vendor authentication account and
-        vendor business profile.
+        Create a vendor authentication account
+        and vendor business profile.
       </p>
 
       <form onSubmit={submit}>
+        {/* =================================================
+            NAME
+        ================================================= */}
 
-        <div style={{ marginBottom: "15px" }}>
-          <label>Name</label>
+        <div
+          style={{
+            marginBottom: "15px",
+          }}
+        >
+          <label>
+            Name
+          </label>
 
           <br />
 
@@ -180,8 +216,18 @@ export default function CreateVendor() {
           />
         </div>
 
-        <div style={{ marginBottom: "15px" }}>
-          <label>Email</label>
+        {/* =================================================
+            EMAIL
+        ================================================= */}
+
+        <div
+          style={{
+            marginBottom: "15px",
+          }}
+        >
+          <label>
+            Email
+          </label>
 
           <br />
 
@@ -203,8 +249,18 @@ export default function CreateVendor() {
           />
         </div>
 
-        <div style={{ marginBottom: "15px" }}>
-          <label>Password</label>
+        {/* =================================================
+            PASSWORD
+        ================================================= */}
+
+        <div
+          style={{
+            marginBottom: "15px",
+          }}
+        >
+          <label>
+            Password
+          </label>
 
           <br />
 
@@ -224,10 +280,24 @@ export default function CreateVendor() {
               padding: "8px",
             }}
           />
+
+          <small>
+            Minimum 8 characters
+          </small>
         </div>
 
-        <div style={{ marginBottom: "15px" }}>
-          <label>Phone</label>
+        {/* =================================================
+            PHONE
+        ================================================= */}
+
+        <div
+          style={{
+            marginBottom: "15px",
+          }}
+        >
+          <label>
+            Phone
+          </label>
 
           <br />
 
@@ -249,8 +319,18 @@ export default function CreateVendor() {
           />
         </div>
 
-        <div style={{ marginBottom: "15px" }}>
-          <label>Address</label>
+        {/* =================================================
+            ADDRESS
+        ================================================= */}
+
+        <div
+          style={{
+            marginBottom: "15px",
+          }}
+        >
+          <label>
+            Address
+          </label>
 
           <br />
 
@@ -271,6 +351,10 @@ export default function CreateVendor() {
             }}
           />
         </div>
+
+        {/* =================================================
+            SUBMIT
+        ================================================= */}
 
         <button
           type="submit"

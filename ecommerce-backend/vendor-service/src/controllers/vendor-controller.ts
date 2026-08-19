@@ -4,7 +4,7 @@ import { VendorStatus } from "@prisma/client";
 import {
   createVendor,
   listVendors,
-  getVendorByUserId,
+  getVendorsByUserId,
   getVendorById,
   updateVendorStatus,
 } from "../services/vendor-service";
@@ -14,11 +14,12 @@ import {
   publishVendorStatusUpdated,
 } from "../kafka/vendor.producer";
 
+
 export class VendorController {
 
-  // =====================================================
-  // CREATE VENDOR PROFILE
-  // =====================================================
+  /* =====================================================
+     CREATE VENDOR PROFILE
+  ===================================================== */
 
   static createVendor = async (
     req: Request,
@@ -33,10 +34,6 @@ export class VendorController {
         userId,
       } = req.body;
 
-      // -------------------------------------------------
-      // VALIDATION
-      // -------------------------------------------------
-
       if (!name || !email || !userId) {
         return res.status(400).json({
           success: false,
@@ -44,10 +41,6 @@ export class VendorController {
             "Name, email and userId are required",
         });
       }
-
-      // -------------------------------------------------
-      // CREATE VENDOR
-      // -------------------------------------------------
 
       const vendor = await createVendor({
         name,
@@ -57,10 +50,6 @@ export class VendorController {
         userId,
       });
 
-      // -------------------------------------------------
-      // KAFKA EVENT
-      // -------------------------------------------------
-
       if (process.env.ENABLE_KAFKA === "true") {
         await publishVendorCreated({
           id: vendor.id,
@@ -68,10 +57,6 @@ export class VendorController {
           email: vendor.email,
         });
       }
-
-      // -------------------------------------------------
-      // RESPONSE
-      // -------------------------------------------------
 
       return res.status(201).json({
         success: true,
@@ -82,11 +67,10 @@ export class VendorController {
 
     } catch (err: any) {
       console.error(
-        "Create Vendor Error:",
+        "❌ Create Vendor Error:",
         err
       );
 
-      // Prisma duplicate error
       if (err.code === "P2002") {
         return res.status(400).json({
           success: false,
@@ -104,9 +88,10 @@ export class VendorController {
     }
   };
 
-  // =====================================================
-  // GET ALL VENDORS
-  // =====================================================
+
+  /* =====================================================
+     GET ALL VENDORS
+  ===================================================== */
 
   static getVendors = async (
     _req: Request,
@@ -123,7 +108,7 @@ export class VendorController {
 
     } catch (err: any) {
       console.error(
-        "Get Vendors Error:",
+        "❌ Get Vendors Error:",
         err
       );
 
@@ -136,22 +121,10 @@ export class VendorController {
     }
   };
 
-  // =====================================================
-  // GET VENDOR BY USER ID
-  // =====================================================
-  //
-  // GET /vendors/user/:userId
-  //
-  // Example:
-  //
-  // User ID
-  // 8a734868-281d-430d-9352-953d01538dfc
-  //
-  // ↓
-  //
-  // Vendor.userId
-  //
-  // =====================================================
+
+  /* =====================================================
+     GET APPROVED ACTIVE VENDORS BY USER ID
+  ===================================================== */
 
   static getVendorByUserId = async (
     req: Request,
@@ -168,50 +141,47 @@ export class VendorController {
         });
       }
 
-      const vendor =
-        await getVendorByUserId(userId);
+      console.log(
+        "🔎 Vendor lookup:",
+        userId
+      );
 
-      if (!vendor) {
+      const vendors =
+        await getVendorsByUserId(userId);
+
+      if (!vendors || vendors.length === 0) {
         return res.status(404).json({
           success: false,
           message:
-            "Vendor not found",
+            "No approved active vendor found for this user",
         });
       }
 
       return res.status(200).json({
         success: true,
-        data: vendor,
+        count: vendors.length,
+        data: vendors,
       });
 
     } catch (err: any) {
       console.error(
-        "Get Vendor By User ID Error:",
+        "❌ Get Vendors By User ID Error:",
         err
       );
 
       return res.status(500).json({
         success: false,
         message:
-          "Failed to fetch vendor",
+          "Failed to fetch vendors",
         error: err.message,
       });
     }
   };
 
-  // =====================================================
-  // GET VENDOR BY VENDOR ID
-  // =====================================================
-  //
-  // GET /vendors/:id
-  //
-  // This is the endpoint used for:
-  //
-  // Product.vendorId
-  //        ↓
-  // Vendor.id
-  //
-  // =====================================================
+
+  /* =====================================================
+     GET VENDOR BY VENDOR ID
+  ===================================================== */
 
   static getVendorById = async (
     req: Request,
@@ -246,7 +216,7 @@ export class VendorController {
 
     } catch (err: any) {
       console.error(
-        "Get Vendor By ID Error:",
+        "❌ Get Vendor By ID Error:",
         err
       );
 
@@ -259,9 +229,150 @@ export class VendorController {
     }
   };
 
-  // =====================================================
-  // UPDATE VENDOR STATUS
-  // =====================================================
+
+  /* =====================================================
+     APPROVE VENDOR
+  ===================================================== */
+
+  static approveVendor = async (
+    req: Request,
+    res: Response
+  ) => {
+    try {
+      const { id } = req.params;
+
+      if (!id) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Vendor ID is required",
+        });
+      }
+
+      console.log(
+        "✅ Approving vendor:",
+        id
+      );
+
+      const vendor =
+        await updateVendorStatus(
+          id,
+          VendorStatus.APPROVED
+        );
+
+      if (process.env.ENABLE_KAFKA === "true") {
+        await publishVendorStatusUpdated({
+          id: vendor.id,
+          name: vendor.name,
+          email: vendor.email,
+          status: vendor.status,
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Vendor approved successfully",
+        data: vendor,
+      });
+
+    } catch (err: any) {
+      console.error(
+        "❌ Approve Vendor Error:",
+        err
+      );
+
+      if (err.code === "P2025") {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Vendor not found",
+        });
+      }
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Failed to approve vendor",
+        error: err.message,
+      });
+    }
+  };
+
+
+  /* =====================================================
+     REJECT VENDOR
+  ===================================================== */
+
+  static rejectVendor = async (
+    req: Request,
+    res: Response
+  ) => {
+    try {
+      const { id } = req.params;
+
+      if (!id) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Vendor ID is required",
+        });
+      }
+
+      console.log(
+        "❌ Rejecting vendor:",
+        id
+      );
+
+      const vendor =
+        await updateVendorStatus(
+          id,
+          VendorStatus.REJECTED
+        );
+
+      if (process.env.ENABLE_KAFKA === "true") {
+        await publishVendorStatusUpdated({
+          id: vendor.id,
+          name: vendor.name,
+          email: vendor.email,
+          status: vendor.status,
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Vendor rejected successfully",
+        data: vendor,
+      });
+
+    } catch (err: any) {
+      console.error(
+        "❌ Reject Vendor Error:",
+        err
+      );
+
+      if (err.code === "P2025") {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Vendor not found",
+        });
+      }
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Failed to reject vendor",
+        error: err.message,
+      });
+    }
+  };
+
+
+  /* =====================================================
+     UPDATE VENDOR STATUS
+  ===================================================== */
 
   static updateStatus = async (
     req: Request,
@@ -271,9 +382,13 @@ export class VendorController {
       const { id } = req.params;
       const { status } = req.body;
 
-      // -------------------------------------------------
-      // VALIDATE STATUS
-      // -------------------------------------------------
+      if (!id) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Vendor ID is required",
+        });
+      }
 
       if (
         !Object.values(VendorStatus).includes(
@@ -287,19 +402,11 @@ export class VendorController {
         });
       }
 
-      // -------------------------------------------------
-      // UPDATE
-      // -------------------------------------------------
-
       const vendor =
         await updateVendorStatus(
           id,
           status
         );
-
-      // -------------------------------------------------
-      // KAFKA EVENT
-      // -------------------------------------------------
 
       if (process.env.ENABLE_KAFKA === "true") {
         await publishVendorStatusUpdated({
@@ -319,9 +426,17 @@ export class VendorController {
 
     } catch (err: any) {
       console.error(
-        "Update Vendor Status Error:",
+        "❌ Update Vendor Status Error:",
         err
       );
+
+      if (err.code === "P2025") {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Vendor not found",
+        });
+      }
 
       return res.status(500).json({
         success: false,
