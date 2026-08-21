@@ -7,17 +7,31 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+}
+
 model Product {
-  id          String         @id @default(cuid())
+  id          String   @id @default(cuid())
   vendorId    String
   name        String
   price       Float
-  createdAt   DateTime       @default(now())
+  createdAt   DateTime @default(now())
   description String?
   stock       Int
-  updatedAt   DateTime       @updatedAt
+  updatedAt   DateTime @updatedAt
   priceRange  String?
-  images      ProductImage[]
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  images ProductImage[]
 }
 
 model ProductImage {
@@ -27,5 +41,6 @@ model ProductImage {
   altText   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 }

@@ -103,24 +103,27 @@ export default function HomePage() {
             emoji: "💄",
           },
         ].map((category) => (
-          <div
-            key={category.name}
-            className="cursor-pointer rounded-2xl bg-white p-8 shadow transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+          <Link
+      	    key={category.name}
+      	    href={`/products?category=${encodeURIComponent(
+	      category.name
+      	    )}`}
+      	    className="block rounded-2xl bg-white p-8 shadow transition duration-300 hover:-translate-y-1 hover:shadow-xl"
           >
-            <div className="text-5xl">
-              {category.emoji}
-            </div>
+           <div className="text-5xl">
+       	     {category.emoji}
+     	   </div>
 
-            <h2 className="mt-4 text-2xl font-bold">
-              {category.name}
-            </h2>
+           <h2 className="mt-4 text-2xl font-bold">
+     	     {category.name}
+     	   </h2>
 
-            <p className="mt-2 text-gray-500">
-              Explore now
-            </p>
-          </div>
+           <p className="mt-2 font-medium text-blue-600">
+             Explore now →
+	   </p>
+          </Link>
         ))}
-
+	    
       </section>
 
       {/* ================= FEATURED PRODUCTS ================= */}

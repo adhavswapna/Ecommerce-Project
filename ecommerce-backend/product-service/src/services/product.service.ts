@@ -4,21 +4,6 @@ import { prisma } from "../db/prisma/prisma";
  * =========================================================
  * VENDOR SERVICE URL
  * =========================================================
- *
- * Product Service talks directly to Vendor Service.
- *
- * Vendor Service:
- * http://localhost:3012
- *
- * Vendor routes:
- * /vendors/user/:userId
- *
- * Therefore:
- *
- * http://localhost:3012/vendors/user/:userId
- *
- * We use an environment variable when available.
- * Otherwise we use the local development URL.
  */
 
 const VENDOR_SERVICE_URL =
@@ -29,30 +14,6 @@ const VENDOR_SERVICE_URL =
  * =========================================================
  * GET APPROVED + ACTIVE VENDOR FOR CURRENT USER
  * =========================================================
- *
- * JWT userId
- *     ↓
- * Vendor Service
- *     ↓
- * Vendor.userId
- *     ↓
- * APPROVED + isActive
- *     ↓
- * vendor.id
- *     ↓
- * Product.vendorId
- *
- * IMPORTANT:
- *
- * Vendor Service returns:
- *
- * {
- *   success: true,
- *   count: 1,
- *   data: [...]
- * }
- *
- * Therefore data MUST be treated as an array.
  */
 
 async function getCurrentVendor(userId: string) {
@@ -207,8 +168,6 @@ export async function listVendorProducts(
       await getCurrentVendor(userId);
 
     /**
-     * IMPORTANT:
-     *
      * Product.vendorId stores Vendor.id.
      *
      * NEVER use userId directly.
@@ -235,6 +194,7 @@ export async function listVendorProducts(
 
         include: {
           images: true,
+          category: true,
         },
 
         orderBy: {
@@ -256,6 +216,8 @@ export async function listVendorProducts(
           id: product.id,
           vendorId: product.vendorId,
           name: product.name,
+          categoryId: product.categoryId,
+          category: product.category?.name ?? null,
         })
       )
     );
@@ -319,8 +281,6 @@ export async function createProduct(
 
     /**
      * NEVER trust vendorId from frontend.
-     *
-     * Remove vendorId if frontend sends it.
      */
 
     const {
@@ -342,6 +302,7 @@ export async function createProduct(
 
         include: {
           images: true,
+          category: true,
         },
       });
 
@@ -350,6 +311,7 @@ export async function createProduct(
       {
         id: product.id,
         vendorId: product.vendorId,
+        categoryId: product.categoryId,
       }
     );
 
@@ -384,6 +346,7 @@ export async function getProductById(
 
         include: {
           images: true,
+          category: true,
         },
       });
 
@@ -480,6 +443,7 @@ export async function updateProduct(
 
         include: {
           images: true,
+          category: true,
         },
       });
 
@@ -488,6 +452,7 @@ export async function updateProduct(
       {
         id: product.id,
         vendorId: product.vendorId,
+        categoryId: product.categoryId,
       }
     );
 
@@ -516,7 +481,7 @@ export async function deleteProduct(
 ) {
   try {
     /**
-     * Get current approved + active vendor.
+     * Get approved + active vendor.
      */
 
     const vendor =
@@ -588,41 +553,68 @@ export async function deleteProduct(
 
 /**
  * =========================================================
- * LIST ALL PRODUCTS
+ * LIST ALL PRODUCTS / FILTER BY CATEGORY
  * =========================================================
  *
- * Public product listing.
+ * Public storefront product listing.
  *
- * This is intentionally different from
- * listVendorProducts().
- *
- * listVendorProducts()
- *     ↓
- * Current authenticated vendor
- *     ↓
- * Only that vendor's products
- *
- * listProducts()
- *     ↓
- * Public storefront
+ * GET /products
  *     ↓
  * All products
+ *
+ * GET /products?category=Electronics
+ *     ↓
+ * Only Electronics products
+ *
+ * GET /products?category=Fashion
+ *     ↓
+ * Only Fashion products
+ *
+ * GET /products?category=Home
+ *     ↓
+ * Only Home products
+ *
+ * GET /products?category=Beauty
+ *     ↓
+ * Only Beauty products
+ *
+ * Filtering is done through the Prisma
+ * Product -> Category relation.
  */
 
-export async function listProducts() {
+export async function listProducts(
+  category?: string
+) {
   try {
     console.log(
       "=============================================="
     );
 
     console.log(
-      "🛍️ LIST ALL PRODUCTS"
+      "🛍️ LIST PRODUCTS"
+    );
+
+    console.log(
+      "🏷️ Category filter:",
+      category || "ALL"
     );
 
     const products =
       await prisma.product.findMany({
+        where: category
+          ? {
+              category: {
+                name: {
+                  equals: category,
+                  mode: "insensitive",
+                },
+              },
+            }
+          : undefined,
+
         include: {
           images: true,
+          category: true,
         },
 
         orderBy: {
@@ -634,11 +626,31 @@ export async function listProducts() {
       `✅ Found ${products.length} products`
     );
 
+    console.log(
+      products.map(
+        (product) => ({
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          stock: product.stock,
+          categoryId: product.categoryId,
+          category:
+            product.category?.name ?? null,
+          categorySlug:
+            product.category?.slug ?? null,
+        })
+      )
+    );
+
+    console.log(
+      "=============================================="
+    );
+
     return products;
 
   } catch (error) {
     console.error(
-      "❌ Error listing all products:",
+      "❌ Error listing products:",
       error
     );
 
@@ -651,8 +663,6 @@ export async function listProducts() {
  * =========================================================
  * CHECK PRODUCT STOCK
  * =========================================================
- *
- * Returns the current stock for a product.
  */
 
 export async function checkStock(

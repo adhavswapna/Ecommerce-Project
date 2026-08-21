@@ -50,41 +50,65 @@ router.get(
    PRODUCT ROUTES
 ========================================= */
 
-// Get all products
+/**
+ * GET /products
+ *
+ * All products
+ *
+ * GET /products?category=Electronics
+ *
+ * Products filtered by category
+ */
+
 router.get(
   "/",
   getAllProducts
 );
 
-// Create product
+/* =========================================
+   CREATE PRODUCT
+========================================= */
+
 router.post(
   "/",
   authMiddleware,
   addProduct
 );
 
-// Update product
+/* =========================================
+   UPDATE PRODUCT
+========================================= */
+
 router.put(
   "/:id",
   authMiddleware,
   editProduct
 );
 
-// Delete product
+/* =========================================
+   DELETE PRODUCT
+========================================= */
+
 router.delete(
   "/:id",
   authMiddleware,
   removeProduct
 );
 
-// Check stock
+/* =========================================
+   CHECK STOCK
+========================================= */
+
 router.get(
   "/:id/stock",
   getStock
 );
 
-// Get product by ID
-// KEEP THIS LAST
+/* =========================================
+   GET PRODUCT BY ID
+   KEEP THIS LAST
+========================================= */
+
 router.get(
   "/:id",
   getProduct

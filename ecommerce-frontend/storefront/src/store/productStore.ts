@@ -3,7 +3,11 @@
 import { create } from "zustand";
 import toast from "react-hot-toast";
 
-import { getProducts, getProductById } from "@/api/products";
+import {
+  getProducts,
+  getProductById,
+} from "@/api/products";
+
 import { Product } from "@/types/product";
 
 interface ProductState {
@@ -15,7 +19,7 @@ interface ProductState {
 
   error: string | null;
 
-  fetchProducts: () => Promise<void>;
+  fetchProducts: (category?: string) => Promise<void>;
   fetchProduct: (id: string) => Promise<void>;
 
   clearProduct: () => void;
@@ -31,24 +35,32 @@ export const useProductStore = create<ProductState>((set) => ({
 
   error: null,
 
-  fetchProducts: async () => {
+  /* =====================================================
+     FETCH PRODUCTS
+     Optional category
+  ===================================================== */
+
+  fetchProducts: async (category?: string) => {
     try {
       set({
         loadingList: true,
         error: null,
       });
 
-      console.log("Fetching products...");
+      console.log("====================================");
+      console.log("🛍️ FETCH PRODUCTS");
+      console.log("🏷️ Category:", category || "ALL");
+      console.log("====================================");
 
-      const products = await getProducts();
+      const products = await getProducts(category);
 
-      console.log("Products:", products);
+      console.log("✅ Products received:", products);
 
       set({
         products: Array.isArray(products) ? products : [],
       });
     } catch (err: any) {
-      console.error(err);
+      console.error("❌ Fetch products error:", err);
 
       const message =
         err?.response?.data?.message ??
@@ -67,6 +79,10 @@ export const useProductStore = create<ProductState>((set) => ({
       });
     }
   },
+
+  /* =====================================================
+     FETCH SINGLE PRODUCT
+  ===================================================== */
 
   fetchProduct: async (id: string) => {
     try {

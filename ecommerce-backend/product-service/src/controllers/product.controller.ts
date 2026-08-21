@@ -16,16 +16,64 @@ import {
 
 
 /* =====================================================
-   GET ALL PRODUCTS
+   GET ALL PRODUCTS / FILTER BY CATEGORY
 ===================================================== */
 
+/**
+ * GET /products
+ *
+ * Returns all products.
+ *
+ * GET /products?category=Electronics
+ *
+ * Returns only products in Electronics category.
+ *
+ * GET /products?category=Fashion
+ *
+ * Returns only products in Fashion category.
+ */
+
 export async function getAllProducts(
-  _req: Request,
+  req: Request,
   res: Response
 ) {
   try {
+    /**
+     * Read category from query parameter.
+     *
+     * Example:
+     *
+     * /products?category=Electronics
+     */
+
+    const category =
+      typeof req.query.category === "string"
+        ? req.query.category.trim()
+        : undefined;
+
+    console.log(
+      "=============================================="
+    );
+
+    console.log(
+      "🛍️ GET PRODUCTS"
+    );
+
+    console.log(
+      "🏷️ Requested category:",
+      category || "ALL"
+    );
+
     const products =
-      await listProducts();
+      await listProducts(category);
+
+    console.log(
+      `✅ Returning ${products.length} products`
+    );
+
+    console.log(
+      "=============================================="
+    );
 
     return res.status(200).json(
       products
@@ -33,7 +81,7 @@ export async function getAllProducts(
 
   } catch (error) {
     console.error(
-      "getAllProducts error:",
+      "❌ getAllProducts error:",
       error
     );
 
@@ -213,6 +261,9 @@ export async function addProduct(
 
     /**
      * Get fields from frontend.
+     *
+     * categoryId is accepted here so that
+     * products can be assigned to a category.
      */
 
     const {
@@ -221,6 +272,7 @@ export async function addProduct(
       description,
       stock,
       priceRange,
+      categoryId,
       images,
     } = req.body;
 
@@ -288,6 +340,19 @@ export async function addProduct(
     };
 
     /**
+     * Add categoryId only when supplied.
+     */
+
+    if (
+      categoryId !== undefined &&
+      categoryId !== null &&
+      categoryId !== ""
+    ) {
+      productData.categoryId =
+        categoryId;
+    }
+
+    /**
      * Add priceRange only if supplied.
      */
 
@@ -300,14 +365,6 @@ export async function addProduct(
 
     /**
      * Images.
-     *
-     * Keep this only if your Prisma
-     * Product model supports images
-     * through nested writes.
-     *
-     * If images are handled by your
-     * upload controller separately,
-     * frontend can omit this field.
      */
 
     if (
@@ -334,6 +391,11 @@ export async function addProduct(
       userId
     );
 
+    console.log(
+      "🏷️ Product categoryId:",
+      categoryId || "NONE"
+    );
+
     /**
      * Service determines vendor from
      * authenticated userId.
@@ -349,7 +411,9 @@ export async function addProduct(
       "✅ Product created:",
       product.id,
       "vendorId:",
-      product.vendorId
+      product.vendorId,
+      "categoryId:",
+      product.categoryId
     );
 
     return res.status(201).json({
@@ -427,6 +491,7 @@ export async function editProduct(
       description,
       stock,
       priceRange,
+      categoryId,
     } = req.body;
 
     /**
@@ -500,6 +565,17 @@ export async function editProduct(
     ) {
       updateData.priceRange =
         priceRange;
+    }
+
+    /**
+     * Allow category to be updated.
+     */
+
+    if (
+      categoryId !== undefined
+    ) {
+      updateData.categoryId =
+        categoryId || null;
     }
 
     /**

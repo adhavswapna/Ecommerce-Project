@@ -3,19 +3,25 @@ import axios from "axios";
 const API_URL = "http://localhost:8081/api";
 
 /* =====================================================
-   GET ALL PRODUCTS
+   GET PRODUCTS
    GET /products
+   Optional category filter
 ===================================================== */
 
-export const getProducts = async () => {
+export const getProducts = async (category?: string) => {
   try {
     console.group("📦 GET PRODUCTS");
 
-    console.log("Calling GET /products...");
+    console.log("Category:", category || "ALL");
 
     const res = await axios.get(`${API_URL}/products/`, {
       timeout: 30000,
       withCredentials: false,
+      params: category
+        ? {
+            category,
+          }
+        : undefined,
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
@@ -26,22 +32,6 @@ export const getProducts = async () => {
     console.log("Data:", res.data);
 
     console.groupEnd();
-
-    /*
-      Backend may return either:
-
-      [
-        {...},
-        {...}
-      ]
-
-      OR:
-
-      {
-        success: true,
-        data: [...]
-      }
-    */
 
     if (Array.isArray(res.data)) {
       return res.data;
@@ -58,6 +48,7 @@ export const getProducts = async () => {
     console.log("Message:", error.message);
     console.log("Code:", error.code);
     console.log("Request URL:", error.config?.url);
+    console.log("Request Params:", error.config?.params);
     console.log("Response:", error.response);
     console.log("Full Error:", error);
 
@@ -69,7 +60,6 @@ export const getProducts = async () => {
 
 /* =====================================================
    GET PRODUCT BY ID
-   GET /products/:id
 ===================================================== */
 
 export const getProductById = async (id: string) => {
@@ -95,42 +85,9 @@ export const getProductById = async (id: string) => {
 
     console.groupEnd();
 
-    /*
-      Backend response:
-
-      {
-        success: true,
-        data: {
-          id,
-          name,
-          price,
-          stock,
-          images: [...]
-        }
-      }
-
-      Return ONLY data so ProductDetails
-      receives the actual Product object.
-    */
-
     if (res.data?.data) {
-      console.log(
-        "✅ Product extracted:",
-        res.data.data
-      );
-
-      console.log(
-        "🖼️ Product images:",
-        res.data.data.images
-      );
-
       return res.data.data;
     }
-
-    /*
-      Fallback in case another endpoint
-      returns the product directly.
-    */
 
     return res.data;
   } catch (error: any) {
@@ -138,18 +95,9 @@ export const getProductById = async (id: string) => {
 
     console.log("Message:", error.message);
     console.log("Code:", error.code);
-    console.log(
-      "Request URL:",
-      error.config?.url
-    );
-    console.log(
-      "Response:",
-      error.response
-    );
-    console.log(
-      "Full Error:",
-      error
-    );
+    console.log("Request URL:", error.config?.url);
+    console.log("Response:", error.response);
+    console.log("Full Error:", error);
 
     console.groupEnd();
 
@@ -159,31 +107,25 @@ export const getProductById = async (id: string) => {
 
 /* =====================================================
    SEARCH PRODUCTS
-   GET /search?q=
 ===================================================== */
 
-export const searchProducts = async (
-  query: string
-) => {
+export const searchProducts = async (query: string) => {
   try {
     console.group("🔍 SEARCH PRODUCTS");
 
     console.log("Query:", query);
 
-    const res = await axios.get(
-      `${API_URL}/search/`,
-      {
-        timeout: 30000,
-        withCredentials: false,
-        params: {
-          q: query,
-        },
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const res = await axios.get(`${API_URL}/search/`, {
+      timeout: 30000,
+      withCredentials: false,
+      params: {
+        q: query,
+      },
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    });
 
     console.log("Status:", res.status);
     console.log("Data:", res.data);
@@ -200,29 +142,12 @@ export const searchProducts = async (
 
     return [];
   } catch (error: any) {
-    console.group(
-      "❌ SEARCH PRODUCTS FAILED"
-    );
+    console.group("❌ SEARCH PRODUCTS FAILED");
 
-    console.log(
-      "Message:",
-      error.message
-    );
-
-    console.log(
-      "Code:",
-      error.code
-    );
-
-    console.log(
-      "Response:",
-      error.response
-    );
-
-    console.log(
-      "Full Error:",
-      error
-    );
+    console.log("Message:", error.message);
+    console.log("Code:", error.code);
+    console.log("Response:", error.response);
+    console.log("Full Error:", error);
 
     console.groupEnd();
 
