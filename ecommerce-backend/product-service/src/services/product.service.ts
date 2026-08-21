@@ -584,3 +584,120 @@ export async function deleteProduct(
     throw error;
   }
 }
+
+
+/**
+ * =========================================================
+ * LIST ALL PRODUCTS
+ * =========================================================
+ *
+ * Public product listing.
+ *
+ * This is intentionally different from
+ * listVendorProducts().
+ *
+ * listVendorProducts()
+ *     ↓
+ * Current authenticated vendor
+ *     ↓
+ * Only that vendor's products
+ *
+ * listProducts()
+ *     ↓
+ * Public storefront
+ *     ↓
+ * All products
+ */
+
+export async function listProducts() {
+  try {
+    console.log(
+      "=============================================="
+    );
+
+    console.log(
+      "🛍️ LIST ALL PRODUCTS"
+    );
+
+    const products =
+      await prisma.product.findMany({
+        include: {
+          images: true,
+        },
+
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+    console.log(
+      `✅ Found ${products.length} products`
+    );
+
+    return products;
+
+  } catch (error) {
+    console.error(
+      "❌ Error listing all products:",
+      error
+    );
+
+    throw error;
+  }
+}
+
+
+/**
+ * =========================================================
+ * CHECK PRODUCT STOCK
+ * =========================================================
+ *
+ * Returns the current stock for a product.
+ */
+
+export async function checkStock(
+  productId: string
+) {
+  try {
+    console.log(
+      "🔎 Checking stock for product:",
+      productId
+    );
+
+    const product =
+      await prisma.product.findUnique({
+        where: {
+          id: productId,
+        },
+
+        select: {
+          id: true,
+          stock: true,
+        },
+      });
+
+    if (!product) {
+      throw new Error(
+        "Product not found"
+      );
+    }
+
+    console.log(
+      "✅ Product stock:",
+      {
+        productId: product.id,
+        stock: product.stock,
+      }
+    );
+
+    return product.stock;
+
+  } catch (error) {
+    console.error(
+      "❌ Error checking product stock:",
+      error
+    );
+
+    throw error;
+  }
+}

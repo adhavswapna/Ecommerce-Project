@@ -1,6 +1,6 @@
 // src/app.ts
+
 import express, { Request, Response, NextFunction } from "express";
-import cors from "cors";
 import morgan from "morgan";
 import helmet from "helmet";
 import paymentRoutes from "./routes/payment.routes";
@@ -15,21 +15,17 @@ app.set("trust proxy", 1);
 // ------------------------
 app.use(helmet());
 
-app.use(
-  cors({
-    origin: [
-      "http://localhost:3000",
-      "http://127.0.0.1:3000",
-    ],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    credentials: true,
-  })
-);
+// CORS is handled ONLY by Nginx/API Gateway.
+// DO NOT add cors() here.
 
+// ------------------------
 // Body parser
+// ------------------------
 app.use(express.json({ limit: "1mb" }));
 
+// ------------------------
 // Logger
+// ------------------------
 app.use(morgan("dev"));
 
 // ------------------------
@@ -52,15 +48,23 @@ app.use("/payments", paymentRoutes);
 // 404 Handler
 // ------------------------
 app.use((_req: Request, res: Response) => {
-  return res.status(404).json({ message: "Route not found" });
+  return res.status(404).json({
+    message: "Route not found",
+  });
 });
 
 // ------------------------
 // Global Error Handler
 // ------------------------
 app.use(
-  (err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  (
+    err: Error,
+    _req: Request,
+    res: Response,
+    _next: NextFunction
+  ) => {
     console.error("Unhandled Error:", err);
+
     return res.status(500).json({
       message: err.message || "Internal server error",
     });

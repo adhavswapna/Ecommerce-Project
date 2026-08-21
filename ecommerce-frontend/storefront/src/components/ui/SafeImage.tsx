@@ -28,15 +28,15 @@ export default function SafeImage({
     return (
       <div
         className="
-        w-full
-        h-full
-        min-h-[250px]
-        bg-gray-100
-        flex
-        flex-col
-        items-center
-        justify-center
-        text-gray-400
+          w-full
+          h-full
+          min-h-[250px]
+          bg-gray-100
+          flex
+          flex-col
+          items-center
+          justify-center
+          text-gray-400
         "
       >
         <div className="text-5xl">
@@ -53,19 +53,19 @@ export default function SafeImage({
   return (
     <div
       className="
-      relative
-      w-full
-      h-full
+        relative
+        w-full
+        h-full
       "
     >
       {loading && (
         <div
           className="
-          absolute
-          inset-0
-          animate-pulse
-          bg-gray-200
-          rounded
+            absolute
+            inset-0
+            animate-pulse
+            bg-gray-200
+            rounded
           "
         />
       )}
@@ -77,12 +77,11 @@ export default function SafeImage({
         height={height}
         unoptimized
         loading="lazy"
-        onLoadingComplete={() =>
-          setLoading(false)
-        }
-        onError={() =>
-          setError(true)
-        }
+        onLoad={() => setLoading(false)}
+        onError={() => {
+          setLoading(false);
+          setError(true);
+        }}
         className={`
           transition-all
           duration-500

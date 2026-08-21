@@ -706,9 +706,21 @@ export async function getStock(
       error
     );
 
+    if (
+      error.message ===
+      "Product not found"
+    ) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Product not found",
+      });
+    }
+
     return res.status(500).json({
       success: false,
       message:
+        error.message ||
         "Failed to check stock",
     });
   }

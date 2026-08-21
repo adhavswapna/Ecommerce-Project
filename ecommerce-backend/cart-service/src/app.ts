@@ -1,40 +1,78 @@
 import express from "express";
-import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import routes from "./routes/cart.routes";
 
 const app = express();
 
-/**
- * ✅ FIXED CORS CONFIG
- * MUST match frontend (http://localhost:3000)
- * MUST NOT use "*" because withCredentials=true is used in frontend
+/*
+ * ======================================================
+ * MIDDLEWARE
+ * ======================================================
+ *
+ * CORS is handled by Nginx/API Gateway.
+ * DO NOT add cors() here.
  */
-app.use(
-  cors({
-    origin: "http://localhost:3000",
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
 
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(express.json());
 
-/* ✅ HEALTH */
+/*
+ * ======================================================
+ * HEALTH CHECK
+ * ======================================================
+ */
+
 app.get("/health", (_req, res) => {
-  res.json({ status: "cart-service running" });
+  return res.status(200).json({
+    status: "cart-service running",
+  });
 });
 
-/* Routes */
+/*
+ * ======================================================
+ * CART + WISHLIST ROUTES
+ * ======================================================
+ */
+
 app.use("/", routes);
 
-/* 404 */
+/*
+ * ======================================================
+ * 404
+ * ======================================================
+ */
+
 app.use((_req, res) => {
-  res.status(404).json({ message: "Route not found" });
+  return res.status(404).json({
+    message: "Route not found",
+  });
 });
+
+/*
+ * ======================================================
+ * ERROR HANDLER
+ * ======================================================
+ */
+
+app.use(
+  (
+    err: any,
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction
+  ) => {
+    console.error("Cart service error:", err);
+
+    if (res.headersSent) {
+      return;
+    }
+
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+);
 
 export default app;

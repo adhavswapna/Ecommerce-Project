@@ -1,5 +1,4 @@
 import express from "express";
-import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 
@@ -12,15 +11,8 @@ const app = express();
    GLOBAL MIDDLEWARES
 -------------------------------------------------- */
 
-app.use(
-  cors({
-    origin: [
-      "http://127.0.0.1:3000",
-      "http://localhost:3000",
-    ],
-    credentials: true,
-  })
-);
+// CORS is handled centrally by Nginx.
+// Do NOT add cors() middleware here.
 
 app.use(helmet());
 

@@ -6,9 +6,9 @@ import { Role } from "../constants/role.enum";
 
 const router = Router();
 
-// =====================================================
-// PUBLIC ROUTES
-// =====================================================
+/* =====================================================
+   PUBLIC AUTH ROUTES
+===================================================== */
 
 // Login
 router.post(
@@ -16,18 +16,19 @@ router.post(
   AuthController.login
 );
 
-// Normal customer registration
+// Customer registration
 router.post(
   "/register",
   AuthController.registerUser
 );
 
-// Password recovery
+// Forgot password
 router.post(
   "/forgot-password",
   AuthController.forgotPassword
 );
 
+// Reset password
 router.post(
   "/reset-password",
   AuthController.resetPassword
@@ -44,37 +45,24 @@ router.get(
   AuthController.googleCallback
 );
 
-// =====================================================
-// AUTHENTICATED USER
-// =====================================================
 
+/* =====================================================
+   AUTHENTICATED USER
+===================================================== */
+
+// Current logged-in user
 router.get(
   "/me",
   authMiddleware,
   AuthController.me
 );
 
-// =====================================================
-// ADMIN ONLY
-// =====================================================
 
-// Create Vendor Authentication Account
-//
-// Admin provides:
-// name
-// email
-// password
-// phone
-// address
-//
-// Auth Service creates AuthUser with:
-// role = VENDOR
-//
-// Then returns:
-// userId
-// token
-// user
+/* =====================================================
+   ADMIN ONLY
+===================================================== */
 
+// Create vendor authentication account
 router.post(
   "/register/vendor",
   authMiddleware,
@@ -82,11 +70,7 @@ router.post(
   AuthController.registerVendor
 );
 
-// =====================================================
-// ADMIN ONLY
-// =====================================================
-
-// Create another Admin
+// Create another admin
 router.post(
   "/register/admin",
   authMiddleware,
