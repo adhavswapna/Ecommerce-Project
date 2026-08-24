@@ -3,7 +3,7 @@
 ShopSphere is a full-stack e-commerce application built using a **microservices architecture**.
 
 The project separates authentication, users, products, carts, orders, payments, vendors, administration, inventory, shipping, invoices, notifications, and other business functions into independent services, This project is designed as a scalable e-commerce application with independently developed backend services responsible for different business domains such as authentication, users, products, carts, orders, payments, inventory, invoices, shipping, refunds, and notifications.The frontend provides separate interfaces for customers, administrators, and vendors.
----
+
 
 # 📌 Architecture Overview
 
