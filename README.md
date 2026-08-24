@@ -2,15 +2,12 @@
 
 ShopSphere is a full-stack e-commerce application built using a **microservices architecture**.
 
-The project separates authentication, users, products, carts, orders, payments, vendors, administration, inventory, shipping, invoices, notifications, and other business functions into independent services.
-
-The architecture is designed to demonstrate real-world **DevOps, cloud, CI/CD, containerization, messaging, caching, and microservices concepts**.
-
+The project separates authentication, users, products, carts, orders, payments, vendors, administration, inventory, shipping, invoices, notifications, and other business functions into independent services, This project is designed as a scalable e-commerce application with independently developed backend services responsible for different business domains such as authentication, users, products, carts, orders, payments, inventory, invoices, shipping, refunds, and notifications.The frontend provides separate interfaces for customers, administrators, and vendors.
 ---
 
 # 📌 Architecture Overview
 
-```text
+
                          ┌──────────────────────┐
                          │      Customer        │
                          │      Browser         │
@@ -86,51 +83,102 @@ The architecture is designed to demonstrate real-world **DevOps, cloud, CI/CD, c
                          └──────────────────┘
 
 
-
-
-
-🏗️ Technology Stack
+🛠️ Technology Stack
 Frontend
 Next.js
-React
 TypeScript
 Zustand
-Axios
-React Hook Form
-Swiper
-Socket.IO Client
+WebSockets
 Backend
 Node.js
 Express.js
 TypeScript
 Prisma ORM
-PostgreSQL
 REST APIs
-Messaging
-Apache Kafka
-Confluent Kafka
-Caching / Sessions
+Microservices Architecture
+Database & Infrastructure Services
+PostgreSQL
 Redis
-ioredis
-Storage
+Apache Kafka
 MinIO
-Reverse Proxy
-NGINX
-Authentication
-JWT
+API Gateway
+Nginx
+✨ Features
+👤 Authentication & Users
+User registration and login
+JWT authentication
 Google OAuth
-Password hashing
-Password reset
-Role-Based Access Control
-DevOps
-Docker
-Git
-GitHub
-AWS
-Terraform
-Kubernetes
-CI/CD
-Ansible
+Role-based access control
+User management
+🛍️ Products
+Product creation and management
+Product browsing
+Product images
+Product inventory information
+Vendor product management
+🛒 Shopping
+Shopping cart
+Cart item management
+Product ordering
+Order tracking
+💳 Orders & Payments
+Order processing
+Payment processing
+Payment status management
+Order lifecycle management
+📦 Inventory & Shipping
+Inventory management
+Stock tracking
+Shipping management
+Order shipment processing
+🧾 Invoices & Refunds
+Invoice generation
+Invoice download
+Refund processing
+🔔 Notifications
+Event-based notifications
+Real-time communication using WebSockets
+Asynchronous communication using Kafka
+🧩 Microservices
+The backend is divided into multiple independent services, including:
+Auth Service
+User Service
+Product Service
+Cart Service
+Order Service
+Payment Service
+Inventory Service
+Invoice Service
+Shipping Service
+Refund Service
+Notification Service
+And other supporting services
+Each service has its own responsibility and communicates with other services through defined APIs and events.
+
+📁 Project Structure
+Ecommerce-Project/
+│
+├── ecommerce-frontend/
+│   ├── storefront/
+│   ├── admin-dashboard/
+│   └── vendor-dashboard/
+│
+└── ecommerce-backend/
+    ├── auth-service/
+    ├── user-service/
+    ├── product-service/
+    ├── cart-service/
+    ├── order-service/
+    ├── payment-service/
+    ├── inventory-service/
+    ├── invoice-service/
+    ├── shipping-service/
+    ├── refund-service/
+    ├── notification-service/
+    └── ...
+🎯 Project Objective
+The goal of this project is to build a modular, scalable e-commerce platform using modern full-stack technologies and a microservices architecture.The architecture allows individual services to be developed, maintained, and scaled independently while supporting communication between services through APIs and event-driven messaging.
+
 
 
 📦 Microservices
