@@ -13,16 +13,18 @@ export class AuthController {
     res: Response
   ) => {
     try {
-      const data = registerSchema.parse(req.body);
+      const data =
+        registerSchema.parse(req.body);
 
-      const result = await AuthService.register(
-        data.name,
-        data.email,
-        data.password,
-        Role.USER,
-        data.phone,
-        data.address
-      );
+      const result =
+        await AuthService.register(
+          data.name,
+          data.email,
+          data.password,
+          Role.USER,
+          data.phone,
+          data.address
+        );
 
       return res.status(201).json({
         success: true,
@@ -59,7 +61,11 @@ export class AuthController {
         address,
       } = req.body;
 
-      if (!name || !email || !password) {
+      if (
+        !name ||
+        !email ||
+        !password
+      ) {
         return res.status(400).json({
           success: false,
           message:
@@ -75,14 +81,15 @@ export class AuthController {
         });
       }
 
-      const result = await AuthService.register(
-        name,
-        email,
-        password,
-        Role.VENDOR,
-        phone,
-        address
-      );
+      const result =
+        await AuthService.register(
+          name,
+          email,
+          password,
+          Role.VENDOR,
+          phone,
+          address
+        );
 
       /*
        * IMPORTANT:
@@ -135,7 +142,11 @@ export class AuthController {
         address,
       } = req.body;
 
-      if (!name || !email || !password) {
+      if (
+        !name ||
+        !email ||
+        !password
+      ) {
         return res.status(400).json({
           success: false,
           message:
@@ -151,14 +162,15 @@ export class AuthController {
         });
       }
 
-      const result = await AuthService.register(
-        name,
-        email,
-        password,
-        Role.ADMIN,
-        phone,
-        address
-      );
+      const result =
+        await AuthService.register(
+          name,
+          email,
+          password,
+          Role.ADMIN,
+          phone,
+          address
+        );
 
       return res.status(201).json({
         success: true,
@@ -188,7 +200,10 @@ export class AuthController {
         password,
       } = req.body;
 
-      if (!email || !password) {
+      if (
+        !email ||
+        !password
+      ) {
         return res.status(400).json({
           success: false,
           message:
@@ -226,10 +241,25 @@ export class AuthController {
       const { url } =
         AuthService.getGoogleAuthUrl();
 
+      console.log(
+        "🔵 Google login redirect"
+      );
+
+      console.log(
+        "🔵 Google Redirect URI:",
+        process.env.GOOGLE_REDIRECT_URI
+      );
+
       return res.redirect(url);
-    } catch {
+    } catch (err) {
+      console.error(
+        "🔥 Google login error:",
+        err
+      );
+
       return res.status(500).json({
-        message: "Google login failed",
+        message:
+          "Google login failed",
       });
     }
   };
@@ -243,31 +273,130 @@ export class AuthController {
     res: Response
   ) => {
     try {
-      const { code } = req.query;
+      // =====================================================
+      // DEBUG GOOGLE CALLBACK
+      // =====================================================
+
+      console.log(
+        "=========================================="
+      );
+
+      console.log(
+        "🔥 GOOGLE CALLBACK RECEIVED"
+      );
+
+      console.log(
+        "🔥 Callback URL:",
+        req.originalUrl
+      );
+
+      console.log(
+        "🔥 Query parameters:",
+        req.query
+      );
+
+      console.log(
+        "=========================================="
+      );
+
+      const {
+        code,
+        error,
+        error_description,
+        state,
+      } = req.query;
+
+      // =====================================================
+      // GOOGLE RETURNED AN ERROR
+      // =====================================================
+
+      if (error) {
+        console.error(
+          "❌ Google OAuth error:",
+          {
+            error,
+            error_description,
+            state,
+          }
+        );
+
+        return res.status(400).json({
+          message:
+            "Google authorization failed",
+          error,
+          error_description,
+        });
+      }
+
+      // =====================================================
+      // AUTHORIZATION CODE MISSING
+      // =====================================================
 
       if (!code) {
+        console.error(
+          "❌ Google authorization code missing"
+        );
+
         return res.status(400).json({
           message:
             "Google authorization code missing",
+          query: req.query,
         });
       }
+
+      console.log(
+        "✅ Google authorization code received"
+      );
+
+      // =====================================================
+      // GOOGLE CALLBACK SERVICE
+      // =====================================================
 
       const result =
         await AuthService.googleCallback(
           code as string
         );
 
+      // =====================================================
+      // FRONTEND REDIRECT
+      // =====================================================
+
       const frontendUrl =
         process.env.FRONTEND_URL ||
         "http://localhost:3000";
 
+      console.log(
+        "✅ Google authentication successful"
+      );
+
+      console.log(
+        "🔵 Redirecting to frontend:",
+        `${frontendUrl}/login-success`
+      );
+
       return res.redirect(
         `${frontendUrl}/login-success?token=${result.token}`
       );
-    } catch (err) {
+    } catch (err: any) {
       console.error(
-        "🔥 Google auth error:",
-        err
+        "=========================================="
+      );
+
+      console.error(
+        "🔥 GOOGLE AUTHENTICATION ERROR"
+      );
+
+      console.error(err);
+
+      if (err?.response?.data) {
+        console.error(
+          "🔥 Google/API response:",
+          err.response.data
+        );
+      }
+
+      console.error(
+        "=========================================="
       );
 
       return res.status(500).json({
@@ -282,7 +411,9 @@ export class AuthController {
   // =====================================================
 
   static me = async (
-    req: Request & { user?: any },
+    req: Request & {
+      user?: any;
+    },
     res: Response
   ) => {
     try {
@@ -324,7 +455,8 @@ export class AuthController {
 
       if (!email) {
         return res.status(400).json({
-          message: "Email is required",
+          message:
+            "Email is required",
         });
       }
 
@@ -363,7 +495,10 @@ export class AuthController {
         newPassword,
       } = req.body;
 
-      if (!token || !newPassword) {
+      if (
+        !token ||
+        !newPassword
+      ) {
         return res.status(400).json({
           message:
             "Token and new password are required",

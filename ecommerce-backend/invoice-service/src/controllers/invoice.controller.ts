@@ -1,71 +1,111 @@
 import { Response } from "express";
+
 import {
   getInvoiceById,
   listInvoices,
   generateAndStoreInvoice,
 } from "../services/invoice.service";
-import { getMinioPresignedUrl } from "../minio/minio-client";
-import { AuthRequest } from "../middlewares/auth.middleware";
 
-/**
- * GET /invoices
- */
-export async function getAllInvoices(req: AuthRequest, res: Response) {
+import {
+  getMinioPresignedUrl,
+} from "../minio/minio-client";
+
+import {
+  AuthRequest,
+} from "../middlewares/auth.middleware";
+
+/* =====================================================
+   GET /invoices
+===================================================== */
+
+export async function getAllInvoices(
+  req: AuthRequest,
+  res: Response
+) {
+
   try {
-    const userId = req.user?.id;
+
+    const userId =
+      req.user?.id;
 
     if (!userId) {
+
       return res.status(401).json({
         success: false,
         message: "Unauthorized",
       });
     }
 
-    const invoices = await listInvoices();
+    const invoices =
+      await listInvoices();
 
-    const userInvoices = invoices.filter(
-      (inv) => inv.userId === userId
-    );
+    const userInvoices =
+      invoices.filter(
+        (invoice) =>
+          invoice.userId === userId
+      );
 
     return res.status(200).json({
       success: true,
       data: userInvoices,
     });
-  } catch (err) {
-    console.error("❌ getAllInvoices error:", err);
+
+  } catch (error) {
+
+    console.error(
+      "❌ getAllInvoices error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch invoices",
+      message:
+        "Failed to fetch invoices",
     });
   }
 }
 
-/**
- * GET /invoices/:id
- */
-export async function getInvoice(req: AuthRequest, res: Response) {
+/* =====================================================
+   GET /invoices/:id
+===================================================== */
+
+export async function getInvoice(
+  req: AuthRequest,
+  res: Response
+) {
+
   try {
-    const { id } = req.params;
-    const userId = req.user?.id;
+
+    const { id } =
+      req.params;
+
+    const userId =
+      req.user?.id;
 
     if (!userId) {
+
       return res.status(401).json({
         success: false,
         message: "Unauthorized",
       });
     }
 
-    const invoice = await getInvoiceById(id);
+    const invoice =
+      await getInvoiceById(id);
 
     if (!invoice) {
+
       return res.status(404).json({
         success: false,
-        message: "Invoice not found",
+        message:
+          "Invoice not found",
       });
     }
 
-    if (invoice.userId !== userId) {
+    if (
+      invoice.userId !== userId
+    ) {
+
       return res.status(403).json({
         success: false,
         message: "Forbidden",
@@ -76,121 +116,218 @@ export async function getInvoice(req: AuthRequest, res: Response) {
       success: true,
       data: invoice,
     });
-  } catch (err) {
-    console.error("❌ getInvoice error:", err);
+
+  } catch (error) {
+
+    console.error(
+      "❌ getInvoice error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch invoice",
+      message:
+        "Failed to fetch invoice",
     });
   }
 }
 
-/**
- * POST /invoices
- * 🔥 Manual trigger (for testing only)
- */
+/* =====================================================
+   POST /invoices
+
+   Manual invoice generation
+===================================================== */
+
 export async function createInvoiceController(
   req: AuthRequest,
   res: Response
 ) {
-  try {
-    const { orderId, amount } = req.body;
-    const userId = req.user?.id;
 
-    // 🔐 Auth check
+  try {
+
+    const {
+      orderId,
+      amount,
+      regenerate,
+    } = req.body;
+
+    const userId =
+      req.user?.id;
+
+    const authorization =
+      req.headers.authorization;
+
+    /* =================================================
+       AUTH
+    ================================================= */
+
     if (!userId) {
+
       return res.status(401).json({
         success: false,
         message: "Unauthorized",
       });
     }
 
-    // ✅ Validation
-    if (!orderId || typeof orderId !== "string") {
-      return res.status(400).json({
+    if (!authorization) {
+
+      return res.status(401).json({
         success: false,
-        message: "Valid orderId is required",
+        message:
+          "Authorization token required",
       });
     }
 
-    if (typeof amount !== "number" || amount <= 0) {
+    /* =================================================
+       VALIDATE ORDER
+    ================================================= */
+
+    if (
+      !orderId ||
+      typeof orderId !== "string"
+    ) {
+
       return res.status(400).json({
         success: false,
-        message: "Valid amount is required",
+        message:
+          "Valid orderId is required",
       });
     }
 
-    // 🔥 Generate invoice
-    const invoice = await generateAndStoreInvoice({
-      orderId,
-      userId,
-      amount,
-    });
+    /* =================================================
+       VALIDATE AMOUNT
+    ================================================= */
+
+    if (
+      typeof amount !== "number" ||
+      amount <= 0
+    ) {
+
+      return res.status(400).json({
+        success: false,
+        message:
+          "Valid amount is required",
+      });
+    }
+
+    /* =================================================
+       GENERATE
+    ================================================= */
+
+    console.log(
+      "🧾 Creating invoice for order:",
+      orderId
+    );
+
+    console.log(
+      "👤 User:",
+      userId
+    );
+
+    const invoice =
+      await generateAndStoreInvoice({
+
+        orderId,
+
+        userId,
+
+        amount,
+
+        authorization,
+
+        regenerate:
+          regenerate === true,
+      });
 
     return res.status(201).json({
       success: true,
       data: invoice,
     });
-  } catch (err) {
-    console.error("❌ Invoice creation failed:", err);
+
+  } catch (error: any) {
+
+    console.error(
+      "❌ Invoice creation failed:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
-      message: "Invoice creation failed",
+      message:
+        error?.message ||
+        "Invoice creation failed",
     });
   }
 }
 
-/**
- * GET /invoices/:id/download
- */
+/* =====================================================
+   GET /invoices/:id/download
+===================================================== */
+
 export async function downloadInvoiceController(
   req: AuthRequest,
   res: Response
 ) {
+
   try {
-    const { id } = req.params;
-    const userId = req.user?.id;
+
+    const { id } =
+      req.params;
+
+    const userId =
+      req.user?.id;
 
     if (!userId) {
+
       return res.status(401).json({
         success: false,
         message: "Unauthorized",
       });
     }
 
-    const invoice = await getInvoiceById(id);
+    const invoice =
+      await getInvoiceById(id);
 
     if (!invoice) {
+
       return res.status(404).json({
         success: false,
-        message: "Invoice not found",
+        message:
+          "Invoice not found",
       });
     }
 
-    if (invoice.userId !== userId) {
+    if (
+      invoice.userId !== userId
+    ) {
+
       return res.status(403).json({
         success: false,
         message: "Forbidden",
       });
     }
 
-    // 🔗 Generate secure download URL
-    const downloadUrl = await getMinioPresignedUrl(
-      invoice.fileUrl
-    );
+    const downloadUrl =
+      await getMinioPresignedUrl(
+        invoice.fileUrl
+      );
 
     return res.status(200).json({
       success: true,
       downloadUrl,
     });
-  } catch (err) {
-    console.error("❌ Download error:", err);
+
+  } catch (error) {
+
+    console.error(
+      "❌ Download error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
-      message: "Download failed",
+      message:
+        "Download failed",
     });
   }
 }

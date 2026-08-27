@@ -11,13 +11,10 @@ export async function login(
   email: string,
   password: string
 ) {
-  const { data } = await authApi.post(
-    "/login",
-    {
-      email,
-      password,
-    }
-  );
+  const { data } = await authApi.post("/login", {
+    email,
+    password,
+  });
 
   return data;
 }
@@ -27,17 +24,14 @@ export async function login(
    POST /auth/register
 ===================================================== */
 
-export async function register(
-  payload: {
-    name: string;
-    email: string;
-    password: string;
-  }
-) {
-  const { data } = await authApi.post(
-    "/register",
-    payload
-  );
+export async function registerUser(payload: {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+  address?: string;
+}) {
+  const { data } = await authApi.post("/register", payload);
 
   return data;
 }
@@ -47,15 +41,27 @@ export async function register(
    POST /auth/forgot-password
 ===================================================== */
 
-export async function forgotPassword(
-  email: string
+export async function forgotPassword(email: string) {
+  const { data } = await authApi.post("/forgot-password", {
+    email,
+  });
+
+  return data;
+}
+
+/* =====================================================
+   RESET PASSWORD
+   POST /auth/reset-password
+===================================================== */
+
+export async function resetPassword(
+  token: string,
+  newPassword: string
 ) {
-  const { data } = await authApi.post(
-    "/forgot-password",
-    {
-      email,
-    }
-  );
+  const { data } = await authApi.post("/reset-password", {
+    token,
+    newPassword,
+  });
 
   return data;
 }
@@ -66,9 +72,7 @@ export async function forgotPassword(
 ===================================================== */
 
 export async function logout() {
-  const { data } = await authApi.post(
-    "/logout"
-  );
+  const { data } = await authApi.post("/logout");
 
   return data;
 }

@@ -1142,3 +1142,10 @@ Microservices
 Kafka
 Redis
 PostgreSQL
+
+
+
+
+to create google email password goto the 
+
+Google Account → Security → 2-Step Verification → App passwords
