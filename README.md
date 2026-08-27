@@ -1,1151 +1,433 @@
-# 🛒 ShopSphere — Microservices E-Commerce Platform
+# 🛒 Ecommerce Microservices Platform
 
-ShopSphere is a full-stack e-commerce application built using a **microservices architecture**.
+A scalable **microservices-based ecommerce platform** designed to simulate a production-style online shopping ecosystem.
 
-The project separates authentication, users, products, carts, orders, payments, vendors, administration, inventory, shipping, invoices, notifications, and other business functions into independent services, This project is designed as a scalable e-commerce application with independently developed backend services responsible for different business domains such as authentication, users, products, carts, orders, payments, inventory, invoices, shipping, refunds, and notifications.The frontend provides separate interfaces for customers, administrators, and vendors.
+The project is structured into independent backend services, dedicated frontend applications, centralized API Gateway routing, and containerized infrastructure. Each major business capability is implemented as an independent microservice, allowing services to be developed, deployed, scaled, and maintained independently.
 
+---
 
-# 📌 Architecture Overview
+## 🚀 Project Overview
 
+The platform provides separate interfaces for three types of users:
 
-                         ┌──────────────────────┐
-                         │      Customer        │
-                         │      Browser         │
-                         └──────────┬───────────┘
-                                    │
-                                    │ HTTP
-                                    ▼
-                         ┌──────────────────────┐
-                         │   Next.js Frontend   │
-                         │      Port 3000       │
-                         └──────────┬───────────┘
-                                    │
-                                    │ REST API
-                                    ▼
-                         ┌──────────────────────┐
-                         │    NGINX API         │
-                         │      Gateway         │
-                         │      Port 8081       │
-                         └──────────┬───────────┘
-                                    │
-              ┌─────────────────────┼─────────────────────┐
-              │                     │                     │
-              ▼                     ▼                     ▼
-        Auth Service          Product Service        Cart Service
-          :3001                  :3003                  :3005
-              │                     │                     │
-              │                     │                     │
-              ▼                     ▼                     ▼
-          PostgreSQL           PostgreSQL              PostgreSQL
+* 🛍️ **Customers** — Browse products, manage carts, place orders, make payments, track shipments, download invoices, and manage reviews.
+* 🏪 **Vendors** — Manage products, inventory, orders, and vendor-related operations.
+* 👨‍💼 **Administrators** — Manage users, vendors, products, orders, analytics, and platform operations.
 
+The backend follows a **microservices architecture**, where individual business capabilities are separated into independent services.
 
-                 ┌─────────────────────────────────┐
-                 │          Other Services          │
-                 ├─────────────────────────────────┤
-                 │ User Service        :3015        │
-                 │ Order Service       :3006        │
-                 │ Payment Service     :3007        │
-                 │ Rating Service      :3008        │
-                 │ Inventory Service   :3009        │
-                 │ Invoice Service     :3010        │
-                 │ Analytics Service   :3011        │
-                 │ Vendor Service      :3012        │
-                 │ Search Service      :3013        │
-                 │ Shipping Service    :3014        │
-                 │ Refund Service      :3016        │
-                 │ Notification        :3018        │
-                 │ Email Service       :3004        │
-                 │ Admin Service       :3002        │
-                 └─────────────────────────────────┘
+Communication between services is supported through **REST APIs** and **Apache Kafka** for event-driven asynchronous communication.
 
-                         ┌──────────────────┐
-                         │      Kafka       │
-                         │     :9092        │
-                         └────────┬─────────┘
-                                  │
-              ┌───────────────────┼───────────────────┐
-              │                   │                   │
-              ▼                   ▼                   ▼
-        Auth Events         Vendor Events       Admin Events
-        Order Events        Payment Events      Notification Events
+---
 
+## 🏗️ High-Level Architecture
 
-                         ┌──────────────────┐
-                         │      Redis       │
-                         │      Cache       │
-                         └──────────────────┘
+```text
+                         ┌───────────────────────┐
+                         │    Customer Browser   │
+                         └───────────┬───────────┘
+                                     │
+                         ┌───────────▼───────────┐
+                         │   Storefront :3000    │
+                         │       Next.js         │
+                         └───────────┬───────────┘
+                                     │
+                                     │ REST API
+                                     ▼
+                         ┌───────────────────────┐
+                         │    Nginx API Gateway  │
+                         │       :8081           │
+                         └───────────┬───────────┘
+                                     │
+          ┌──────────────────────────┼──────────────────────────┐
+          │                          │                          │
+          ▼                          ▼                          ▼
+   Auth / User Services       Product Services          Order Services
+          │                          │                          │
+          └──────────────────────────┼──────────────────────────┘
+                                     │
+                           ┌─────────▼─────────┐
+                           │  Kafka / Redis    │
+                           └─────────┬─────────┘
+                                     │
+              ┌──────────────────────┼──────────────────────┐
+              │                      │                      │
+              ▼                      ▼                      ▼
+          PostgreSQL              MinIO              Other Services
+       Service Databases       Object Storage        Payment / Shipping
+```
 
+---
 
-                         ┌──────────────────┐
-                         │      MinIO       │
-                         │ Product Images   │
-                         │   :9000 / :9001  │
-                         └──────────────────┘
+# 📂 Project Structure
 
-
-🛠️ Technology Stack
-Frontend
-Next.js
-TypeScript
-Zustand
-WebSockets
-Backend
-Node.js
-Express.js
-TypeScript
-Prisma ORM
-REST APIs
-Microservices Architecture
-Database & Infrastructure Services
-PostgreSQL
-Redis
-Apache Kafka
-MinIO
-API Gateway
-Nginx
-✨ Features
-👤 Authentication & Users
-User registration and login
-JWT authentication
-Google OAuth
-Role-based access control
-User management
-🛍️ Products
-Product creation and management
-Product browsing
-Product images
-Product inventory information
-Vendor product management
-🛒 Shopping
-Shopping cart
-Cart item management
-Product ordering
-Order tracking
-💳 Orders & Payments
-Order processing
-Payment processing
-Payment status management
-Order lifecycle management
-📦 Inventory & Shipping
-Inventory management
-Stock tracking
-Shipping management
-Order shipment processing
-🧾 Invoices & Refunds
-Invoice generation
-Invoice download
-Refund processing
-🔔 Notifications
-Event-based notifications
-Real-time communication using WebSockets
-Asynchronous communication using Kafka
-🧩 Microservices
-The backend is divided into multiple independent services, including:
-Auth Service
-User Service
-Product Service
-Cart Service
-Order Service
-Payment Service
-Inventory Service
-Invoice Service
-Shipping Service
-Refund Service
-Notification Service
-And other supporting services
-Each service has its own responsibility and communicates with other services through defined APIs and events.
-
-📁 Project Structure
+```text
 Ecommerce-Project/
+│
+├── README.md
+│
+├── docker-compose.yml
+├── docker-compose.gateway.yml
+│
+├── ecommerce-backend/
+│   ├── auth-service/
+│   ├── admin-service/
+│   ├── product-service/
+│   ├── email-service/
+│   ├── cart-service/
+│   ├── order-service/
+│   ├── payment-service/
+│   ├── rating-service/
+│   ├── inventory-service/
+│   ├── invoice-service/
+│   ├── analytics-service/
+│   ├── vendor-service/
+│   ├── search-service/
+│   ├── shipping-service/
+│   ├── user-service/
+│   ├── refund-service/
+│   ├── notification-service/
+│   │
+│   ├── apps/
+│   └── scripts/
 │
 ├── ecommerce-frontend/
 │   ├── storefront/
 │   ├── admin-dashboard/
 │   └── vendor-dashboard/
 │
-└── ecommerce-backend/
-    ├── auth-service/
-    ├── user-service/
-    ├── product-service/
-    ├── cart-service/
-    ├── order-service/
-    ├── payment-service/
-    ├── inventory-service/
-    ├── invoice-service/
-    ├── shipping-service/
-    ├── refund-service/
-    ├── notification-service/
-    └── ...
-🎯 Project Objective
-The goal of this project is to build a modular, scalable e-commerce platform using modern full-stack technologies and a microservices architecture.The architecture allows individual services to be developed, maintained, and scaled independently while supporting communication between services through APIs and event-driven messaging.
+└── nginx/
+    └── nginx.conf
+```
 
+---
 
+# 🧩 Backend Microservices
 
-📦 Microservices
-Service	Port	Responsibility
-Auth Service	3001	Authentication, login, registration
-Admin Service	3002	Admin operations
-Product Service	3003	Product management
-Email Service	3004	Email processing
-Cart Service	3005	Cart and wishlist
-Order Service	3006	Orders
-Payment Service	3007	Payments
-Rating Service	3008	Product ratings
-Inventory Service	3009	Stock management
-Invoice Service	3010	Invoice generation
-Analytics Service	3011	Analytics
-Vendor Service	3012	Vendor management
-Search Service	3013	Product search
-Shipping Service	3014	Shipping
-User Service	3015	User profiles
-Refund Service	3016	Refund processing
-Notification Service	3018	Notifications
-🔐 Authentication Architecture
+The backend is divided into independent services, each responsible for a specific business capability.
 
-The Auth Service is responsible for:
+| Service                  | Responsibility                         |
+| ------------------------ | -------------------------------------- |
+| **Auth Service**         | Authentication, JWT and Google OAuth   |
+| **User Service**         | Customer/user management               |
+| **Admin Service**        | Administrative operations              |
+| **Product Service**      | Product catalog and product management |
+| **Cart Service**         | Shopping cart management               |
+| **Order Service**        | Order creation and order lifecycle     |
+| **Payment Service**      | Payment processing                     |
+| **Rating Service**       | Product reviews and ratings            |
+| **Inventory Service**    | Stock and inventory management         |
+| **Invoice Service**      | Invoice generation and storage         |
+| **Analytics Service**    | Ecommerce analytics and reporting      |
+| **Vendor Service**       | Vendor management                      |
+| **Search Service**       | Product search functionality           |
+| **Shipping Service**     | Shipping and order tracking            |
+| **Refund Service**       | Refund processing                      |
+| **Email Service**        | Email notifications                    |
+| **Notification Service** | Application notifications              |
 
-User registration
-User login
-Vendor authentication
-Admin authentication
-JWT generation
-Google OAuth
-Password reset
-User profile
-Role-based access control
+---
 
-Supported roles:
+# 🖥️ Frontend Applications
 
-USER
-VENDOR
-ADMIN
+The project contains three separate frontend applications.
 
-The authentication database contains:
+### 🛍️ Storefront
 
-AuthUser
+Customer-facing ecommerce application built with **Next.js**.
 
-with:
+Responsibilities include:
 
-id
-name
-email
-password
-role
-phone
-address
-isVerified
-resetToken
-resetTokenExpiry
-createdAt
-updatedAt
-👤 User Registration Flow
+* Product browsing
+* Product search
+* Product details
+* Shopping cart
+* Checkout
+* Payments
+* Order management
+* Invoice downloads
+* Reviews and ratings
+* Shipping tracking
 
-A normal customer registers through:
+---
 
-POST /api/auth/register
+### 🏪 Vendor Dashboard
 
-Example:
+Dedicated dashboard for vendors.
 
-{
-  "name": "Swapna Adhav",
-  "email": "user@example.com",
-  "password": "Password123",
-  "phone": "9999999999",
-  "address": "Mumbai"
-}
+Responsibilities include:
 
-The Auth Service:
+* Vendor authentication
+* Product management
+* Inventory management
+* Order management
+* Vendor analytics
+* Vendor-related operations
 
-Validates the request.
-Hashes the password.
-Creates the user in PostgreSQL.
-Assigns:
-role = USER
-Generates a JWT.
-Publishes a user-created Kafka event.
-🏪 Vendor Creation Architecture
+---
 
-Vendor creation is different from normal customer registration.
+### 👨‍💼 Admin Dashboard
 
-The recommended real-world flow is:
+Administrative interface for managing the ecommerce platform.
 
-Admin Dashboard
-       │
-       │ Create Vendor
-       ▼
-Admin/Auth Layer
-       │
-       │ Create AuthUser
-       │ role = VENDOR
-       ▼
-Auth Service
-       │
-       │ Kafka user.created
-       ▼
-Vendor Service
-       │
-       ▼
-Vendor Database
+Responsibilities include:
 
-The vendor creation form contains:
+* User management
+* Vendor management
+* Product management
+* Order management
+* Analytics
+* Platform administration
 
-Name
-Email
-Password
-Phone
-Address
+---
 
-There is no need for the admin to enter User ID manually.
+# 🌐 Nginx API Gateway
 
-The Auth Service automatically generates the user ID.
+Nginx acts as the centralized **API Gateway** for the backend services.
+
+The frontend communicates with:
+
+```text
+http://localhost:8081/api
+```
+
+instead of directly accessing individual microservices.
 
 Example:
 
-Admin enters:
-
-
-Name: Swapna Adhav
-Email: swapnaadhav123@gmail.com
-Password: Vendor Password
-Phone: 09167455961
-Address: Flat 204, 2nd Flr...
-
-Auth Service creates:
-
-AuthUser
-----------------------------
-id       → automatically generated
-name     → Swapna Adhav
-email    → swapnaadhav123@gmail.com
-password → hashed password
-role     → VENDOR
-
-The generated id becomes the vendor's userId.
-
-🔑 Vendor Login
-
-After the vendor is created, the vendor can log in normally.
-
-Vendor
-   │
-   │ Email + Password
-   ▼
-Auth Service
-   │
-   │ Verify password
-   ▼
-JWT
-   │
-   ▼
-Vendor Dashboard
-
-The vendor does not need to know their UUID/User ID.
-
-The vendor uses:
-
-Email
-Password
-👨‍💼 Admin Architecture
-
-Admin is responsible for managing the platform.
-
-Typical admin operations include:
-
-Manage Vendors
-Manage Users
-Manage Products
-Approve Vendors
-Reject Vendors
-Ban Users
-View Orders
-View Payments
-View Inventory
-View Analytics
-Manage Refunds
-
-Admin authentication should be handled by the Auth Service using:
-
-role = ADMIN
-
-The Admin Service handles admin-specific business operations/events.
-
-🏪 Vendor Approval Lifecycle
-
-The Vendor Service contains:
-
-VendorStatus
-
-with:
-
-PENDING
-APPROVED
-REJECTED
-
-Recommended lifecycle:
-
-Vendor Created
-      │
-      ▼
-   PENDING
-      │
-      ├───────────────┐
-      │               │
-      ▼               ▼
-  APPROVED         REJECTED
-      │
-      ▼
-Vendor can operate
-
-The Vendor model contains:
-
-Vendor
--------------------
-id
-name
-email
-phone
-address
-userId
-status
-isActive
-createdAt
-updatedAt
-🔄 Vendor Creation Example
-
-Admin dashboard:
-
-Create Vendor
-
-
-Name:
-Swapna Adhav
-
-
-Email:
-swapnaadhav123@gmail.com
-
-
-Password:
-Vendor Password
-
-
-Phone:
-09167455961
-
-
-Address:
-Flat 204, 2nd Flr, Shantiniketan CHS,
-Sector 8 Plot 8, Kharghar
-
-
-[Create Vendor]
-
-The frontend sends:
-
-{
-  "name": "Swapna Adhav",
-  "email": "swapnaadhav123@gmail.com",
-  "password": "Vendor Password",
-  "phone": "09167455961",
-  "address": "Flat 204, 2nd Flr..."
-}
-
-The frontend does not send:
-
-userId
-
-The backend creates the AuthUser and generates the ID automatically.
-
-📡 Kafka Architecture
-
-Kafka is used for asynchronous communication between microservices.
-
-Example:
-
-Auth Service
-     │
-     │ user.created
-     ▼
-   Kafka
-     │
-     ├──────────────► User Service
-     │
-     └──────────────► Vendor Service
-
-Other examples:
-
-Order Created
-     │
-     ▼
-   Kafka
-     │
-     ├──► Inventory
-     ├──► Payment
-     ├──► Notification
-     └──► Analytics
-
-Vendor events:
-
-vendor.created
-vendor.status.updated
-
-Admin events:
-
-admin.created
-user.banned
-system.alert
-⚡ Redis
-
-Redis is used for fast temporary data and session management.
-
-Example:
-
-session:<sessionId>
-
-Sessions can expire automatically.
-
-Current authentication session configuration:
-
-7 days
-
-Redis can also be extended for:
-
-API caching
-Product caching
-Rate limiting
-Session storage
-Temporary tokens
-🗄️ Database Architecture
-
-Each microservice should ideally own its own database/schema.
-
-Example:
-
-Auth Service
-    │
-    └── auth_db
-
-
-Product Service
-    │
-    └── product_db
-
-
-Cart Service
-    │
-    └── cart_db
-
-
-Order Service
-    │
-    └── order_db
-
-
-Vendor Service
-    │
-    └── vendor_db
-
-
-Payment Service
-    │
-    └── payment_db
-
-This follows the microservice principle:
-
-Each service owns its own data.
-
-Services communicate using:
-
-REST APIs
-Kafka Events
-
-rather than directly accessing another service's database.
-
-🖼️ MinIO
-
-MinIO is used for object storage.
-
-Product images are stored in MinIO.
-
-Frontend
-    │
-    ▼
-Product Service
-    │
-    ▼
-MinIO
-
-MinIO ports:
-
-9000 → API
-9001 → Console
-🌐 NGINX API Gateway
-
-The frontend does not need to directly communicate with every microservice.
-
-Instead:
-
-Next.js
-   │
-   ▼
-NGINX
-:8081
-   │
-   ├── /api/auth     → Auth Service
-   ├── /api/products → Product Service
-   ├── /api/cart     → Cart Service
-   ├── /api/orders   → Order Service
-   ├── /api/vendors  → Vendor Service
-   ├── /api/payment  → Payment Service
-   └── ...
-
-This provides a single API entry point.
-
-Frontend configuration:
-
-NEXT_PUBLIC_API_URL=http://localhost:8081/api
-🔒 Role-Based Access Control
-
-The system supports:
-
-USER
-VENDOR
-ADMIN
-
-Example:
-
-USER
- └── Shopping
-
-
-VENDOR
- ├── Manage products
- ├── View vendor orders
- └── Manage inventory
-
-
-ADMIN
- ├── Manage users
- ├── Manage vendors
- ├── Approve vendors
- ├── Manage products
- └── Platform administration
-
-JWT contains information such as:
-
-{
-  "userId": "uuid",
-  "role": "VENDOR",
-  "name": "Swapna Adhav",
-  "email": "swapnaadhav123@gmail.com"
-}
-
-The middleware checks the role before allowing protected operations.
-
-🔐 Password Security
-
-Passwords are never stored as plain text.
-
-Example:
-
-User enters:
-
-
-MyPassword123
-
-Auth Service:
-
-MyPassword123
-       │
-       ▼
-    bcrypt
-       │
-       ▼
-hashed password
-       │
-       ▼
-PostgreSQL
-
-During login:
-
-Entered password
-       │
-       ▼
-bcrypt.compare()
-       │
-       ▼
-Valid / Invalid
-🔄 Password Reset
-
-The password reset flow is:
-
-User
- │
- │ Forgot Password
- ▼
-Auth Service
- │
- │ Generate secure token
- ▼
-PostgreSQL
- │
- │ Hashed token
- ▼
-Kafka
- │
- ▼
-Email Service
- │
- ▼
-User Email
-
-Reset tokens expire after:
-
-15 minutes
-🌐 Google OAuth
-
-Google authentication is supported.
-
-Flow:
-
-User
- │
- ▼
-Google Login
- │
- ▼
-Google OAuth
- │
- ▼
-Auth Service
- │
- ▼
-Find/Create AuthUser
- │
- ▼
-JWT
- │
- ▼
-Frontend
-
-Google users are automatically created with:
-
-role = USER
-🛍️ Typical E-Commerce Order Flow
-
-A complete order can work like:
-
-Customer
-   │
-   ▼
+```text
 Frontend
    │
    ▼
-API Gateway
+http://localhost:8081/api/products
    │
    ▼
-Cart Service
+Nginx
    │
    ▼
-Order Service
-   │
-   ├──────────► Payment Service
-   │
-   ├──────────► Inventory Service
-   │
-   ├──────────► Invoice Service
-   │
-   ├──────────► Shipping Service
-   │
-   └──────────► Notification Service
-                    │
-                    ▼
-                Email Service
+Product Service :3003
+```
 
-Kafka can be used for asynchronous events between these services.
+The gateway provides:
 
-📊 Analytics Flow
+* Centralized API routing
+* Reverse proxying
+* Authorization header forwarding
+* CORS handling
+* Request forwarding
+* Upload size configuration
+* Service health endpoints
 
-Business events can be sent to Kafka:
+---
 
-Order Created
-Payment Completed
-Product Viewed
-Product Purchased
-Vendor Created
-Refund Created
+# 🐳 Containerized Infrastructure
 
-Kafka:
+The project uses Docker Compose to manage infrastructure components.
 
-             Kafka
-               │
-               ▼
-       Analytics Service
-               │
-               ▼
-        Analytics Database
+The main infrastructure includes:
 
-This allows analytics processing without slowing down the main transaction.
+* PostgreSQL
+* Apache Kafka
+* Zookeeper
+* Redis
+* MinIO
 
-🐳 Docker Architecture
+Docker Compose configuration is provided through:
 
-Infrastructure runs using Docker.
+```text
+docker-compose.yml
+docker-compose.gateway.yml
+```
 
-Typical containers include:
+---
 
+# 🗄️ Database Architecture
+
+Each major microservice maintains its own PostgreSQL database.
+
+```text
 PostgreSQL
-Redis
-Kafka
-Zookeeper / Kafka dependencies
-MinIO
-
-Microservices can also be containerized individually.
-
-Example:
-
-Docker
- ├── auth-service
- ├── user-service
- ├── product-service
- ├── cart-service
- ├── order-service
- ├── payment-service
- ├── vendor-service
- ├── admin-service
- ├── kafka
- ├── redis
- ├── postgres
- └── minio
-🚀 Local Development
-Start infrastructure
-
-Start Docker services:
-
-docker compose up -d
-
-Check running containers:
-
-docker ps
-▶️ Start Backend Services
-
-Each service can be started separately.
-
-Example:
-
-cd auth-service
-npm install
-npm run dev
-
-Vendor service:
-
-cd vendor-service
-npm install
-npm run dev
-
-Admin service:
-
-cd admin-service
-npm install
-npm run dev
-▶️ Start Frontend
-cd frontend
-npm install
-npm run dev
-
-Frontend:
-
-http://localhost:3000
-
-API Gateway:
-
-http://localhost:8081
-🧪 Health Checks
-
-Services should expose health endpoints.
-
-Example:
-
-GET /health
-
-Admin:
-
-GET /admin/health
-
-Expected response:
-
-{
-  "status": "Admin service is healthy"
-}
-📁 Important Project Structure
-Ecommerce-Project/
 │
-├── frontend/
-│
-├── ecommerce-backend/
-│   │
-│   ├── auth-service/
-│   │   ├── src/
-│   │   │   ├── controllers/
-│   │   │   ├── services/
-│   │   │   ├── routes/
-│   │   │   ├── middlewares/
-│   │   │   ├── kafka/
-│   │   │   ├── db/
-│   │   │   └── utils/
-│   │
-│   ├── admin-service/
-│   ├── vendor-service/
-│   ├── user-service/
-│   ├── product-service/
-│   ├── cart-service/
-│   ├── order-service/
-│   ├── payment-service/
-│   ├── inventory-service/
-│   ├── invoice-service/
-│   ├── shipping-service/
-│   ├── refund-service/
-│   ├── notification-service/
-│   ├── email-service/
-│   ├── search-service/
-│   ├── rating-service/
-│   └── analytics-service/
-│
-├── nginx/
-│
-├── docker-compose.yml
-│
-└── README.md
-🧩 Important Design Principle
+├── auth_db
+├── admin_db
+├── product_db
+├── email_db
+├── cart_db
+├── order_db
+├── payment_db
+├── rating_db
+├── inventory_db
+├── invoice_db
+├── analytics_db
+├── vendor_db
+├── search_db
+├── shipping_db
+├── user_db
+├── refund_db
+└── notification_db
+```
 
-The most important distinction is:
+This separation helps maintain service boundaries and follows the microservices principle of **database ownership by service**.
 
-Auth Service
-     │
-     │ Identity
-     ▼
-Who is this user?
+---
 
-while:
+# 📨 Event-Driven Communication
 
-Vendor Service
-     │
-     │ Business information
-     ▼
-What vendor information does this user have?
+Apache Kafka is used for asynchronous communication between microservices.
 
 For example:
 
-AuthUser
--------------------------
-id: 123
-name: Swapna Adhav
-email: swapnaadhav123@gmail.com
-role: VENDOR
-password: hashed
+```text
+Order Service
+     │
+     │ Order Created Event
+     ▼
+   Kafka
+     │
+     ├──────────► Inventory Service
+     │
+     ├──────────► Payment Service
+     │
+     ├──────────► Email Service
+     │
+     └──────────► Notification Service
+```
 
-Vendor:
+This allows services to communicate asynchronously without creating tight dependencies between them.
 
-Vendor
--------------------------
-id: 456
-userId: 123
-name: Swapna Adhav
-email: swapnaadhav123@gmail.com
-status: PENDING
-isActive: true
+---
 
-The userId connects the vendor business record to the authentication identity.
+# ⚡ Redis
 
-The admin should not manually type this ID.
+Redis is used by services that require caching or temporary data storage.
 
-🔁 Recommended Vendor Creation Flow
-                 ADMIN DASHBOARD
-                       │
-                       │
-              Create Vendor Form
-                       │
-                       │
-             Name / Email / Password
-             Phone / Address
-                       │
-                       ▼
-                 API Gateway
-                       │
-                       ▼
-                 Auth Service
-                       │
-             ┌─────────┴─────────┐
-             │                   │
-             ▼                   ▼
-       Create AuthUser       Generate UUID
-             │
-             │ role = VENDOR
-             ▼
-           Kafka
-             │
-             │ user.created
-             ▼
-       Vendor Service
-             │
-             ▼
-       Create Vendor
-             │
-             ▼
-          PENDING
-             │
-             ▼
-       Admin Approval
-             │
-       ┌─────┴─────┐
-       ▼           ▼
-   APPROVED     REJECTED
-       │
-       ▼
+Examples include:
 
+* Cart data
+* Product caching
+* Session-related data
+* Frequently accessed information
 
- Vendor can use
+Default local configuration:
 
+```text
+Redis: localhost:6379
+```
 
- Vendor Dashboard
-☁️ DevOps Architecture
+---
 
-The project can be deployed using:
+# 📦 MinIO
 
-GitHub
+MinIO provides S3-compatible object storage for application files.
+
+It is used for assets such as:
+
+* Product images
+* Generated invoices
+* Other application files
+
+Default local ports:
+
+```text
+MinIO API:     localhost:9000
+MinIO Console: localhost:9001
+```
+
+---
+
+# 🔐 Authentication
+
+Authentication is handled through the Auth Service.
+
+The platform supports:
+
+* JWT-based authentication
+* Google OAuth
+* Role-based application access
+* Authorization headers through the API Gateway
+
+The JWT token is forwarded by Nginx to protected backend services.
+
+---
+
+# 🔄 Request Flow
+
+A typical customer request follows this architecture:
+
+```text
+Customer
    │
    ▼
-CI/CD Pipeline
+Storefront
    │
-   ├── Build
-   ├── Test
-   ├── Docker Build
-   ├── Push Image
-   └── Deploy
-           │
-           ▼
-        AWS
-           │
-           ├── EC2 / EKS
-           ├── RDS
-           ├── S3
-           └── Load Balancer
+   ▼
+Nginx API Gateway
+   │
+   ▼
+Required Microservice
+   │
+   ├── PostgreSQL
+   ├── Redis
+   ├── Kafka
+   └── MinIO
+```
 
-Infrastructure can be managed using:
+This architecture provides a single API entry point while keeping backend business logic distributed across independent services.
 
-Terraform
+---
 
-Configuration management:
+# 🛠️ Technology Stack
 
-Ansible
+### Frontend
 
-Container orchestration:
+* Next.js
+* React
+* TypeScript
+* Vite
+* Tailwind CSS
+* Zustand
 
-Kubernetes
+### Backend
 
+* Node.js
+* Express.js
+* TypeScript
+* Prisma
+* REST APIs
+* JWT
+* Google OAuth
 
-🧱 DevOps Concepts Demonstrated
+### Infrastructure
 
-This project demonstrates:
+* Docker
+* Docker Compose
+* Nginx
+* PostgreSQL
+* Redis
+* Apache Kafka
+* Zookeeper
+* MinIO
 
-Microservices
-REST APIs
-API Gateway
-Docker
-PostgreSQL
-Prisma
-Redis
-Kafka
-Event-driven architecture
-JWT authentication
-OAuth
-RBAC
-Object storage
-NGINX
-CI/CD
-Infrastructure as Code
-Terraform
-Kubernetes
-AWS
-Monitoring and logging concepts
-🔮 Future Improvements
+### External Integrations
 
-Recommended improvements include:
+* Razorpay
+* Google OAuth
+* Gmail SMTP
 
-Centralized authentication between services
-JWT validation at API Gateway
-Vendor approval authorization
-Kafka retry handling
-Dead Letter Queue
-API rate limiting
-Centralized logging
-Prometheus
-Grafana
-Distributed tracing
-Docker image optimization
-Kubernetes deployment
-Terraform AWS infrastructure
-CI/CD with GitHub Actions
-Secrets management
-Automated testing
+---
 
-🎯 Project Goal
+# 🎯 Project Goals
 
-ShopSphere demonstrates how a modern e-commerce application can be designed using independently deployable microservices.
+This project demonstrates how a modern ecommerce platform can be structured using:
 
-The project combines:
+* Microservices architecture
+* API Gateway pattern
+* Event-driven communication
+* Containerized infrastructure
+* Independent service databases
+* Authentication and authorization
+* Object storage
+* Distributed frontend applications
 
-Frontend
-   +
-Microservices
-   +
-API Gateway
-   +
-PostgreSQL
-   +
-Redis
-   +
-Kafka
-   +
-MinIO
-   +
-Docker
-   +
-AWS
-   +
-Terraform
-   +
-Kubernetes
-   +
-CI/CD
+The architecture is also suitable as a foundation for further **DevOps implementation**, including CI/CD pipelines, infrastructure automation, container orchestration, monitoring, logging, security, and cloud deployment.
 
-This architecture is intended to provide practical experience with modern backend engineering and DevOps practices.
-
-👩‍💻 Author
-
-Swapna Adhav
-
-DevOps / Cloud Computing Enthusiast
-
-Technologies:
-
-AWS
-Docker
-Kubernetes
-Terraform
-Ansible
-Git
-GitHub
-CI/CD
-Linux
-Node.js
-Microservices
-Kafka
-Redis
-PostgreSQL
-
-
-
-
-to create google email password goto the 
-
-Google Account → Security → 2-Step Verification → App passwords
