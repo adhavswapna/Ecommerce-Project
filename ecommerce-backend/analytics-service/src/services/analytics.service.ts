@@ -31,33 +31,37 @@ export async function recordAnalyticsEvent(payload: any) {
 // GET VENDOR ANALYTICS
 // =====================================================
 
-export async function getVendorAnalytics(vendorId?: string) {
+export async function getVendorAnalytics(
+  vendorId?: string
+) {
   /*
-   * At the moment AnalyticsEvent stores userId.
+   * AnalyticsEvent currently stores userId.
    *
-   * Since analytics-service has no authentication middleware,
-   * we allow vendorId to be supplied as a query parameter.
-   *
-   * Example:
-   * GET /analytics/vendor?vendorId=VENDOR_ID
+   * vendorId is used to filter events belonging
+   * to the vendor's authenticated user.
    */
 
   const where = vendorId
     ? { userId: vendorId }
     : {};
 
-  const events = await prisma.analyticsEvent.findMany({
-    where,
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+  const events =
+    await prisma.analyticsEvent.findMany({
+      where,
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
-  // Count events by type
+  // ===================================================
+  // COUNT EVENTS BY TYPE
+  // ===================================================
+
   const eventCounts: Record<string, number> = {};
 
   for (const item of events) {
-    eventCounts[item.event] = (eventCounts[item.event] || 0) + 1;
+    eventCounts[item.event] =
+      (eventCounts[item.event] || 0) + 1;
   }
 
   return {
@@ -67,3 +71,53 @@ export async function getVendorAnalytics(vendorId?: string) {
     recentEvents: events.slice(0, 20),
   };
 }
+
+// =====================================================
+// GET ADMIN / PLATFORM ANALYTICS
+// =====================================================
+
+export async function getAdminAnalytics() {
+  /*
+   * Admin analytics are platform-wide.
+   *
+   * No vendorId filter is applied.
+   */
+
+  const events =
+    await prisma.analyticsEvent.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+  // ===================================================
+  // COUNT EVENTS BY TYPE
+  // ===================================================
+
+  const eventCounts: Record<string, number> = {};
+
+  for (const item of events) {
+    eventCounts[item.event] =
+      (eventCounts[item.event] || 0) + 1;
+  }
+
+  // ===================================================
+  // COUNT UNIQUE USERS
+  // ===================================================
+
+  const uniqueUsers = new Set(
+    events.map((item) => item.userId)
+  );
+
+  // ===================================================
+  // RETURN PLATFORM ANALYTICS
+  // ===================================================
+
+  return {
+    totalEvents: events.length,
+    totalUsers: uniqueUsers.size,
+    eventCounts,
+    recentEvents: events.slice(0, 20),
+  };
+}
+

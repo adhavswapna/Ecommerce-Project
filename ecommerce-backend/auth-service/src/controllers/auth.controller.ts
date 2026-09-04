@@ -13,18 +13,16 @@ export class AuthController {
     res: Response
   ) => {
     try {
-      const data =
-        registerSchema.parse(req.body);
+      const data = registerSchema.parse(req.body);
 
-      const result =
-        await AuthService.register(
-          data.name,
-          data.email,
-          data.password,
-          Role.USER,
-          data.phone,
-          data.address
-        );
+      const result = await AuthService.register(
+        data.name,
+        data.email,
+        data.password,
+        Role.USER,
+        data.phone,
+        data.address
+      );
 
       return res.status(201).json({
         success: true,
@@ -33,9 +31,16 @@ export class AuthController {
         user: result.user,
       });
     } catch (err: any) {
+      console.error(
+        "Register User Error:",
+        err
+      );
+
       return res.status(400).json({
         success: false,
-        message: err.message,
+        message:
+          err.message ||
+          "User registration failed",
       });
     }
   };
@@ -43,9 +48,36 @@ export class AuthController {
   // =====================================================
   // REGISTER VENDOR
   //
-  // ADMIN ONLY
+  // PUBLIC
   //
-  // Creates the authentication account for the vendor.
+  // NEW REAL-WORLD FLOW:
+  //
+  // Vendor
+  //    ↓
+  // Vendor enters:
+  // name
+  // email
+  // password
+  // phone
+  // address
+  //    ↓
+  // Auth Service creates AuthUser
+  //    ↓
+  // role = VENDOR
+  // vendorStatus = PENDING
+  //    ↓
+  // auth.user.created
+  //    ↓
+  // User Service creates User
+  // Vendor Service creates Vendor
+  //    ↓
+  // Admin reviews vendor
+  //
+  // IMPORTANT:
+  //
+  // Vendor does NOT receive a JWT here.
+  //
+  // Vendor must wait for Admin approval.
   // =====================================================
 
   static registerVendor = async (
@@ -61,15 +93,31 @@ export class AuthController {
         address,
       } = req.body;
 
-      if (
-        !name ||
-        !email ||
-        !password
-      ) {
+      // -------------------------------------------------
+      // VALIDATION
+      // -------------------------------------------------
+
+      if (!name || !name.trim()) {
         return res.status(400).json({
           success: false,
           message:
-            "Name, email and password are required",
+            "Vendor name is required",
+        });
+      }
+
+      if (!email || !email.trim()) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Vendor email is required",
+        });
+      }
+
+      if (!password) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Vendor password is required",
         });
       }
 
@@ -77,56 +125,62 @@ export class AuthController {
         return res.status(400).json({
           success: false,
           message:
-            "Password must be at least 8 characters",
+            "Vendor password must be at least 8 characters",
         });
       }
 
+      // -------------------------------------------------
+      // REGISTER VENDOR
+      // -------------------------------------------------
+
       const result =
-        await AuthService.register(
+        await AuthService.registerVendor(
           name,
           email,
           password,
-          Role.VENDOR,
           phone,
           address
         );
 
-      /*
-       * IMPORTANT:
-       *
-       * userId is returned to the frontend.
-       *
-       * The frontend will then send this userId
-       * to Vendor Service.
-       */
+      // -------------------------------------------------
+      // IMPORTANT
+      //
+      // No token is returned.
+      //
+      // Vendor has to wait for admin approval.
+      // -------------------------------------------------
 
       return res.status(201).json({
         success: true,
 
         message:
-          "Vendor authentication account created successfully",
+          "Vendor registration submitted successfully. Your account is pending admin approval.",
 
         userId: result.userId,
 
-        token: result.token,
+        status: result.status,
 
         user: result.user,
       });
     } catch (err: any) {
       console.error(
-        "Create Vendor Auth Error:",
+        "Register Vendor Error:",
         err
       );
 
       return res.status(400).json({
         success: false,
-        message: err.message,
+        message:
+          err.message ||
+          "Vendor registration failed",
       });
     }
   };
 
   // =====================================================
   // REGISTER ADMIN
+  //
+  // ADMIN ONLY
   // =====================================================
 
   static registerAdmin = async (
@@ -142,11 +196,7 @@ export class AuthController {
         address,
       } = req.body;
 
-      if (
-        !name ||
-        !email ||
-        !password
-      ) {
+      if (!name || !email || !password) {
         return res.status(400).json({
           success: false,
           message:
@@ -179,9 +229,16 @@ export class AuthController {
         user: result.user,
       });
     } catch (err: any) {
+      console.error(
+        "Register Admin Error:",
+        err
+      );
+
       return res.status(400).json({
         success: false,
-        message: err.message,
+        message:
+          err.message ||
+          "Admin registration failed",
       });
     }
   };
@@ -200,10 +257,7 @@ export class AuthController {
         password,
       } = req.body;
 
-      if (
-        !email ||
-        !password
-      ) {
+      if (!email || !password) {
         return res.status(400).json({
           success: false,
           message:
@@ -222,9 +276,49 @@ export class AuthController {
         token,
       });
     } catch (err: any) {
+      console.error(
+        "Login Error:",
+        err
+      );
+
+      const message =
+        err.message ||
+        "Login failed";
+
+      // -------------------------------------------------
+      // VENDOR APPROVAL ERRORS
+      // -------------------------------------------------
+      //
+      // These are not credential errors.
+      //
+      // The account exists, but vendor access is
+      // not currently allowed.
+      // -------------------------------------------------
+
+      if (
+        message.includes(
+          "pending admin approval"
+        ) ||
+        message.includes(
+          "application has been rejected"
+        ) ||
+        message.includes(
+          "vendor account is not approved"
+        )
+      ) {
+        return res.status(403).json({
+          success: false,
+          message,
+        });
+      }
+
+      // -------------------------------------------------
+      // NORMAL LOGIN ERROR
+      // -------------------------------------------------
+
       return res.status(401).json({
         success: false,
-        message: err.message,
+        message,
       });
     }
   };
@@ -273,10 +367,6 @@ export class AuthController {
     res: Response
   ) => {
     try {
-      // =====================================================
-      // DEBUG GOOGLE CALLBACK
-      // =====================================================
-
       console.log(
         "=========================================="
       );
@@ -306,10 +396,6 @@ export class AuthController {
         state,
       } = req.query;
 
-      // =====================================================
-      // GOOGLE RETURNED AN ERROR
-      // =====================================================
-
       if (error) {
         console.error(
           "❌ Google OAuth error:",
@@ -328,10 +414,6 @@ export class AuthController {
         });
       }
 
-      // =====================================================
-      // AUTHORIZATION CODE MISSING
-      // =====================================================
-
       if (!code) {
         console.error(
           "❌ Google authorization code missing"
@@ -348,18 +430,10 @@ export class AuthController {
         "✅ Google authorization code received"
       );
 
-      // =====================================================
-      // GOOGLE CALLBACK SERVICE
-      // =====================================================
-
       const result =
         await AuthService.googleCallback(
           code as string
         );
-
-      // =====================================================
-      // FRONTEND REDIRECT
-      // =====================================================
 
       const frontendUrl =
         process.env.FRONTEND_URL ||
@@ -419,7 +493,8 @@ export class AuthController {
     try {
       if (!req.user?.userId) {
         return res.status(401).json({
-          message: "Unauthorized",
+          message:
+            "Unauthorized",
         });
       }
 
@@ -430,14 +505,21 @@ export class AuthController {
 
       if (!user) {
         return res.status(404).json({
-          message: "User not found",
+          message:
+            "User not found",
         });
       }
 
       return res.json(user);
-    } catch {
+    } catch (err) {
+      console.error(
+        "Get current user error:",
+        err
+      );
+
       return res.status(401).json({
-        message: "Unauthorized",
+        message:
+          "Unauthorized",
       });
     }
   };
@@ -451,7 +533,8 @@ export class AuthController {
     res: Response
   ) => {
     try {
-      const { email } = req.body;
+      const { email } =
+        req.body;
 
       if (!email) {
         return res.status(400).json({
@@ -474,6 +557,10 @@ export class AuthController {
         err
       );
 
+      /*
+       * Return the same response even if an error
+       * occurs so we do not expose account existence.
+       */
       return res.json({
         message:
           "If the email exists, a reset link has been sent. Check your inbox.",
@@ -482,7 +569,7 @@ export class AuthController {
   };
 
   // =====================================================
-  // RESET PASSWORD
+  // RESET / SET PASSWORD
   // =====================================================
 
   static resetPassword = async (
@@ -495,10 +582,7 @@ export class AuthController {
         newPassword,
       } = req.body;
 
-      if (
-        !token ||
-        !newPassword
-      ) {
+      if (!token || !newPassword) {
         return res.status(400).json({
           message:
             "Token and new password are required",
@@ -518,8 +602,9 @@ export class AuthController {
       );
 
       return res.json({
+        success: true,
         message:
-          "Password reset successful. You can now login.",
+          "Password set successfully. You can now login.",
       });
     } catch (err: any) {
       console.error(
@@ -528,6 +613,7 @@ export class AuthController {
       );
 
       return res.status(400).json({
+        success: false,
         message:
           err.message ||
           "Invalid or expired token",

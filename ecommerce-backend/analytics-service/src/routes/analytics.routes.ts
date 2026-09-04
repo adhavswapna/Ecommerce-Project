@@ -4,6 +4,7 @@ import { Router } from "express";
 import {
   registerEvent,
   vendorAnalytics,
+  adminAnalytics,
 } from "../controllers/analytics.controller";
 
 const router = Router();
@@ -14,6 +15,13 @@ const router = Router();
 // =====================================================
 
 router.post("/", registerEvent);
+
+// =====================================================
+// ADMIN / PLATFORM ANALYTICS
+// GET /analytics/admin
+// =====================================================
+
+router.get("/admin", adminAnalytics);
 
 // =====================================================
 // VENDOR ANALYTICS

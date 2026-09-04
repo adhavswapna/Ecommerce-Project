@@ -26,10 +26,6 @@ export default function Layout({
             Vendor Approvals
           </Link>
 
-          <Link to="/create-vendor">
-            Create Vendor
-          </Link>
-
           <Link to="/refunds">
             Refunds
           </Link>

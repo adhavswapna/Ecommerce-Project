@@ -4,15 +4,20 @@ import { Request, Response } from "express";
 import {
   recordAnalyticsEvent,
   getVendorAnalytics,
+  getAdminAnalytics,
 } from "../services/analytics.service";
 
 // =====================================================
 // RECORD ANALYTICS EVENT
 // =====================================================
 
-export const registerEvent = async (req: Request, res: Response) => {
+export const registerEvent = async (
+  req: Request,
+  res: Response
+) => {
   try {
-    const result = await recordAnalyticsEvent(req.body);
+    const result =
+      await recordAnalyticsEvent(req.body);
 
     return res.status(201).json({
       success: true,
@@ -20,11 +25,16 @@ export const registerEvent = async (req: Request, res: Response) => {
       data: result,
     });
   } catch (error: any) {
-    console.error("❌ Analytics Error:", error.message);
+    console.error(
+      "❌ Analytics Error:",
+      error.message
+    );
 
     return res.status(500).json({
       success: false,
-      message: error.message || "Failed to record analytics event",
+      message:
+        error.message ||
+        "Failed to record analytics event",
     });
   }
 };
@@ -43,18 +53,55 @@ export const vendorAnalytics = async (
         ? req.query.vendorId
         : undefined;
 
-    const analytics = await getVendorAnalytics(vendorId);
+    const analytics =
+      await getVendorAnalytics(vendorId);
 
     return res.status(200).json({
       success: true,
       data: analytics,
     });
   } catch (error: any) {
-    console.error("❌ Vendor Analytics Error:", error.message);
+    console.error(
+      "❌ Vendor Analytics Error:",
+      error.message
+    );
 
     return res.status(500).json({
       success: false,
-      message: error.message || "Failed to fetch vendor analytics",
+      message:
+        error.message ||
+        "Failed to fetch vendor analytics",
+    });
+  }
+};
+
+// =====================================================
+// GET ADMIN / PLATFORM ANALYTICS
+// =====================================================
+
+export const adminAnalytics = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const analytics =
+      await getAdminAnalytics();
+
+    return res.status(200).json({
+      success: true,
+      data: analytics,
+    });
+  } catch (error: any) {
+    console.error(
+      "❌ Admin Analytics Error:",
+      error.message
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        error.message ||
+        "Failed to fetch admin analytics",
     });
   }
 };

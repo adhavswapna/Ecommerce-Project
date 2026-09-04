@@ -1,7 +1,11 @@
 import { Router } from "express";
+
 import { AuthController } from "../controllers/auth.controller";
+
 import { authMiddleware } from "../middlewares/auth.middleware";
+
 import { requireRole } from "../middlewares/role.middleware";
+
 import { Role } from "../constants/role.enum";
 
 const router = Router();
@@ -20,6 +24,23 @@ router.post(
 router.post(
   "/register",
   AuthController.registerUser
+);
+
+// Vendor self-registration
+//
+// Vendor provides:
+// - name
+// - email
+// - password
+// - phone
+// - address
+//
+// Vendor account is created with PENDING status.
+// No login token is returned until admin approves
+// the vendor application.
+router.post(
+  "/register/vendor",
+  AuthController.registerVendor
 );
 
 // Forgot password
@@ -61,14 +82,6 @@ router.get(
 /* =====================================================
    ADMIN ONLY
 ===================================================== */
-
-// Create vendor authentication account
-router.post(
-  "/register/vendor",
-  authMiddleware,
-  requireRole(Role.ADMIN),
-  AuthController.registerVendor
-);
 
 // Create another admin
 router.post(

@@ -1,6 +1,9 @@
 import prisma from "../db/prisma/prisma";
 
 export class UserService {
+  /**
+   * CREATE USER
+   */
   static async createUser(data: {
     id: string;
     name?: string;
@@ -12,21 +15,46 @@ export class UserService {
     });
   }
 
-  static async getById(id: string) {
-    const user = await prisma.user.findUnique({
-      where: { id },
+  /**
+   * GET ALL USERS
+   */
+  static async getAllUsers() {
+    return prisma.user.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
     });
-
-    return user;
   }
 
-  static async updateProfile(id: string, name: string, email: string) {
+  /**
+   * GET USER BY ID
+   */
+  static async getById(id: string) {
+    return prisma.user.findUnique({
+      where: { id },
+    });
+  }
+
+  /**
+   * UPDATE USER PROFILE
+   */
+  static async updateProfile(
+    id: string,
+    name: string,
+    email: string
+  ) {
     return prisma.user.update({
       where: { id },
-      data: { name, email },
+      data: {
+        name,
+        email,
+      },
     });
   }
 
+  /**
+   * DELETE USER
+   */
   static async deleteUser(id: string) {
     return prisma.user.delete({
       where: { id },

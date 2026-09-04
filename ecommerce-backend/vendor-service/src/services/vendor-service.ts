@@ -1,10 +1,46 @@
-
 import prisma from "../db/prisma/prisma";
 import { VendorStatus } from "@prisma/client";
 
 /* =========================================================
    CREATE VENDOR
 ========================================================= */
+
+/*
+ * Vendor profile is created AFTER AuthUser.
+ *
+ * New workflow:
+ *
+ * Vendor
+ *   ↓
+ * Auth Service creates AuthUser
+ *   ↓
+ * auth.user.created
+ *   ↓
+ * Vendor Service receives event
+ *   ↓
+ * Vendor profile created
+ *   ↓
+ * status = PENDING
+ * isActive = false
+ *   ↓
+ * Admin approves
+ *   ↓
+ * vendor.status.updated
+ *   ↓
+ * Auth Service updates AuthUser.vendorStatus
+ *
+ * Auth Service owns:
+ *   - AuthUser
+ *   - password
+ *   - login
+ *   - authentication
+ *
+ * Vendor Service owns:
+ *   - Vendor
+ *   - vendor profile
+ *   - approval status
+ *   - active/inactive state
+ */
 
 export async function createVendor(data: {
   name: string;
@@ -14,33 +50,125 @@ export async function createVendor(data: {
   userId: string;
 }) {
   try {
-    if (!data.name || !data.email || !data.userId) {
+    /* =====================================================
+       VALIDATION
+    ===================================================== */
+
+    if (!data.name || data.name.trim() === "") {
       throw new Error(
-        "Name, email and userId are required"
+        "Vendor name is required"
       );
     }
 
-    const vendor = await prisma.vendor.create({
-      data: {
-        name: data.name,
-        email: data.email,
-        phone: data.phone ?? null,
-        address: data.address ?? null,
-        userId: data.userId,
-      },
+    if (!data.email || data.email.trim() === "") {
+      throw new Error(
+        "Vendor email is required"
+      );
+    }
+
+    if (!data.userId || data.userId.trim() === "") {
+      throw new Error(
+        "Vendor userId is required"
+      );
+    }
+
+    const email =
+      data.email.trim().toLowerCase();
+
+    const name =
+      data.name.trim();
+
+    /* =====================================================
+       CHECK FOR EXISTING VENDOR
+
+       This protects against duplicate vendor profiles
+       if the Kafka event is delivered more than once.
+    ===================================================== */
+
+    const existingVendor =
+      await prisma.vendor.findFirst({
+        where: {
+          OR: [
+            {
+              userId: data.userId,
+            },
+            {
+              email,
+            },
+          ],
+        },
+      });
+
+    if (existingVendor) {
+      console.log(
+        "ℹ️ Vendor already exists:",
+        {
+          id: existingVendor.id,
+          userId: existingVendor.userId,
+          email: existingVendor.email,
+          status: existingVendor.status,
+        }
+      );
+
+      return existingVendor;
+    }
+
+    /* =====================================================
+       CREATE VENDOR
+
+       Every newly registered vendor starts as:
+
+         status   = PENDING
+         isActive = false
+
+       Admin approval is required before activation.
+    ===================================================== */
+
+    const vendor =
+      await prisma.vendor.create({
+        data: {
+          userId: data.userId,
+
+          name,
+
+          email,
+
+          phone:
+            data.phone?.trim() || null,
+
+          address:
+            data.address?.trim() || null,
+
+          status:
+            VendorStatus.PENDING,
+
+          isActive: false,
+        },
+      });
+
+    console.log(
+      "=========================================="
+    );
+
+    console.log(
+      "✅ Vendor profile created"
+    );
+
+    console.log({
+      id: vendor.id,
+      userId: vendor.userId,
+      name: vendor.name,
+      email: vendor.email,
+      status: vendor.status,
+      isActive: vendor.isActive,
     });
 
     console.log(
-      "✅ Vendor created:",
-      {
-        id: vendor.id,
-        userId: vendor.userId,
-        status: vendor.status,
-        isActive: vendor.isActive,
-      }
+      "=========================================="
     );
 
     return vendor;
+
   } catch (error) {
     console.error(
       "❌ Error creating vendor:",
@@ -70,6 +198,7 @@ export async function listVendors() {
     );
 
     return vendors;
+
   } catch (error) {
     console.error(
       "❌ Error listing vendors:",
@@ -82,7 +211,7 @@ export async function listVendors() {
 
 
 /* =========================================================
-   GET APPROVED + ACTIVE VENDORS FOR USER
+   GET APPROVED + ACTIVE VENDORS BY USER ID
 ========================================================= */
 
 /*
@@ -131,7 +260,8 @@ export async function getVendorsByUserId(
         where: {
           userId: userId,
 
-          status: VendorStatus.APPROVED,
+          status:
+            VendorStatus.APPROVED,
 
           isActive: true,
         },
@@ -199,7 +329,8 @@ export async function getActiveVendorByUserId(
         where: {
           userId: userId,
 
-          status: VendorStatus.APPROVED,
+          status:
+            VendorStatus.APPROVED,
 
           isActive: true,
         },
@@ -278,16 +409,57 @@ export async function getVendorById(
    UPDATE VENDOR STATUS
 ========================================================= */
 
+/*
+ * APPROVED:
+ *   status   = APPROVED
+ *   isActive = true
+ *
+ * REJECTED:
+ *   status   = REJECTED
+ *   isActive = false
+ *
+ * PENDING:
+ *   status   = PENDING
+ *   isActive = false
+ *
+ * Vendor becomes active ONLY after admin approval.
+ */
+
 export async function updateVendorStatus(
   id: string,
   status: VendorStatus
 ) {
   try {
-    if (!id) {
+    /* =====================================================
+       VALIDATION
+    ===================================================== */
+
+    if (!id || id.trim() === "") {
       throw new Error(
         "Vendor ID is required"
       );
     }
+
+    if (
+      !Object.values(VendorStatus).includes(
+        status
+      )
+    ) {
+      throw new Error(
+        "Invalid vendor status"
+      );
+    }
+
+    /* =====================================================
+       DETERMINE ACTIVE STATE
+    ===================================================== */
+
+    const isActive =
+      status === VendorStatus.APPROVED;
+
+    /* =====================================================
+       UPDATE VENDOR
+    ===================================================== */
 
     const vendor =
       await prisma.vendor.update({
@@ -297,16 +469,28 @@ export async function updateVendorStatus(
 
         data: {
           status,
+          isActive,
         },
       });
 
     console.log(
-      "✅ Vendor status updated:",
-      {
-        id: vendor.id,
-        status: vendor.status,
-        isActive: vendor.isActive,
-      }
+      "=========================================="
+    );
+
+    console.log(
+      "✅ Vendor status updated"
+    );
+
+    console.log({
+      id: vendor.id,
+      userId: vendor.userId,
+      email: vendor.email,
+      status: vendor.status,
+      isActive: vendor.isActive,
+    });
+
+    console.log(
+      "=========================================="
     );
 
     return vendor;
@@ -320,4 +504,3 @@ export async function updateVendorStatus(
     throw error;
   }
 }
-

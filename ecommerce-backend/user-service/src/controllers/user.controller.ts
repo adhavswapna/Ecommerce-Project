@@ -6,7 +6,6 @@ import {
 } from "../kafka/user.producer";
 
 export class UserController {
-
   /**
    * 🔥 CREATE USER
    */
@@ -23,7 +22,30 @@ export class UserController {
 
       return res.status(201).json(user);
     } catch (err: any) {
-      return res.status(500).json({ error: err.message });
+      console.error("❌ createUser error:", err);
+
+      return res.status(500).json({
+        error: err.message,
+      });
+    }
+  }
+
+  /**
+   * 👥 GET ALL USERS
+   */
+  static async getAllUsers(req: Request, res: Response) {
+    try {
+      const users = await UserService.getAllUsers();
+
+      return res.status(200).json({
+        data: users,
+      });
+    } catch (err: any) {
+      console.error("❌ getAllUsers error:", err);
+
+      return res.status(500).json({
+        error: err.message,
+      });
     }
   }
 
@@ -35,12 +57,18 @@ export class UserController {
       const user = await UserService.getById(req.params.id);
 
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(404).json({
+          message: "User not found",
+        });
       }
 
       return res.json(user);
     } catch (err: any) {
-      return res.status(500).json({ error: err.message });
+      console.error("❌ getById error:", err);
+
+      return res.status(500).json({
+        error: err.message,
+      });
     }
   }
 
@@ -51,9 +79,19 @@ export class UserController {
     try {
       const user = await UserService.getById(req.user!.userId);
 
+      if (!user) {
+        return res.status(404).json({
+          message: "User not found",
+        });
+      }
+
       return res.json(user);
     } catch (err: any) {
-      return res.status(500).json({ error: err.message });
+      console.error("❌ getMe error:", err);
+
+      return res.status(500).json({
+        error: err.message,
+      });
     }
   }
 
@@ -65,7 +103,11 @@ export class UserController {
       const { id } = req.params;
       const { name, email } = req.body;
 
-      const user = await UserService.updateProfile(id, name, email);
+      const user = await UserService.updateProfile(
+        id,
+        name,
+        email
+      );
 
       await publishUserProfileUpdated({
         id: user.id,
@@ -75,7 +117,11 @@ export class UserController {
 
       return res.json(user);
     } catch (err: any) {
-      return res.status(500).json({ error: err.message });
+      console.error("❌ updateProfile error:", err);
+
+      return res.status(500).json({
+        error: err.message,
+      });
     }
   }
 
@@ -93,9 +139,15 @@ export class UserController {
         email: user.email,
       });
 
-      return res.json({ message: "User deleted" });
+      return res.json({
+        message: "User deleted",
+      });
     } catch (err: any) {
-      return res.status(500).json({ error: err.message });
+      console.error("❌ deleteUser error:", err);
+
+      return res.status(500).json({
+        error: err.message,
+      });
     }
   }
 }

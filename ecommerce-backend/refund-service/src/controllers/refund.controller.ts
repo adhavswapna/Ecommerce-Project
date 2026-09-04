@@ -140,3 +140,28 @@ export async function updateRefundStatus(req: Request, res: Response) {
     });
   }
 }
+/**
+ * GET ALL REFUNDS
+ * GET /refunds
+ */
+export async function getAllRefunds(
+  req: Request,
+  res: Response
+) {
+  try {
+    const refunds = await refundService.getAllRefunds();
+
+    return res.status(200).json({
+      message: "Refunds fetched successfully",
+      count: refunds.length,
+      data: refunds,
+    });
+  } catch (err: any) {
+    console.error("getAllRefunds error:", err);
+
+    return res.status(500).json({
+      message: "Failed to fetch refunds",
+      error: err?.message || "Internal Server Error",
+    });
+  }
+}

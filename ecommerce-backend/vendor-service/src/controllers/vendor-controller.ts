@@ -14,11 +14,25 @@ import {
   publishVendorStatusUpdated,
 } from "../kafka/vendor.producer";
 
-
 export class VendorController {
 
   /* =====================================================
      CREATE VENDOR PROFILE
+
+     NOTE:
+     Vendor self-registration happens through Auth Service.
+
+     Auth Service creates the AuthUser and publishes:
+       auth.user.created
+
+     Vendor Service Kafka consumer receives that event
+     and creates the Vendor profile with:
+       status = PENDING
+       isActive = false
+
+     This endpoint is retained for internal/backward
+     compatibility and should NOT be used by storefront
+     vendor registration.
   ===================================================== */
 
   static createVendor = async (
@@ -53,8 +67,12 @@ export class VendorController {
       if (process.env.ENABLE_KAFKA === "true") {
         await publishVendorCreated({
           id: vendor.id,
+          userId: vendor.userId,
           name: vendor.name,
           email: vendor.email,
+          phone: vendor.phone,
+          address: vendor.address,
+          status: vendor.status,
         });
       }
 
@@ -75,7 +93,7 @@ export class VendorController {
         return res.status(400).json({
           success: false,
           message:
-            "Vendor email or userId already exists",
+            "Vendor email already exists",
         });
       }
 
@@ -232,6 +250,21 @@ export class VendorController {
 
   /* =====================================================
      APPROVE VENDOR
+
+     Flow:
+
+     Admin
+       ↓
+     Vendor Service
+       ↓
+     Vendor.status = APPROVED
+     Vendor.isActive = true
+       ↓
+     vendor.status.updated
+       ↓
+     Auth Service
+       ↓
+     AuthUser.vendorStatus = APPROVED
   ===================================================== */
 
   static approveVendor = async (
@@ -262,10 +295,19 @@ export class VendorController {
 
       if (process.env.ENABLE_KAFKA === "true") {
         await publishVendorStatusUpdated({
-          id: vendor.id,
-          name: vendor.name,
-          email: vendor.email,
-          status: vendor.status,
+          event: "VENDOR_STATUS_UPDATED",
+
+          data: {
+            vendorId: vendor.id,
+            userId: vendor.userId,
+            name: vendor.name,
+            email: vendor.email,
+            phone: vendor.phone,
+            address: vendor.address,
+            status: vendor.status,
+            updatedAt:
+              vendor.updatedAt.toISOString(),
+          },
         });
       }
 
@@ -302,6 +344,21 @@ export class VendorController {
 
   /* =====================================================
      REJECT VENDOR
+
+     Flow:
+
+     Admin
+       ↓
+     Vendor Service
+       ↓
+     Vendor.status = REJECTED
+     Vendor.isActive = false
+       ↓
+     vendor.status.updated
+       ↓
+     Auth Service
+       ↓
+     AuthUser.vendorStatus = REJECTED
   ===================================================== */
 
   static rejectVendor = async (
@@ -332,10 +389,19 @@ export class VendorController {
 
       if (process.env.ENABLE_KAFKA === "true") {
         await publishVendorStatusUpdated({
-          id: vendor.id,
-          name: vendor.name,
-          email: vendor.email,
-          status: vendor.status,
+          event: "VENDOR_STATUS_UPDATED",
+
+          data: {
+            vendorId: vendor.id,
+            userId: vendor.userId,
+            name: vendor.name,
+            email: vendor.email,
+            phone: vendor.phone,
+            address: vendor.address,
+            status: vendor.status,
+            updatedAt:
+              vendor.updatedAt.toISOString(),
+          },
         });
       }
 
@@ -372,6 +438,16 @@ export class VendorController {
 
   /* =====================================================
      UPDATE VENDOR STATUS
+
+     Supported:
+       PENDING
+       APPROVED
+       REJECTED
+
+     Every status change publishes the same canonical
+     event:
+
+       vendor.status.updated
   ===================================================== */
 
   static updateStatus = async (
@@ -410,10 +486,19 @@ export class VendorController {
 
       if (process.env.ENABLE_KAFKA === "true") {
         await publishVendorStatusUpdated({
-          id: vendor.id,
-          name: vendor.name,
-          email: vendor.email,
-          status: vendor.status,
+          event: "VENDOR_STATUS_UPDATED",
+
+          data: {
+            vendorId: vendor.id,
+            userId: vendor.userId,
+            name: vendor.name,
+            email: vendor.email,
+            phone: vendor.phone,
+            address: vendor.address,
+            status: vendor.status,
+            updatedAt:
+              vendor.updatedAt.toISOString(),
+          },
         });
       }
 

@@ -25,7 +25,7 @@ model Vendor {
   userId    String?
 
   status    VendorStatus  @default(PENDING)
-  isActive  Boolean       @default(true)
+  isActive  Boolean       @default(false)
 
   createdAt DateTime      @default(now())
   updatedAt DateTime      @default(now()) @updatedAt

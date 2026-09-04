@@ -6,6 +6,7 @@ import {
 } from "react-router-dom";
 
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import Orders from "./pages/Orders";
@@ -58,12 +59,18 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-
         {/* Vendor Login */}
 
         <Route
           path="/login"
           element={<Login />}
+        />
+
+        {/* Vendor Registration */}
+
+        <Route
+          path="/register"
+          element={<Register />}
         />
 
         {/* Protected Vendor Dashboard */}
@@ -72,7 +79,6 @@ export default function App() {
           path="/*"
           element={<ProtectedLayout />}
         />
-
       </Routes>
     </BrowserRouter>
   );

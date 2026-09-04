@@ -10,18 +10,46 @@ import {
 export default function Products() {
   const [products, setProducts] = useState<any[]>([]);
 
+  // =========================
+  // CATEGORIES
+  // =========================
+
+  const categories = [
+    { id: "cat-beauty", name: "Beauty" },
+    {
+      id: "cat-electronics",
+      name: "Electronics",
+    },
+    {
+      id: "cat-fashion",
+      name: "Fashion",
+    },
+    {
+      id: "cat-home-kitchen",
+      name: "Home",
+    },
+  ];
+
+  // =========================
+  // CREATE PRODUCT FORM
+  // =========================
+
   const [form, setForm] = useState({
     name: "",
+    categoryId: "",
     price: "",
     stock: "",
     description: "",
   });
 
-  const [image, setImage] = useState<File | null>(null);
+  const [image, setImage] =
+    useState<File | null>(null);
 
-  const [imagePreview, setImagePreview] = useState("");
+  const [imagePreview, setImagePreview] =
+    useState("");
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
 
   const [loadingProducts, setLoadingProducts] =
     useState(true);
@@ -35,11 +63,13 @@ export default function Products() {
   // PRICE RANGE FILTER
   // =========================
 
-  const [priceRange, setPriceRange] = useState("all");
+  const [priceRange, setPriceRange] =
+    useState("all");
 
-  /**
-   * Load current vendor products
-   */
+  // =========================
+  // LOAD PRODUCTS
+  // =========================
+
   const load = async () => {
     try {
       setLoadingProducts(true);
@@ -54,7 +84,9 @@ export default function Products() {
         err
       );
 
-      setError("Unable to load products.");
+      setError(
+        "Unable to load products."
+      );
     } finally {
       setLoadingProducts(false);
     }
@@ -64,9 +96,10 @@ export default function Products() {
     load();
   }, []);
 
-  /**
-   * Filter products according to selected price range
-   */
+  // =========================
+  // PRICE RANGE FILTER
+  // =========================
+
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       const price = Number(product.price);
@@ -101,9 +134,10 @@ export default function Products() {
     });
   }, [products, priceRange]);
 
-  /**
-   * Handle image selection
-   */
+  // =========================
+  // HANDLE IMAGE SELECTION
+  // =========================
+
   const handleImageChange = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -148,22 +182,40 @@ export default function Products() {
     );
   };
 
-  /**
-   * Create product
-   */
+  // =========================
+  // CREATE PRODUCT
+  // =========================
+
   const handleCreate = async () => {
+    // Product name validation
     if (!form.name.trim()) {
-      alert("Product name is required.");
+      alert(
+        "Product name is required."
+      );
       return;
     }
 
+    // Category validation
+    if (!form.categoryId) {
+      alert(
+        "Please select a category."
+      );
+      return;
+    }
+
+    // Price validation
     if (!form.price) {
-      alert("Product price is required.");
+      alert(
+        "Product price is required."
+      );
       return;
     }
 
+    // Stock validation
     if (!form.stock) {
-      alert("Product stock is required.");
+      alert(
+        "Product stock is required."
+      );
       return;
     }
 
@@ -172,11 +224,11 @@ export default function Products() {
 
       let imageUrl = "";
 
-      /**
-       * Step 1:
-       * Upload image to MinIO through
-       * Product Service.
-       */
+      // =========================
+      // STEP 1:
+      // UPLOAD IMAGE
+      // =========================
+
       if (image) {
         console.log(
           "Uploading product image..."
@@ -204,13 +256,15 @@ export default function Products() {
         );
       }
 
-      /**
-       * Step 2:
-       * Create product with the
-       * returned MinIO image URL.
-       */
+      // =========================
+      // STEP 2:
+      // CREATE PRODUCT
+      // =========================
+
       await createProduct({
         name: form.name.trim(),
+
+        categoryId: form.categoryId,
 
         price: Number(form.price),
 
@@ -228,11 +282,13 @@ export default function Products() {
         "Product created successfully ✅"
       );
 
-      /**
-       * Reset form
-       */
+      // =========================
+      // RESET FORM
+      // =========================
+
       setForm({
         name: "",
+        categoryId: "",
         price: "",
         stock: "",
         description: "",
@@ -241,9 +297,10 @@ export default function Products() {
       setImage(null);
       setImagePreview("");
 
-      /**
-       * Reload products
-       */
+      // =========================
+      // RELOAD PRODUCTS
+      // =========================
+
       await load();
     } catch (err: any) {
       console.error(
@@ -261,9 +318,10 @@ export default function Products() {
     }
   };
 
-  /**
-   * Delete product
-   */
+  // =========================
+  // DELETE PRODUCT
+  // =========================
+
   const handleDelete = async (
     productId: string,
     productName: string
@@ -291,10 +349,8 @@ export default function Products() {
         "Product deleted successfully ✅"
       );
 
-      /**
-       * Remove product immediately
-       * from the frontend list.
-       */
+      // Remove product immediately
+      // from frontend list
       setProducts((currentProducts) =>
         currentProducts.filter(
           (product) =>
@@ -364,7 +420,9 @@ export default function Products() {
             maxWidth: "600px",
           }}
         >
-          {/* PRODUCT NAME */}
+          {/* =========================
+              PRODUCT NAME
+          ========================= */}
 
           <input
             placeholder="Product Name"
@@ -384,7 +442,46 @@ export default function Products() {
             }}
           />
 
-          {/* PRICE */}
+          {/* =========================
+              CATEGORY
+          ========================= */}
+
+          <select
+            value={form.categoryId}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                categoryId: e.target.value,
+              })
+            }
+            disabled={loading}
+            style={{
+              padding: "10px",
+              border:
+                "1px solid #d1d5db",
+              borderRadius: "6px",
+              background: "white",
+            }}
+          >
+            <option value="">
+              Select Category
+            </option>
+
+            {categories.map(
+              (category) => (
+                <option
+                  key={category.id}
+                  value={category.id}
+                >
+                  {category.name}
+                </option>
+              )
+            )}
+          </select>
+
+          {/* =========================
+              PRICE
+          ========================= */}
 
           <input
             type="number"
@@ -397,6 +494,7 @@ export default function Products() {
               })
             }
             disabled={loading}
+            min="0"
             style={{
               padding: "10px",
               border:
@@ -405,7 +503,9 @@ export default function Products() {
             }}
           />
 
-          {/* STOCK */}
+          {/* =========================
+              STOCK
+          ========================= */}
 
           <input
             type="number"
@@ -418,6 +518,7 @@ export default function Products() {
               })
             }
             disabled={loading}
+            min="0"
             style={{
               padding: "10px",
               border:
@@ -426,7 +527,9 @@ export default function Products() {
             }}
           />
 
-          {/* DESCRIPTION */}
+          {/* =========================
+              DESCRIPTION
+          ========================= */}
 
           <textarea
             placeholder="Description"
@@ -483,7 +586,9 @@ export default function Products() {
             </p>
           </div>
 
-          {/* IMAGE PREVIEW */}
+          {/* =========================
+              IMAGE PREVIEW
+          ========================= */}
 
           {imagePreview && (
             <div>
@@ -511,7 +616,9 @@ export default function Products() {
             </div>
           )}
 
-          {/* CREATE BUTTON */}
+          {/* =========================
+              CREATE BUTTON
+          ========================= */}
 
           <button
             onClick={handleCreate}
@@ -551,7 +658,7 @@ export default function Products() {
       </h2>
 
       {/* =========================
-          PRICE RANGE TABS
+          PRICE RANGE FILTER
       ========================= */}
 
       <div
@@ -764,8 +871,8 @@ export default function Products() {
               color: "#6b7280",
             }}
           >
-            No products found in this price
-            range.
+            No products found in this
+            price range.
           </div>
         )}
 
@@ -790,7 +897,9 @@ export default function Products() {
                 "0 1px 3px rgba(0,0,0,0.1)",
             }}
           >
-            {/* PRODUCT IMAGE */}
+            {/* =========================
+                PRODUCT IMAGE
+            ========================= */}
 
             {p.images?.length > 0 && (
               <img
@@ -806,7 +915,9 @@ export default function Products() {
               />
             )}
 
-            {/* PRODUCT NAME */}
+            {/* =========================
+                PRODUCT NAME
+            ========================= */}
 
             <h3
               style={{
@@ -817,7 +928,20 @@ export default function Products() {
               {p.name}
             </h3>
 
-            {/* PRICE */}
+            {/* =========================
+                CATEGORY
+            ========================= */}
+
+            {p.category && (
+              <p>
+                Category:{" "}
+                {p.category.name}
+              </p>
+            )}
+
+            {/* =========================
+                PRICE
+            ========================= */}
 
             <p>
               Price: ₹
@@ -826,13 +950,17 @@ export default function Products() {
               ).toLocaleString("en-IN")}
             </p>
 
-            {/* STOCK */}
+            {/* =========================
+                STOCK
+            ========================= */}
 
             <p>
               Stock: {p.stock}
             </p>
 
-            {/* DESCRIPTION */}
+            {/* =========================
+                DESCRIPTION
+            ========================= */}
 
             {p.description && (
               <p

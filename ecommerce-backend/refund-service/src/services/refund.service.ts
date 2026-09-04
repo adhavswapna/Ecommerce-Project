@@ -65,6 +65,7 @@ export class RefundService {
   /**
    * Update refund status
    */
+
   async updateStatus(id: string, status: RefundStatus) {
     return prisma.refund.update({
       where: { id },
@@ -81,4 +82,17 @@ export class RefundService {
       orderBy: { createdAt: "desc" },
     });
   }
+
+  /**
+   * Get all refunds
+   */
+  async getAllRefunds() {
+    return prisma.refund.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
 }
+
+

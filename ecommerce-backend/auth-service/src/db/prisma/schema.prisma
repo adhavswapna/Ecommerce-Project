@@ -20,7 +20,14 @@ model AuthUser {
   address   String?
 
   // Account status
+  // Used for email/account verification.
+  // This is NOT vendor admin approval.
   isVerified Boolean @default(false)
+
+  // Vendor approval status
+  // Only meaningful when role = VENDOR.
+  // USER and ADMIN accounts can leave this as null.
+  vendorStatus VendorStatus?
 
   // Password reset
   resetToken       String?
@@ -31,6 +38,8 @@ model AuthUser {
   updatedAt DateTime @updatedAt
 
   @@index([email])
+  @@index([role])
+  @@index([vendorStatus])
 }
 
 enum Role {
@@ -39,3 +48,8 @@ enum Role {
   ADMIN
 }
 
+enum VendorStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
