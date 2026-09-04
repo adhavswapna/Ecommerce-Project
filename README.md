@@ -1,8 +1,10 @@
 # 🛒 Ecommerce Microservices Platform
 
-A scalable **microservices-based ecommerce platform** designed to simulate a production-style online shopping ecosystem.
+A **microservices-based ecommerce platform** designed to provide a complete online shopping experience with separate applications for customers, vendors, and administrators.
 
-The project is structured into independent backend services, dedicated frontend applications, centralized API Gateway routing, and containerized infrastructure. Each major business capability is implemented as an independent microservice, allowing services to be developed, deployed, scaled, and maintained independently.
+The platform supports product browsing, shopping carts, orders, payments, inventory, reviews, invoices, shipping, refunds, notifications, and vendor management.
+
+The backend is organized into independent services, with each service responsible for a specific business capability.
 
 ---
 
@@ -10,17 +12,255 @@ The project is structured into independent backend services, dedicated frontend 
 
 The platform provides separate interfaces for three types of users:
 
-* 🛍️ **Customers** — Browse products, manage carts, place orders, make payments, track shipments, download invoices, and manage reviews.
-* 🏪 **Vendors** — Manage products, inventory, orders, and vendor-related operations.
-* 👨‍💼 **Administrators** — Manage users, vendors, products, orders, analytics, and platform operations.
+### 🛍️ Customers
 
-The backend follows a **microservices architecture**, where individual business capabilities are separated into independent services.
+Customers can:
 
-Communication between services is supported through **REST APIs** and **Apache Kafka** for event-driven asynchronous communication.
+* Register and login
+* Browse products
+* Search products
+* View product details
+* Manage shopping carts
+* Checkout
+* Make payments
+* Place and manage orders
+* Track shipments
+* Download invoices
+* Submit product ratings and reviews
+* Manage their profile
+
+### 🏪 Vendors
+
+Vendors can:
+
+* Register with username/email and password
+* Login to the vendor application
+* Check vendor approval status
+* Access the vendor dashboard after approval
+* Create products
+* Update products
+* Manage their products
+* Manage inventory
+* View orders
+* View vendor analytics
+
+A vendor must be **approved by an administrator before creating products**.
+
+### 👨‍💼 Administrators
+
+Administrators can:
+
+* Login to the admin dashboard
+* View vendor registrations
+* Review vendor applications
+* Approve vendors
+* Reject vendors
+* Manage users
+* Manage products
+* Manage orders
+* View analytics
+* Perform platform administration
 
 ---
 
-## 🏗️ High-Level Architecture
+# 🏪 Vendor Registration & Approval Workflow
+
+Vendor onboarding follows an admin approval process.
+
+```text
+                 Vendor
+                   │
+                   ▼
+          Vendor Registration
+                   │
+          Username + Password
+                   │
+                   ▼
+                PENDING
+                   │
+                   ▼
+          Admin Reviews Vendor
+              /           \
+             /             \
+            ▼               ▼
+        APPROVED         REJECTED
+            │               │
+            ▼               ▼
+      Vendor Login      Access Restricted
+            │
+            ▼
+     Vendor Dashboard
+            │
+            ▼
+      Create Product
+```
+
+### 1. Vendor Registration
+
+The vendor registers through the Vendor Dashboard.
+
+```text
+http://localhost:5173
+```
+
+The registration form includes:
+
+```text
+Username
+Email
+Password
+Confirm Password
+```
+
+After registration, the vendor account is created with:
+
+```text
+status = PENDING
+```
+
+The vendor cannot create products while the account is pending.
+
+---
+
+### 2. Admin Review
+
+The administrator logs into the Admin Dashboard:
+
+```text
+http://localhost:5174
+```
+
+The admin can view pending vendor applications.
+
+Example:
+
+| Vendor     | Email                                       | Status   | Action           |
+| ---------- | ------------------------------------------- | -------- | ---------------- |
+| ABC Store  | [abc@example.com](mailto:abc@example.com)   | PENDING  | Approve / Reject |
+| XYZ Store  | [xyz@example.com](mailto:xyz@example.com)   | APPROVED | —                |
+| Demo Store | [demo@example.com](mailto:demo@example.com) | REJECTED | —                |
+
+---
+
+### 3. Vendor Approval
+
+If the administrator approves the application:
+
+```text
+PENDING
+   │
+   ▼
+APPROVED
+```
+
+The vendor can then log in and access vendor functionality.
+
+---
+
+### 4. Vendor Rejection
+
+If the administrator rejects the application:
+
+```text
+PENDING
+   │
+   ▼
+REJECTED
+```
+
+The vendor cannot access protected vendor operations such as product creation.
+
+---
+
+# 📦 Product Creation Workflow
+
+Only an **approved vendor** can create products.
+
+```text
+Approved Vendor
+      │
+      ▼
+Vendor Login
+      │
+      ▼
+Vendor Dashboard
+      │
+      ▼
+Add Product
+      │
+      ▼
+API Gateway
+      │
+      ▼
+Product Service
+      │
+      ▼
+PostgreSQL
+```
+
+A product contains information such as:
+
+```text
+Product Name
+Description
+Price
+Stock
+Category
+Images
+Vendor ID
+```
+
+Each product is associated with the vendor who created it.
+
+```text
+Product
+├── id
+├── vendorId
+├── name
+├── description
+├── price
+├── stock
+├── category
+└── images
+```
+
+---
+
+# 🛡️ Vendor Authorization
+
+Vendor authentication and vendor approval are separate checks.
+
+For protected vendor operations, the backend verifies:
+
+```text
+JWT Valid?
+    │
+    ▼
+Role = VENDOR?
+    │
+    ▼
+Vendor Exists?
+    │
+    ▼
+Vendor Status = APPROVED?
+    │
+    ▼
+Allow Vendor Operation
+```
+
+For example, creating a product requires:
+
+```text
+Authenticated = YES
+Role = VENDOR
+Vendor Status = APPROVED
+```
+
+The approval check is performed on the **backend** so that a pending or rejected vendor cannot bypass the frontend and directly call the product API.
+
+---
+
+# 🏗️ High-Level Architecture
 
 ```text
                          ┌───────────────────────┐
@@ -54,7 +294,7 @@ Communication between services is supported through **REST APIs** and **Apache K
               │                      │                      │
               ▼                      ▼                      ▼
           PostgreSQL              MinIO              Other Services
-       Service Databases       Object Storage        Payment / Shipping
+       Service Databases       Object Storage       Payment / Shipping
 ```
 
 ---
@@ -106,25 +346,25 @@ Ecommerce-Project/
 
 The backend is divided into independent services, each responsible for a specific business capability.
 
-| Service                  | Responsibility                         |
-| ------------------------ | -------------------------------------- |
-| **Auth Service**         | Authentication, JWT and Google OAuth   |
-| **User Service**         | Customer/user management               |
-| **Admin Service**        | Administrative operations              |
-| **Product Service**      | Product catalog and product management |
-| **Cart Service**         | Shopping cart management               |
-| **Order Service**        | Order creation and order lifecycle     |
-| **Payment Service**      | Payment processing                     |
-| **Rating Service**       | Product reviews and ratings            |
-| **Inventory Service**    | Stock and inventory management         |
-| **Invoice Service**      | Invoice generation and storage         |
-| **Analytics Service**    | Ecommerce analytics and reporting      |
-| **Vendor Service**       | Vendor management                      |
-| **Search Service**       | Product search functionality           |
-| **Shipping Service**     | Shipping and order tracking            |
-| **Refund Service**       | Refund processing                      |
-| **Email Service**        | Email notifications                    |
-| **Notification Service** | Application notifications              |
+| Service                  | Responsibility                               |
+| ------------------------ | -------------------------------------------- |
+| **Auth Service**         | Authentication, JWT and Google OAuth         |
+| **User Service**         | Customer/user management                     |
+| **Admin Service**        | Administrative operations                    |
+| **Product Service**      | Product catalog and product management       |
+| **Cart Service**         | Shopping cart management                     |
+| **Order Service**        | Order creation and order lifecycle           |
+| **Payment Service**      | Payment processing                           |
+| **Rating Service**       | Product reviews and ratings                  |
+| **Inventory Service**    | Stock and inventory management               |
+| **Invoice Service**      | Invoice generation and storage               |
+| **Analytics Service**    | Ecommerce analytics and reporting            |
+| **Vendor Service**       | Vendor registration, approval and management |
+| **Search Service**       | Product search functionality                 |
+| **Shipping Service**     | Shipping and order tracking                  |
+| **Refund Service**       | Refund processing                            |
+| **Email Service**        | Email notifications                          |
+| **Notification Service** | Application notifications                    |
 
 ---
 
@@ -132,7 +372,7 @@ The backend is divided into independent services, each responsible for a specifi
 
 The project contains three separate frontend applications.
 
-### 🛍️ Storefront
+## 🛍️ Storefront
 
 Customer-facing ecommerce application built with **Next.js**.
 
@@ -149,35 +389,61 @@ Responsibilities include:
 * Reviews and ratings
 * Shipping tracking
 
+**URL:**
+
+```text
+http://localhost:3000
+```
+
 ---
 
-### 🏪 Vendor Dashboard
+## 🏪 Vendor Dashboard
 
-Dedicated dashboard for vendors.
+Vendor-facing application for registration, authentication, product management, inventory, and vendor operations.
 
 Responsibilities include:
 
-* Vendor authentication
+* Vendor registration
+* Vendor login
+* Approval status
+* Vendor dashboard
+* Product creation
 * Product management
 * Inventory management
 * Order management
 * Vendor analytics
-* Vendor-related operations
+
+**URL:**
+
+```text
+http://localhost:5173
+```
+
+A vendor can create products **only after the admin approves the vendor account**.
 
 ---
 
-### 👨‍💼 Admin Dashboard
+## 👨‍💼 Admin Dashboard
 
-Administrative interface for managing the ecommerce platform.
+Administrative application for managing the ecommerce platform.
 
 Responsibilities include:
 
+* Admin login
+* Vendor registration management
+* Vendor approval
+* Vendor rejection
 * User management
-* Vendor management
 * Product management
 * Order management
 * Analytics
 * Platform administration
+
+**URL:**
+
+```text
+http://localhost:5174
+```
 
 ---
 
@@ -185,7 +451,7 @@ Responsibilities include:
 
 Nginx acts as the centralized **API Gateway** for the backend services.
 
-The frontend communicates with:
+Frontend applications communicate with:
 
 ```text
 http://localhost:8081/api
@@ -220,9 +486,9 @@ The gateway provides:
 
 ---
 
-# 🐳 Containerized Infrastructure
+# 🐳 Application Infrastructure
 
-The project uses Docker Compose to manage infrastructure components.
+The application uses Docker Compose for local infrastructure components.
 
 The main infrastructure includes:
 
@@ -232,7 +498,7 @@ The main infrastructure includes:
 * Redis
 * MinIO
 
-Docker Compose configuration is provided through:
+Docker Compose configuration:
 
 ```text
 docker-compose.yml
@@ -348,11 +614,21 @@ The platform supports:
 
 The JWT token is forwarded by Nginx to protected backend services.
 
+### Application Roles
+
+```text
+USER
+VENDOR
+ADMIN
+```
+
+Vendor approval status is used in addition to the role to control vendor-specific operations.
+
 ---
 
-# 🔄 Request Flow
+# 🔄 Customer Order Flow
 
-A typical customer request follows this architecture:
+A typical customer order follows this flow:
 
 ```text
 Customer
@@ -364,15 +640,65 @@ Storefront
 Nginx API Gateway
    │
    ▼
-Required Microservice
+Product Service
    │
-   ├── PostgreSQL
-   ├── Redis
-   ├── Kafka
-   └── MinIO
+   ▼
+Cart Service
+   │
+   ▼
+Checkout
+   │
+   ▼
+Order Service
+   │
+   ├──► Payment Service
+   │
+   ├──► Inventory Service
+   │
+   ├──► Invoice Service
+   │
+   └──► Notification Service
 ```
 
-This architecture provides a single API entry point while keeping backend business logic distributed across independent services.
+---
+
+# 🔄 Vendor-to-Product Flow
+
+```text
+Vendor
+   │
+   ▼
+Vendor Dashboard :5173
+   │
+   ▼
+Register
+   │
+   ▼
+PENDING
+   │
+   ▼
+Admin Dashboard :5174
+   │
+   ├──────────────► REJECTED
+   │
+   ▼
+APPROVED
+   │
+   ▼
+Vendor Login
+   │
+   ▼
+Vendor Dashboard
+   │
+   ▼
+Create Product
+   │
+   ▼
+Product Service
+   │
+   ▼
+Product Database
+```
 
 ---
 
@@ -397,16 +723,17 @@ This architecture provides a single API entry point while keeping backend busine
 * JWT
 * Google OAuth
 
-### Infrastructure
+### Data & Messaging
 
-* Docker
-* Docker Compose
-* Nginx
 * PostgreSQL
 * Redis
 * Apache Kafka
 * Zookeeper
+
+### Storage & Gateway
+
 * MinIO
+* Nginx
 
 ### External Integrations
 
@@ -416,18 +743,69 @@ This architecture provides a single API entry point while keeping backend busine
 
 ---
 
+# 🚦 Application Ports
+
+| Application / Service |   Port |
+| --------------------- | -----: |
+| Storefront            | `3000` |
+| Vendor Dashboard      | `5173` |
+| Admin Dashboard       | `5174` |
+| API Gateway           | `8081` |
+| Product Service       | `3003` |
+| Notification Service  | `3018` |
+| WebSocket             | `8080` |
+| PostgreSQL            | `5432` |
+| Redis                 | `6379` |
+| Kafka                 | `9092` |
+| MinIO API             | `9000` |
+| MinIO Console         | `9001` |
+
+---
+
 # 🎯 Project Goals
 
-This project demonstrates how a modern ecommerce platform can be structured using:
+This project demonstrates how an ecommerce application can be structured using:
 
 * Microservices architecture
 * API Gateway pattern
 * Event-driven communication
-* Containerized infrastructure
 * Independent service databases
 * Authentication and authorization
+* Vendor approval workflow
+* Product management
+* Shopping cart and checkout
+* Order processing
+* Payment processing
+* Inventory management
 * Object storage
 * Distributed frontend applications
 
-The architecture is also suitable as a foundation for further **DevOps implementation**, including CI/CD pipelines, infrastructure automation, container orchestration, monitoring, logging, security, and cloud deployment.
+---
+
+# 📌 Future Development
+
+The application can be extended with additional features such as:
+
+* Advanced product search
+* Recommendation systems
+* Improved analytics
+* Real-time order updates
+* Enhanced notification workflows
+* Additional payment methods
+* Improved vendor management
+* Customer support functionality
+
+**DevOps implementation such as CI/CD, cloud deployment, Terraform, Kubernetes, monitoring, logging, and infrastructure automation will be handled separately from this application project.**
+
+---
+
+# 👩‍💻 Author
+
+**Swapna Adhav**
+
+---
+
+# 📄 License
+
+This project is created for educational and portfolio purposes.
 
