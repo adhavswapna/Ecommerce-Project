@@ -1,5 +1,11 @@
 # 🛒 Ecommerce Microservices Platform
 
+
+Copyright © 2026 Swapna Adhav. All Rights Reserved.
+
+
+
+
 A **microservices-based ecommerce platform** designed to provide a complete online shopping experience with separate applications for customers, vendors, and administrators.
 
 The platform supports product browsing, shopping carts, orders, payments, inventory, reviews, invoices, shipping, refunds, notifications, and vendor management.
@@ -807,5 +813,10 @@ The application can be extended with additional features such as:
 
 # 📄 License
 
-This project is created for educational and portfolio purposes.
+Copyright © 2026 Swapna Adhav. All Rights Reserved.
+
+This project is provided for portfolio and educational purposes only.
+You may view the source code, but you may not copy, modify, distribute,
+or use this project or substantial portions of its source code without
+prior written permission from the author.
 
